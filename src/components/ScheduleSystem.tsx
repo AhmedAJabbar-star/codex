@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import * as XLSX from 'xlsx';
 
 /* ───── Print helper: generates a standalone print window ───── */
 function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string) {
@@ -122,6 +123,24 @@ const HoursStatistics = ({ rows }: { rows: ScheduleRow[] }) => {
     </div>
   );
 };
+
+/* ───── Excel export ───── */
+function exportToExcel(title: string, headers: string[], rows: ScheduleRow[]) {
+  const data = rows.map(r => {
+    const obj: Record<string, string> = {};
+    headers.forEach(h => { obj[h] = r[h] || ''; });
+    return obj;
+  });
+  const ws = XLSX.utils.json_to_sheet(data, { header: headers });
+
+  /* RTL + column widths */
+  ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length * 2, 14) }));
+  if (!ws['!sheetViews']) (ws as any)['!sheetViews'] = [{ rightToLeft: true }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'الجدول');
+  XLSX.writeFile(wb, `${title}.xlsx`);
+}
 
 const FOOTER_HTML = `
 <div><strong>برمجة :</strong> المدرس الدكتور احمد عبدالامير جبار عيسى - كلية الهندسة المدنية</div>
@@ -343,6 +362,7 @@ const ScheduleSystem = () => {
             {system.shortReport && (
               <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
             )}
+            <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(124,58,237,.28)' }} onClick={() => exportToExcel(system.appTitle, system.headers, filteredRows)}>📥 تصدير Excel</button>
             <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
             <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
           </div>
