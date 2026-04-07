@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import * as XLSX from 'xlsx';
 
 /* ───── Print helper: generates a standalone print window ───── */
 function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string) {
