@@ -1,5 +1,132 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+
+/* ───── Print helper: generates a standalone print window ───── */
+function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+
+  const tableRows = rows.map(r =>
+    `<tr>${headers.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`
+  ).join('');
+
+  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:12px}
+h2{text-align:center;margin:8px 0 14px;font-size:20px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#0f4c81;color:#fff;padding:8px 6px;font-weight:800;border:1px solid #0b3558;white-space:nowrap}
+td{padding:7px 6px;border:1px solid #d9e2ef;text-align:center;font-weight:600;vertical-align:middle}
+tr:nth-child(even){background:#f7fbff}
+.footer{margin-top:18px;border-top:2px solid #0f4c81;padding-top:10px;font-size:12px;line-height:2;color:#333}
+.footer strong{color:#000}
+@media print{
+  @page{size:landscape;margin:8mm}
+  body{padding:0}
+  tr,td,th{page-break-inside:avoid}
+}
+</style></head><body>
+<h2>${title}</h2>
+<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+<tbody>${tableRows}</tbody></table>
+<div class="footer">${footerHtml}</div>
+<script>window.onafterprint=()=>window.close();window.print();<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+/* ───── Short report: excludeHeaders mode ───── */
+function generateExcludeHeadersReport(
+  rows: ScheduleRow[],
+  allHeaders: string[],
+  excludeHeaders: string[],
+  title: string,
+  footerHtml: string,
+) {
+  const displayHeaders = allHeaders.filter(h => !excludeHeaders.includes(h));
+  openPrintWindow(title, displayHeaders, rows, footerHtml);
+}
+
+/* ───── Short report: afterHeader mode ───── */
+function generateAfterHeaderReport(
+  rows: ScheduleRow[],
+  allHeaders: string[],
+  headerKey: string,
+  title: string,
+  footerHtml: string,
+) {
+  const idx = allHeaders.indexOf(headerKey);
+  const displayHeaders = idx >= 0 ? allHeaders.slice(idx + 1) : allHeaders;
+  openPrintWindow(title, displayHeaders, rows, footerHtml);
+}
+
+/* ───── Statistics component for hours tab ───── */
+const HoursStatistics = ({ rows }: { rows: ScheduleRow[] }) => {
+  const stats = useMemo(() => {
+    const totalRows = rows.length;
+    const tadqiqValues: Record<string, number> = {};
+    let totalScheduleHours = 0;
+    let totalProgramHours = 0;
+
+    rows.forEach(r => {
+      const tVal = r['التدقيق حسب الاسبوع'] || '';
+      tadqiqValues[tVal] = (tadqiqValues[tVal] || 0) + 1;
+      totalScheduleHours += parseFloat(r['الساعات حسب الجدول الدراسي'] || '0') || 0;
+      totalProgramHours += parseFloat(r['الساعات حسب البرنامج الدراسي'] || '0') || 0;
+    });
+
+    return { totalRows, tadqiqValues, totalScheduleHours, totalProgramHours };
+  }, [rows]);
+
+  const statusColors: Record<string, string> = {
+    '✅ سليم': 'bg-green-100 text-green-800 border-green-300',
+    '⚠️ الساعات المدخلة أقل من البرنامج': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    '⚠️ الساعات المدخلة أكثر من البرنامج': 'bg-orange-100 text-orange-800 border-orange-300',
+    '⚪ لا توجد ساعات في البرنامج الدراسي': 'bg-gray-100 text-gray-700 border-gray-300',
+    '❌ إدراج ساعات عملي لمادة نظري': 'bg-red-100 text-red-800 border-red-300',
+  };
+
+  return (
+    <div className="schedule-stats">
+      <div className="schedule-stats-header">📊 إحصائيات الساعات الدراسية</div>
+      <div className="schedule-stats-grid">
+        <div className="schedule-stat-card">
+          <span className="schedule-stat-value">{stats.totalRows}</span>
+          <span className="schedule-stat-label">إجمالي المواد</span>
+        </div>
+        <div className="schedule-stat-card">
+          <span className="schedule-stat-value">{stats.totalScheduleHours}</span>
+          <span className="schedule-stat-label">ساعات الجدول</span>
+        </div>
+        <div className="schedule-stat-card">
+          <span className="schedule-stat-value">{stats.totalProgramHours}</span>
+          <span className="schedule-stat-label">ساعات البرنامج</span>
+        </div>
+        <div className="schedule-stat-card">
+          <span className="schedule-stat-value">{Math.abs(stats.totalScheduleHours - stats.totalProgramHours)}</span>
+          <span className="schedule-stat-label">الفرق</span>
+        </div>
+      </div>
+      <div className="schedule-stats-breakdown">
+        {Object.entries(stats.tadqiqValues).sort((a, b) => b[1] - a[1]).map(([key, count]) => (
+          <div key={key} className={`schedule-stats-tag ${statusColors[key] || 'bg-gray-100 text-gray-700 border-gray-300'}`}>
+            <span>{key || '(فارغ)'}</span>
+            <strong>{count}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const FOOTER_HTML = `
+<div><strong>برمجة :</strong> المدرس الدكتور احمد عبدالامير جبار عيسى - كلية الهندسة المدنية</div>
+<div><strong>تصميم :</strong> الاستاذ الدكتور وائل شوقي عبد الصاحب - معاون العميد للشؤون الادارية</div>
+<div><strong>اشراف :</strong> الاستاذ الدكتورة خولة صلاح خشان - مساعد رئيس الجامعة للشؤون العلمية</div>`;
 
 const ScheduleSystem = () => {
   const [activeSystem, setActiveSystem] = useState('teacher');
@@ -11,64 +138,50 @@ const ScheduleSystem = () => {
 
   const system = useMemo(() => SYSTEMS.find(s => s.id === activeSystem)!, [activeSystem]);
 
-  // Close combo on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (comboRef.current && !comboRef.current.contains(e.target as Node)) {
-        setComboOpen(false);
-      }
+      if (comboRef.current && !comboRef.current.contains(e.target as Node)) setComboOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Toggle dark mode
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
 
-  // Filter rows
   const filteredRows = useMemo(() => {
-    return system.rows.filter(row => {
-      return system.filters.every(f => {
+    return system.rows.filter(row =>
+      system.filters.every(f => {
         const val = filters[f.key];
         if (!val) return true;
         return row[f.key] === val;
-      });
-    });
+      })
+    );
   }, [system, filters]);
 
-  // Get unique values for a filter, considering upstream filters
-  const getFilterOptions = (filterKey: string): string[] => {
+  const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
     const upstreamFilters = system.filters.slice(0, filterIndex);
-    
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
       if (val) rows = rows.filter(r => r[f.key] === val);
     });
-
     const values = [...new Set(rows.map(r => r[filterKey]).filter(Boolean))];
     values.sort();
     return values;
-  };
+  }, [system, filters]);
 
   const handleFilterChange = (key: string, value: string) => {
     const filterIndex = system.filters.findIndex(f => f.key === key);
     const newFilters = { ...filters };
     newFilters[key] = value;
-    // Clear downstream filters
-    system.filters.slice(filterIndex + 1).forEach(f => {
-      delete newFilters[f.key];
-    });
+    system.filters.slice(filterIndex + 1).forEach(f => { delete newFilters[f.key]; });
     setFilters(newFilters);
   };
 
-  const clearFilters = () => {
-    setFilters({});
-    setComboQuery('');
-  };
+  const clearFilters = () => { setFilters({}); setComboQuery(''); };
 
   const switchSystem = (id: string) => {
     setActiveSystem(id);
@@ -77,14 +190,25 @@ const ScheduleSystem = () => {
     setComboOpen(false);
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML);
+  };
 
-  // Combo filter for teacher name
+  const handleShortReport = () => {
+    const sr = system.shortReport;
+    if (!sr) return;
+    if (sr.mode === 'excludeHeaders' && sr.headers) {
+      generateExcludeHeadersReport(filteredRows, system.headers, sr.headers, sr.title, FOOTER_HTML);
+    } else if (sr.mode === 'afterHeader' && sr.header) {
+      generateAfterHeaderReport(filteredRows, system.headers, sr.header, sr.title, FOOTER_HTML);
+    }
+  };
+
   const comboOptions = useMemo(() => {
     const options = getFilterOptions('اسم التدريسي');
     if (!comboQuery) return options;
     return options.filter(o => o.includes(comboQuery));
-  }, [filters, comboQuery, system]);
+  }, [filters, comboQuery, system, getFilterOptions]);
 
   return (
     <div className={`schedule-body ${isDark ? 'dark' : ''}`} dir="rtl">
@@ -101,11 +225,7 @@ const ScheduleSystem = () => {
               </h1>
               <div className="mt-1 flex flex-wrap gap-2.5 justify-center items-center">
                 <span className="schedule-badge">الفصل الدراسي الحالي</span>
-                <button
-                  onClick={() => setIsDark(!isDark)}
-                  className="schedule-btn"
-                  style={{ minHeight: 38, padding: '8px 14px', borderRadius: 999 }}
-                >
+                <button onClick={() => setIsDark(!isDark)} className="schedule-btn" style={{ minHeight: 38, padding: '8px 14px', borderRadius: 999 }}>
                   🌓 تبديل النمط
                 </button>
               </div>
@@ -115,14 +235,10 @@ const ScheduleSystem = () => {
             </div>
           </header>
 
-          {/* System Switcher - Slides */}
+          {/* System Switcher */}
           <div className="system-switcher">
             {SYSTEMS.map(sys => (
-              <button
-                key={sys.id}
-                className={`system-slide ${activeSystem === sys.id ? 'active' : ''}`}
-                onClick={() => switchSystem(sys.id)}
-              >
+              <button key={sys.id} className={`system-slide ${activeSystem === sys.id ? 'active' : ''}`} onClick={() => switchSystem(sys.id)}>
                 <span className="system-slide-icon">{sys.icon}</span>
                 <span>{sys.title}</span>
                 <span className="system-slide-badge">{sys.rows.length}</span>
@@ -142,9 +258,7 @@ const ScheduleSystem = () => {
                 {f.control === 'combo' ? (
                   <div ref={comboRef} className={`relative ${comboOpen ? 'z-30' : ''}`}>
                     <div
-                      className={`relative flex items-center min-h-[52px] rounded-2xl border border-[var(--schedule-border)] px-4 cursor-pointer transition-all ${
-                        comboOpen ? 'border-blue-400/45 shadow-[0_0_0_4px_rgba(37,99,235,.14)]' : ''
-                      }`}
+                      className={`relative flex items-center min-h-[52px] rounded-2xl border border-[var(--schedule-border)] px-4 cursor-pointer transition-all ${comboOpen ? 'border-blue-400/45 shadow-[0_0_0_4px_rgba(37,99,235,.14)]' : ''}`}
                       style={{
                         background: isDark
                           ? 'linear-gradient(180deg, rgba(13,22,38,.92), rgba(10,18,33,.84))'
@@ -174,85 +288,49 @@ const ScheduleSystem = () => {
                           <button
                             className="w-8 h-8 rounded-xl grid place-items-center text-sm font-black schedule-btn"
                             style={{ minHeight: 32, padding: 0 }}
-                            onClick={e => {
-                              e.stopPropagation();
-                              setComboQuery('');
-                              const newF = { ...filters };
-                              delete newF[f.key];
-                              setFilters(newF);
-                            }}
+                            onClick={e => { e.stopPropagation(); setComboQuery(''); const newF = { ...filters }; delete newF[f.key]; setFilters(newF); }}
                           >✕</button>
                         )}
                         <span className={`text-xs transition-transform ${comboOpen ? 'rotate-180' : ''}`}>▼</span>
                       </div>
                     </div>
                     {comboOpen && (
-                      <div
-                        className="absolute inset-x-0 top-[calc(100%+10px)] z-25 rounded-[22px] border border-[var(--schedule-border)] overflow-hidden"
+                      <div className="absolute inset-x-0 top-[calc(100%+10px)] z-25 rounded-[22px] border border-[var(--schedule-border)] overflow-hidden"
                         style={{
                           background: isDark
                             ? 'linear-gradient(180deg, rgba(11,19,33,.98), rgba(9,16,29,.96))'
                             : 'linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.94))',
                           boxShadow: '0 26px 60px rgba(15,23,42,.18)',
                           backdropFilter: 'blur(14px)',
-                        }}
-                      >
+                        }}>
                         <div className="flex items-center justify-between gap-2.5 px-4 py-3.5 border-b border-[var(--schedule-border)] text-xs font-black text-[var(--schedule-muted)]"
-                          style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03))' }}
-                        >
+                          style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03))' }}>
                           <strong className="text-[var(--schedule-text)] text-[13px]">اختر التدريسي</strong>
                           <span>{comboOptions.length} نتيجة</span>
                         </div>
                         <div className="max-h-[300px] overflow-auto p-2.5 flex flex-col gap-2">
                           {comboOptions.length === 0 ? (
-                            <div className="text-center py-4 text-[var(--schedule-muted)] text-sm font-extrabold border border-dashed border-[var(--schedule-border)] rounded-2xl">
-                              لا توجد نتائج
-                            </div>
-                          ) : (
-                            comboOptions.map(opt => (
-                              <button
-                                key={opt}
-                                className={`w-full text-right rounded-2xl px-3.5 py-3 text-sm font-extrabold border transition-colors ${
-                                  filters[f.key] === opt
-                                    ? 'border-blue-400/20 text-[var(--schedule-accent-blue)]'
-                                    : 'border-transparent'
-                                }`}
-                                style={{
-                                  background: filters[f.key] === opt
-                                    ? 'linear-gradient(180deg, rgba(37,99,235,.12), rgba(37,99,235,.08))'
-                                    : isDark
-                                      ? 'linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02))'
-                                      : 'linear-gradient(180deg, rgba(255,255,255,.92), rgba(246,249,255,.82))',
-                                  minHeight: 46,
-                                }}
-                                onClick={() => {
-                                  handleFilterChange(f.key, opt);
-                                  setComboQuery('');
-                                  setComboOpen(false);
-                                }}
-                              >
-                                {opt}
-                              </button>
-                            ))
-                          )}
+                            <div className="text-center py-4 text-[var(--schedule-muted)] text-sm font-extrabold border border-dashed border-[var(--schedule-border)] rounded-2xl">لا توجد نتائج</div>
+                          ) : comboOptions.map(opt => (
+                            <button key={opt}
+                              className={`w-full text-right rounded-2xl px-3.5 py-3 text-sm font-extrabold border transition-colors ${filters[f.key] === opt ? 'border-blue-400/20 text-[var(--schedule-accent-blue)]' : 'border-transparent'}`}
+                              style={{
+                                background: filters[f.key] === opt
+                                  ? 'linear-gradient(180deg, rgba(37,99,235,.12), rgba(37,99,235,.08))'
+                                  : isDark ? 'linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02))' : 'linear-gradient(180deg, rgba(255,255,255,.92), rgba(246,249,255,.82))',
+                                minHeight: 46,
+                              }}
+                              onClick={() => { handleFilterChange(f.key, opt); setComboQuery(''); setComboOpen(false); }}
+                            >{opt}</button>
+                          ))}
                         </div>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <select
-                    className="schedule-select"
-                    value={filters[f.key] || ''}
-                    onChange={e => handleFilterChange(f.key, e.target.value)}
-                    style={{
-                      cursor: 'pointer',
-                      paddingInlineEnd: 44,
-                    }}
-                  >
+                  <select className="schedule-select" value={filters[f.key] || ''} onChange={e => handleFilterChange(f.key, e.target.value)} style={{ cursor: 'pointer', paddingInlineEnd: 44 }}>
                     <option value="">— الكل —</option>
-                    {getFilterOptions(f.key).map(v => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
+                    {getFilterOptions(f.key).map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 )}
               </div>
@@ -261,19 +339,16 @@ const ScheduleSystem = () => {
 
           {/* Toolbar */}
           <div className="schedule-toolbar">
-            <button className="schedule-btn schedule-btn-primary" onClick={handlePrint}>
-              🖨️ طباعة الجدول
-            </button>
-            <button className="schedule-btn schedule-btn-secondary">
-              📋 تقرير مختصر
-            </button>
-            <button className="schedule-btn" onClick={clearFilters}>
-              🔄 مسح التصفية
-            </button>
-            <div className="schedule-counter">
-              📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong>
-            </div>
+            <button className="schedule-btn schedule-btn-primary" onClick={handlePrint}>🖨️ طباعة الجدول</button>
+            {system.shortReport && (
+              <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
+            )}
+            <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
+            <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
           </div>
+
+          {/* Statistics for hours tab */}
+          {activeSystem === 'hours' && <HoursStatistics rows={filteredRows} />}
 
           {/* Table */}
           <div className="schedule-table-wrap">
@@ -285,20 +360,31 @@ const ScheduleSystem = () => {
             ) : (
               <table className="schedule-table">
                 <thead>
-                  <tr>
-                    {system.headers.map(h => (
-                      <th key={h}>{h}</th>
-                    ))}
-                  </tr>
+                  <tr>{system.headers.map(h => <th key={h}>{h}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {filteredRows.map((row, i) => (
-                    <tr key={i}>
-                      {system.headers.map(h => (
-                        <td key={h}>{row[h] || ''}</td>
-                      ))}
-                    </tr>
-                  ))}
+                  {filteredRows.map((row, i) => {
+                    const hasWarning = activeSystem === 'report' && (
+                      (row['نقص البيانات'] && row['نقص البيانات'] !== 'سليم') ||
+                      (row['التضارب'] && row['التضارب'] !== '')
+                    );
+                    return (
+                      <tr key={i} className={hasWarning ? 'schedule-row-warning' : ''}>
+                        {system.headers.map(h => {
+                          let cellClass = '';
+                          const val = row[h] || '';
+                          if (h === 'نقص البيانات' && val && val !== 'سليم') cellClass = 'schedule-cell-warn';
+                          if (h === 'التضارب' && val) cellClass = 'schedule-cell-danger';
+                          if (h === 'التدقيق حسب الاسبوع') {
+                            if (val.includes('✅')) cellClass = 'schedule-cell-ok';
+                            else if (val.includes('⚠️')) cellClass = 'schedule-cell-warn';
+                            else if (val.includes('❌')) cellClass = 'schedule-cell-danger';
+                          }
+                          return <td key={h} className={cellClass}>{val}</td>;
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -306,15 +392,9 @@ const ScheduleSystem = () => {
 
           {/* Footer */}
           <div className="schedule-footer">
-            <div className="schedule-footer-card">
-              <strong className="text-[var(--schedule-text)]">برمجة :</strong> المدرس الدكتور احمد عبدالامير جبار عيسى - كلية الهندسة المدنية
-            </div>
-            <div className="schedule-footer-card">
-              <strong className="text-[var(--schedule-text)]">تصميم :</strong> الاستاذ الدكتور وائل شوقي عبد الصاحب - معاون العميد للشؤون الادارية
-            </div>
-            <div className="schedule-footer-card">
-              <strong className="text-[var(--schedule-text)]">اشراف :</strong> الاستاذ الدكتورة خولة صلاح خشان - مساعد رئيس الجامعة للشؤون العلمية
-            </div>
+            <div className="schedule-footer-card"><strong className="text-[var(--schedule-text)]">برمجة :</strong> المدرس الدكتور احمد عبدالامير جبار عيسى - كلية الهندسة المدنية</div>
+            <div className="schedule-footer-card"><strong className="text-[var(--schedule-text)]">تصميم :</strong> الاستاذ الدكتور وائل شوقي عبد الصاحب - معاون العميد للشؤون الادارية</div>
+            <div className="schedule-footer-card"><strong className="text-[var(--schedule-text)]">اشراف :</strong> الاستاذ الدكتورة خولة صلاح خشان - مساعد رئيس الجامعة للشؤون العلمية</div>
           </div>
         </div>
       </div>
