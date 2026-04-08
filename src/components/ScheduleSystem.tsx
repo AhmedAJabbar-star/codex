@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
-// Excel export uses HTML table approach for styling support
+import { SYSTEMS, TIME_OPTIONS_ARABIC, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import universityLogo from '@/assets/university-logo.jpg';
 
 /* ───── Time parsing helper ───── */
