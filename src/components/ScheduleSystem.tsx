@@ -407,6 +407,14 @@ const ScheduleSystem = () => {
                       </div>
                     )}
                   </div>
+                ) : f.control === 'time' ? (
+                  <input
+                    type="time"
+                    className="schedule-select"
+                    value={filters[f.key] || ''}
+                    onChange={e => handleTimeChange(f.key, e.target.value)}
+                    style={{ cursor: 'pointer', paddingInlineEnd: 16, minHeight: 52 }}
+                  />
                 ) : (
                   <select className="schedule-select" value={filters[f.key] || ''} onChange={e => handleFilterChange(f.key, e.target.value)} style={{ cursor: 'pointer', paddingInlineEnd: 44 }}>
                     <option value="">— الكل —</option>
