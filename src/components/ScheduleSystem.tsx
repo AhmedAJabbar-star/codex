@@ -745,6 +745,7 @@ const ScheduleSystem = () => {
               <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
             )}
             <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(124,58,237,.28)' }} onClick={() => exportToExcel(system.appTitle, system.headers, filteredRows)}>📥 تصدير Excel</button>
+            <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }} onClick={() => exportToPDF(system.appTitle, system.headers, filteredRows)}>📄 تصدير PDF</button>
             <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
             <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
           </div>
