@@ -2,6 +2,25 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
 import * as XLSX from 'xlsx';
 
+/* ───── Time parsing helper ───── */
+function parseTimeToMinutes(timeStr: string): number | null {
+  if (!timeStr) return null;
+  // Handle HH:MM format from time input
+  if (/^\d{1,2}:\d{2}$/.test(timeStr)) {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  }
+  // Handle "8:30:00 AM" format from data
+  const match = timeStr.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)/i);
+  if (!match) return null;
+  let h = parseInt(match[1]);
+  const m = parseInt(match[2]);
+  const period = match[4].toUpperCase();
+  if (period === 'PM' && h !== 12) h += 12;
+  if (period === 'AM' && h === 12) h = 0;
+  return h * 60 + m;
+}
+
 /* ───── Print helper: generates a standalone print window ───── */
 function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string) {
   const w = window.open('', '_blank');
