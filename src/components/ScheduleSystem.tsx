@@ -710,6 +710,16 @@ const ScheduleSystem = () => {
                       </div>
                     )}
                   </div>
+                ) : f.control === 'timeSelect' ? (
+                  <select
+                    className="schedule-select"
+                    value={filters[f.key] || ''}
+                    onChange={e => handleTimeChange(f.key, e.target.value)}
+                    style={{ cursor: 'pointer', paddingInlineEnd: 44, minHeight: 52 }}
+                  >
+                    <option value="">— الكل —</option>
+                    {TIME_OPTIONS_ARABIC.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
                 ) : f.control === 'time' ? (
                   <input
                     type="time"
