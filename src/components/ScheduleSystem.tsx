@@ -606,6 +606,7 @@ const ChartsPanel = () => {
   );
 };
 
+const ScheduleSystem = () => {
   const [activeSystem, setActiveSystem] = useState('teacher');
   const [isDark, setIsDark] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
