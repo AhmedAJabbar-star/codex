@@ -313,77 +313,39 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
   return null;
 };
 
-/* ───── Excel export (improved with styling) ───── */
+/* ───── Excel export (with styled HTML table for formatting) ───── */
 function exportToExcel(title: string, headers: string[], rows: ScheduleRow[]) {
-  const data = rows.map(r => {
-    const obj: Record<string, string> = {};
-    headers.forEach(h => { obj[h] = r[h] || ''; });
-    return obj;
-  });
-  const ws = XLSX.utils.json_to_sheet(data, { header: headers });
+  // Build styled HTML table for Excel
+  const headerCells = headers.map(h => 
+    `<th style="background-color:#0F4C81;color:#FFFFFF;font-weight:bold;font-size:12pt;text-align:center;border:1px solid #0B3558;padding:8px;font-family:Cairo,Arial">${h}</th>`
+  ).join('');
+  
+  const dataRows = rows.map((r, i) => {
+    const bgColor = i % 2 === 0 ? '#F0F6FF' : '#FFFFFF';
+    const cells = headers.map(h => 
+      `<td style="background-color:${bgColor};text-align:center;border:1px solid #C5D3E3;padding:6px;font-size:11pt;font-family:Cairo,Arial">${r[h] || ''}</td>`
+    ).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
 
-  /* Column widths */
-  ws['!cols'] = headers.map(h => {
-    const maxLen = Math.max(h.length, ...rows.slice(0, 100).map(r => (r[h] || '').length));
-    return { wch: Math.max(maxLen * 1.8, 12) };
-  });
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8">
+    <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+    <x:Name>الجدول</x:Name>
+    <x:WorksheetOptions><x:DisplayRightToLeft/><x:FreezePanes/><x:FrozenNoSplit/><x:SplitHorizontal>1</x:SplitHorizontal><x:TopRowBottomPane>1</x:TopRowBottomPane><x:ActivePane>2</x:ActivePane></x:WorksheetOptions>
+    <x:AutoFilter x:Range="A1:${String.fromCharCode(64 + headers.length)}1"/>
+    </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+    </head>
+    <body><table dir="rtl">${`<tr>${headerCells}</tr>`}${dataRows}</table></body></html>`;
 
-  /* Style header row */
-  const headerStyle = {
-    font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12, name: "Cairo" },
-    fill: { fgColor: { rgb: "0F4C81" } },
-    alignment: { horizontal: "center" as const, vertical: "center" as const, wrapText: true },
-    border: {
-      top: { style: "thin" as const, color: { rgb: "0B3558" } },
-      bottom: { style: "thin" as const, color: { rgb: "0B3558" } },
-      left: { style: "thin" as const, color: { rgb: "0B3558" } },
-      right: { style: "thin" as const, color: { rgb: "0B3558" } },
-    },
-  };
-  const dataStyleEven = {
-    font: { sz: 11, name: "Cairo" },
-    alignment: { horizontal: "center" as const, vertical: "center" as const, wrapText: true },
-    fill: { fgColor: { rgb: "F0F6FF" } },
-    border: {
-      top: { style: "thin" as const, color: { rgb: "C5D3E3" } },
-      bottom: { style: "thin" as const, color: { rgb: "C5D3E3" } },
-      left: { style: "thin" as const, color: { rgb: "C5D3E3" } },
-      right: { style: "thin" as const, color: { rgb: "C5D3E3" } },
-    },
-  };
-  const dataStyleOdd = {
-    font: { sz: 11, name: "Cairo" },
-    alignment: { horizontal: "center" as const, vertical: "center" as const, wrapText: true },
-    border: {
-      top: { style: "thin" as const, color: { rgb: "C5D3E3" } },
-      bottom: { style: "thin" as const, color: { rgb: "C5D3E3" } },
-      left: { style: "thin" as const, color: { rgb: "C5D3E3" } },
-      right: { style: "thin" as const, color: { rgb: "C5D3E3" } },
-    },
-  };
-
-  /* Apply styles */
-  for (let c = 0; c < headers.length; c++) {
-    const cellRef = XLSX.utils.encode_cell({ r: 0, c });
-    if (ws[cellRef]) ws[cellRef].s = headerStyle;
-  }
-  for (let r = 0; r < rows.length; r++) {
-    for (let c = 0; c < headers.length; c++) {
-      const cellRef = XLSX.utils.encode_cell({ r: r + 1, c });
-      if (ws[cellRef]) ws[cellRef].s = r % 2 === 0 ? dataStyleEven : dataStyleOdd;
-    }
-  }
-
-  /* Freeze first row + RTL */
-  (ws as any)['!sheetViews'] = [{ rightToLeft: true, pane: { ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' } }];
-
-  /* Auto filter */
-  const lastCol = XLSX.utils.encode_col(headers.length - 1);
-  ws['!autofilter'] = { ref: `A1:${lastCol}${rows.length + 1}` };
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'الجدول');
-  XLSX.writeFile(wb, `${title}.xlsx`);
+  const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title}.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 const FOOTER_HTML = `
