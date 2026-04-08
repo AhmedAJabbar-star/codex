@@ -418,7 +418,7 @@ const ScheduleSystem = () => {
   const [statFilter, setStatFilter] = useState<string | null>(null);
   const comboRef = useRef<HTMLDivElement>(null);
 
-  const system = useMemo(() => SYSTEMS.find(s => s.id === activeSystem)!, [activeSystem]);
+  const system = useMemo(() => SYSTEMS.find(s => s.id === activeSystem) || SYSTEMS[0], [activeSystem]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
