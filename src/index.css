@@ -703,6 +703,77 @@ select option, select optgroup {
   .schedule-stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Interactive stat cards */
+.schedule-stat-interactive {
+  cursor: pointer;
+  transition: all .2s ease;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+.schedule-stat-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  border-color: var(--stat-color, var(--schedule-accent-blue));
+}
+.schedule-stat-interactive.schedule-stat-active {
+  border-color: var(--stat-color, var(--schedule-accent-blue));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--stat-color, #2563eb) 12%, transparent), color-mix(in srgb, var(--stat-color, #2563eb) 6%, transparent)) !important;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--stat-color, #2563eb) 25%, transparent);
+}
+.schedule-stat-interactive.schedule-stat-active::after {
+  content: '✓';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--stat-color, var(--schedule-accent-blue));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+}
+.schedule-stat-icon {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+/* Interactive tags for hours breakdown */
+.schedule-stats-tag-interactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all .2s ease;
+  border: 2px solid transparent;
+  background: var(--schedule-panel, rgba(255,255,255,.6));
+  color: var(--schedule-text);
+}
+.schedule-stats-tag-interactive:hover {
+  border-color: var(--tag-color, #94a3b8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+.schedule-stats-tag-interactive.active {
+  border-color: var(--tag-color, #94a3b8);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tag-color, #94a3b8) 15%, transparent), color-mix(in srgb, var(--tag-color, #94a3b8) 8%, transparent));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--tag-color, #94a3b8) 25%, transparent);
+}
+.schedule-stats-tag-interactive strong {
+  background: var(--tag-color, #94a3b8);
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
 @media print {
   .schedule-body { background: #fff !important; }
   .schedule-body::before, .schedule-body::after { display: none !important; }
