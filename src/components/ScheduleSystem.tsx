@@ -1100,6 +1100,62 @@ const ScheduleSystem = () => {
           </div>
         </div>
       </div>
+
+      {/* Booking Dialog */}
+      {showBookingDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="schedule-card" style={{ maxWidth: 480, width: '90%', padding: '24px' }} dir="rtl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black text-[var(--schedule-text)]">📅 حجز مؤقت للقاعة</h3>
+              <button onClick={() => setShowBookingDialog(false)} className="text-lg font-black text-[var(--schedule-muted)] hover:text-[var(--schedule-text)]">✕</button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="schedule-filter-label mb-1">القاعة</label>
+                <select className="schedule-select" value={bookingForm.room} onChange={e => setBookingForm({ ...bookingForm, room: e.target.value })}>
+                  <option value="">اختر القاعة</option>
+                  {['101','103','105','106','107','109','110','111','112','113','114','115','201','202','203','204','205','207','208','209','210','211','212','223','224','225','226','227','230','367','368','369','370','371','372','373','374','375'].map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="schedule-filter-label mb-1">اليوم</label>
+                <select className="schedule-select" value={bookingForm.day} onChange={e => setBookingForm({ ...bookingForm, day: e.target.value })}>
+                  <option value="">اختر اليوم</option>
+                  {['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'].map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="schedule-filter-label mb-1">التاريخ</label>
+                <input type="date" className="schedule-select" value={bookingForm.date} onChange={e => setBookingForm({ ...bookingForm, date: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="schedule-filter-label mb-1">من الساعة</label>
+                  <select className="schedule-select" value={bookingForm.fromTime} onChange={e => setBookingForm({ ...bookingForm, fromTime: e.target.value })}>
+                    <option value="">اختر</option>
+                    {TIME_OPTIONS_ARABIC.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="schedule-filter-label mb-1">إلى الساعة</label>
+                  <select className="schedule-select" value={bookingForm.toTime} onChange={e => setBookingForm({ ...bookingForm, toTime: e.target.value })}>
+                    <option value="">اختر</option>
+                    {TIME_OPTIONS_ARABIC.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="schedule-filter-label mb-1">ملاحظة (اختياري)</label>
+                <input type="text" className="schedule-select" placeholder="سبب الحجز..." value={bookingForm.note} onChange={e => setBookingForm({ ...bookingForm, note: e.target.value })} />
+              </div>
+              <div className="flex gap-3 mt-2">
+                <button className="schedule-btn schedule-btn-primary flex-1" onClick={addBooking} disabled={!bookingForm.room || !bookingForm.day || !bookingForm.date || !bookingForm.fromTime || !bookingForm.toTime}>✅ تأكيد الحجز</button>
+                <button className="schedule-btn flex-1" onClick={() => setShowBookingDialog(false)}>إلغاء</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
