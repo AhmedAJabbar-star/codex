@@ -189,13 +189,45 @@ const ScheduleSystem = () => {
   }, [isDark]);
 
   const filteredRows = useMemo(() => {
-    return system.rows.filter(row =>
-      system.filters.every(f => {
+    return system.rows.filter(row => {
+      // Standard filters (skip time filters)
+      const standardPass = system.filters.every(f => {
+        if (f.control === 'time') return true;
         const val = filters[f.key];
         if (!val) return true;
         return row[f.key] === val;
-      })
-    );
+      });
+      if (!standardPass) return false;
+
+      // Time overlap filter
+      if (system.timeFilter) {
+        const fromStr = filters['__timeFrom'];
+        const toStr = filters['__timeTo'];
+        if (fromStr && toStr) {
+          const filterStart = parseTimeToMinutes(fromStr);
+          const filterEnd = parseTimeToMinutes(toStr);
+          const lectureStart = parseTimeToMinutes(row[system.timeFilter.startKey] || '');
+          const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
+          if (filterStart !== null && filterEnd !== null && lectureStart !== null && lectureEnd !== null) {
+            // Overlap: lectureStart < filterEnd AND lectureEnd > filterStart
+            if (!(lectureStart < filterEnd && lectureEnd > filterStart)) return false;
+          }
+        } else if (fromStr) {
+          const filterStart = parseTimeToMinutes(fromStr);
+          const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
+          if (filterStart !== null && lectureEnd !== null) {
+            if (lectureEnd <= filterStart) return false;
+          }
+        } else if (toStr) {
+          const filterEnd = parseTimeToMinutes(toStr);
+          const lectureStart = parseTimeToMinutes(row[system.timeFilter.startKey] || '');
+          if (filterEnd !== null && lectureStart !== null) {
+            if (lectureStart >= filterEnd) return false;
+          }
+        }
+      }
+      return true;
+    });
   }, [system, filters]);
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
