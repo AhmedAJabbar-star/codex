@@ -348,6 +348,62 @@ function exportToExcel(title: string, headers: string[], rows: ScheduleRow[]) {
   URL.revokeObjectURL(url);
 }
 
+/* ───── PDF export (uses print window approach) ───── */
+function exportToPDF(title: string, headers: string[], rows: ScheduleRow[]) {
+  const tableRows = rows.map((r, i) =>
+    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`
+  ).join('');
+
+  const colCount = headers.length;
+  const fontSize = colCount > 12 ? '8px' : colCount > 8 ? '9px' : '10px';
+
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><title>${title} - PDF</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:10px}
+.print-header{text-align:center;padding:16px 10px 12px;border-bottom:3px double #0f4c81}
+.print-header img{width:70px;height:70px;object-fit:contain;margin-bottom:6px}
+.print-header h1{font-size:16px;color:#0f4c81;margin:0 0 3px;font-weight:900}
+.print-header h2{font-size:18px;color:#000;margin:0;font-weight:900}
+.print-header .subtitle{font-size:11px;color:#555;margin-top:3px}
+table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:10px}
+th{background:#0f4c81;color:#fff;padding:6px 4px;font-weight:800;border:1px solid #0b3558;white-space:nowrap;text-align:center}
+td{padding:5px 4px;border:1px solid #c5d3e3;text-align:center;font-weight:600}
+tr.even{background:#f0f6ff}
+tr.odd{background:#fff}
+.footer{margin-top:14px;border-top:3px double #0f4c81;padding:10px;font-size:10px;line-height:2;color:#333}
+.footer strong{color:#0f4c81}
+.actions{text-align:center;padding:16px;background:#f9fafb}
+.actions button{padding:12px 32px;font-size:14px;font-weight:800;border:none;border-radius:10px;cursor:pointer;margin:0 8px;font-family:'Cairo',sans-serif}
+.btn-print{background:#0f4c81;color:#fff}
+.btn-print:hover{background:#0b3558}
+@page{size:landscape;margin:6mm}
+@media print{.actions{display:none !important}}
+</style></head><body>
+<div class="actions">
+  <button class="btn-print" onclick="window.print()">📄 طباعة / حفظ كـ PDF</button>
+</div>
+<div class="print-header">
+<img src="${universityLogo}" alt="شعار الجامعة"/>
+<h1>كلية الهندسة المدنية - الجامعة التكنولوجية</h1>
+<h2>${title}</h2>
+<div class="subtitle">عدد السجلات: ${rows.length}</div>
+</div>
+<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+<tbody>${tableRows}</tbody></table>
+<div class="footer">
+<div><strong>برمجة :</strong> المدرس الدكتور احمد عبدالامير جبار عيسى - كلية الهندسة المدنية</div>
+<div><strong>تصميم :</strong> الاستاذ الدكتور وائل شوقي عبد الصاحب - معاون العميد للشؤون الادارية</div>
+<div><strong>إشراف :</strong> الأستاذ الدكتور علي مجيد خضير الدهوي - عميد كلية الهندسة المدنية</div>
+</div>
+</body></html>`);
+  w.document.close();
+}
+
 const FOOTER_HTML = `
 <div><strong>برمجة :</strong> المدرس الدكتور احمد عبدالامير جبار عيسى - كلية الهندسة المدنية</div>
 <div><strong>تصميم :</strong> الاستاذ الدكتور وائل شوقي عبد الصاحب - معاون العميد للشؤون الادارية</div>
