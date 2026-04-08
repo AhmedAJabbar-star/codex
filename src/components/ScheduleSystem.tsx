@@ -1032,7 +1032,7 @@ const ScheduleSystem = () => {
                     ))}
                   </div>
                 </div>
-              )
+              )}
 
               {/* Statistics for all tabs */}
               <SystemStatistics
