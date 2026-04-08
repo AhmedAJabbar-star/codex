@@ -1078,6 +1078,10 @@ const ScheduleSystem = () => {
                               }
                               return <td key={h} className={cellClass}>{val}</td>;
                             })}
+                            {activeSystem === 'emptyRooms' && (() => {
+                              const note = getBookingNote(row['القاعة'], row['اليوم'], row['الفترة الشاغرة من'], row['الفترة الشاغرة الى']);
+                              return <td className={note ? 'schedule-cell-warn' : ''}>{note || '—'}</td>;
+                            })()}
                           </tr>
                         );
                       })}
