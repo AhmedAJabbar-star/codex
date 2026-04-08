@@ -1053,7 +1053,10 @@ const ScheduleSystem = () => {
                 ) : (
                   <table className="schedule-table">
                     <thead>
-                      <tr>{system.headers.map(h => <th key={h}>{h}</th>)}</tr>
+                      <tr>
+                        {system.headers.map(h => <th key={h}>{h}</th>)}
+                        {activeSystem === 'emptyRooms' && <th>ملاحظة الحجز</th>}
+                      </tr>
                     </thead>
                     <tbody>
                       {filteredRows.map((row, i) => {
