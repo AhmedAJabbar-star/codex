@@ -2,6 +2,25 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
 import * as XLSX from 'xlsx';
 
+/* ───── Time parsing helper ───── */
+function parseTimeToMinutes(timeStr: string): number | null {
+  if (!timeStr) return null;
+  // Handle HH:MM format from time input
+  if (/^\d{1,2}:\d{2}$/.test(timeStr)) {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  }
+  // Handle "8:30:00 AM" format from data
+  const match = timeStr.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)/i);
+  if (!match) return null;
+  let h = parseInt(match[1]);
+  const m = parseInt(match[2]);
+  const period = match[4].toUpperCase();
+  if (period === 'PM' && h !== 12) h += 12;
+  if (period === 'AM' && h === 12) h = 0;
+  return h * 60 + m;
+}
+
 /* ───── Print helper: generates a standalone print window ───── */
 function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string) {
   const w = window.open('', '_blank');
@@ -170,18 +189,50 @@ const ScheduleSystem = () => {
   }, [isDark]);
 
   const filteredRows = useMemo(() => {
-    return system.rows.filter(row =>
-      system.filters.every(f => {
+    return system.rows.filter(row => {
+      // Standard filters (skip time filters)
+      const standardPass = system.filters.every(f => {
+        if (f.control === 'time') return true;
         const val = filters[f.key];
         if (!val) return true;
         return row[f.key] === val;
-      })
-    );
+      });
+      if (!standardPass) return false;
+
+      // Time overlap filter
+      if (system.timeFilter) {
+        const fromStr = filters['__timeFrom'];
+        const toStr = filters['__timeTo'];
+        if (fromStr && toStr) {
+          const filterStart = parseTimeToMinutes(fromStr);
+          const filterEnd = parseTimeToMinutes(toStr);
+          const lectureStart = parseTimeToMinutes(row[system.timeFilter.startKey] || '');
+          const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
+          if (filterStart !== null && filterEnd !== null && lectureStart !== null && lectureEnd !== null) {
+            // Overlap: lectureStart < filterEnd AND lectureEnd > filterStart
+            if (!(lectureStart < filterEnd && lectureEnd > filterStart)) return false;
+          }
+        } else if (fromStr) {
+          const filterStart = parseTimeToMinutes(fromStr);
+          const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
+          if (filterStart !== null && lectureEnd !== null) {
+            if (lectureEnd <= filterStart) return false;
+          }
+        } else if (toStr) {
+          const filterEnd = parseTimeToMinutes(toStr);
+          const lectureStart = parseTimeToMinutes(row[system.timeFilter.startKey] || '');
+          if (filterEnd !== null && lectureStart !== null) {
+            if (lectureStart >= filterEnd) return false;
+          }
+        }
+      }
+      return true;
+    });
   }, [system, filters]);
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
-    const upstreamFilters = system.filters.slice(0, filterIndex);
+    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time');
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
@@ -196,7 +247,17 @@ const ScheduleSystem = () => {
     const filterIndex = system.filters.findIndex(f => f.key === key);
     const newFilters = { ...filters };
     newFilters[key] = value;
-    system.filters.slice(filterIndex + 1).forEach(f => { delete newFilters[f.key]; });
+    // Don't cascade-clear time filters
+    system.filters.slice(filterIndex + 1).forEach(f => {
+      if (f.control !== 'time') delete newFilters[f.key];
+    });
+    setFilters(newFilters);
+  };
+
+  const handleTimeChange = (key: string, value: string) => {
+    const newFilters = { ...filters };
+    if (value) newFilters[key] = value;
+    else delete newFilters[key];
     setFilters(newFilters);
   };
 
@@ -346,6 +407,14 @@ const ScheduleSystem = () => {
                       </div>
                     )}
                   </div>
+                ) : f.control === 'time' ? (
+                  <input
+                    type="time"
+                    className="schedule-select"
+                    value={filters[f.key] || ''}
+                    onChange={e => handleTimeChange(f.key, e.target.value)}
+                    style={{ cursor: 'pointer', paddingInlineEnd: 16, minHeight: 52 }}
+                  />
                 ) : (
                   <select className="schedule-select" value={filters[f.key] || ''} onChange={e => handleFilterChange(f.key, e.target.value)} style={{ cursor: 'pointer', paddingInlineEnd: 44 }}>
                     <option value="">— الكل —</option>
