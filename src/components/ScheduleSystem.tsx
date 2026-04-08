@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import universityLogo from '@/assets/university-logo.jpg';
 
 /* ───── Time parsing helper ───── */
@@ -10,18 +10,20 @@ function parseTimeToMinutes(timeStr: string): number | null {
     const [h, m] = timeStr.split(':').map(Number);
     return h * 60 + m;
   }
-  const match = timeStr.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)/i);
+  const match = timeStr.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|ص|م)/i);
   if (!match) return null;
   let h = parseInt(match[1]);
   const m = parseInt(match[2]);
-  const period = match[4].toUpperCase();
-  if (period === 'PM' && h !== 12) h += 12;
-  if (period === 'AM' && h === 12) h = 0;
+  const period = match[4];
+  const isAM = period === 'AM' || period === 'am' || period === 'ص';
+  const isPM = period === 'PM' || period === 'pm' || period === 'م';
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
   return h * 60 + m;
 }
 
 /* ───── Print helper ───── */
-function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string) {
+function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string, singlePage?: boolean) {
   const w = window.open('', '_blank');
   if (!w) return;
 
@@ -30,7 +32,14 @@ function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], 
   ).join('');
 
   const colCount = headers.length;
-  const fontSize = colCount > 12 ? '9px' : colCount > 8 ? '10px' : '11px';
+  const fontSize = singlePage ? '7px' : colCount > 12 ? '9px' : colCount > 8 ? '10px' : '11px';
+  const singlePageCSS = singlePage ? `
+    @page{size:landscape;margin:4mm}
+    html,body{height:100vh;overflow:hidden}
+    .print-wrap{max-height:100vh;overflow:hidden}
+    table{font-size:${fontSize} !important}
+    td,th{padding:3px 2px !important}
+  ` : `@page{size:landscape;margin:6mm}`;
 
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -55,13 +64,14 @@ tr:hover{background:#e3edfa !important}
 .stats-bar{display:flex;gap:12px;justify-content:center;padding:10px 15px;flex-wrap:wrap}
 .stats-bar .stat{background:#f0f6ff;border:1px solid #c5d3e3;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;color:#0f4c81}
 @media print{
-  @page{size:landscape;margin:6mm}
+  ${singlePageCSS}
   body{padding:0}
   tr,td,th{page-break-inside:avoid}
   .print-header{border-bottom-color:#000}
   .footer{border-top-color:#000}
 }
 </style></head><body>
+<div class="print-wrap">
 <div class="print-header">
 <img src="${universityLogo}" alt="شعار الجامعة"/>
 <h1>كلية الهندسة المدنية - الجامعة التكنولوجية</h1>
@@ -74,6 +84,7 @@ tr:hover{background:#e3edfa !important}
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 <div class="footer">${footerHtml}</div>
+</div>
 <script>window.onafterprint=()=>window.close();window.print();<\/script>
 </body></html>`);
   w.document.close();
@@ -82,7 +93,7 @@ tr:hover{background:#e3edfa !important}
 /* ───── Short report modes ───── */
 function generateExcludeHeadersReport(rows: ScheduleRow[], allHeaders: string[], excludeHeaders: string[], title: string, footerHtml: string) {
   const displayHeaders = allHeaders.filter(h => !excludeHeaders.includes(h));
-  openPrintWindow(title, displayHeaders, rows, footerHtml);
+  openPrintWindow(title, displayHeaders, rows, footerHtml, true);
 }
 
 function generateAfterHeaderReport(rows: ScheduleRow[], allHeaders: string[], headerKey: string, title: string, footerHtml: string) {
@@ -113,6 +124,14 @@ const StatCard = ({ label, value, icon, color, active, onClick }: StatCardProps)
   </button>
 );
 
+/* ───── Compute lecture duration in hours ───── */
+function computeDurationHours(row: ScheduleRow): number {
+  const start = parseTimeToMinutes(row['بدء المحاضرة'] || '');
+  const end = parseTimeToMinutes(row['نهاية المحاضرة'] || '');
+  if (start === null || end === null) return 0;
+  return (end - start) / 60;
+}
+
 /* ───── Statistics for each system ───── */
 const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFilter }: {
   rows: ScheduleRow[];
@@ -122,7 +141,7 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
   activeStatFilter: string | null;
 }) => {
   const stats = useMemo(() => {
-    if (systemId === 'teacher' || systemId === 'student' || systemId === 'tracking') {
+    if (systemId === 'teacher' || systemId === 'student' || systemId === 'tracking' || systemId === 'assignments') {
       const departments = new Set(rows.map(r => r['القسم'] || r['القسم الذي تنتمي اليه']));
       const teachers = new Set(rows.map(r => r['اسم التدريسي']).filter(Boolean));
       const rooms = new Set(rows.map(r => r['القاعة أو المختبر']).filter(Boolean));
@@ -130,13 +149,19 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
       const subjects = new Set(rows.map(r => r['المادة']).filter(Boolean));
       const practicalCount = rows.filter(r => r['نوع المحاضرة'] === 'عملي').length;
       const theoryCount = rows.filter(r => r['نوع المحاضرة'] === 'نظري').length;
-      return { departments: departments.size, teachers: teachers.size, rooms: rooms.size, days: days.size, subjects: subjects.size, practicalCount, theoryCount, total: rows.length };
+      let practicalHours = 0;
+      let theoryHours = 0;
+      rows.forEach(r => {
+        const dur = computeDurationHours(r);
+        if (r['نوع المحاضرة'] === 'عملي') practicalHours += dur;
+        else if (r['نوع المحاضرة'] === 'نظري') theoryHours += dur;
+      });
+      return { departments: departments.size, teachers: teachers.size, rooms: rooms.size, days: days.size, subjects: subjects.size, practicalCount, theoryCount, total: rows.length, practicalHours, theoryHours };
     }
     if (systemId === 'report') {
       const total = rows.length;
       const withDeficiency = rows.filter(r => r['نقص البيانات'] && r['نقص البيانات'] !== 'سليم').length;
       const withConflict = rows.filter(r => r['التضارب'] && r['التضارب'] !== '').length;
-      const clean = total - withDeficiency - withConflict + rows.filter(r => (r['نقص البيانات'] && r['نقص البيانات'] !== 'سليم') && (r['التضارب'] && r['التضارب'] !== '')).length;
       return { total, withDeficiency, withConflict, clean: rows.filter(r => (!r['نقص البيانات'] || r['نقص البيانات'] === 'سليم') && (!r['التضارب'] || r['التضارب'] === '')).length };
     }
     if (systemId === 'hours') {
@@ -154,15 +179,14 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
     }
     if (systemId === 'emptyRooms') {
       const allRooms = new Set(rows.map(r => r['القاعة']).filter(Boolean));
-      const departments = new Set(rows.map(r => r['القسم']).filter(Boolean));
       const days = new Set(rows.map(r => r['اليوم']).filter(Boolean));
-      return { total: rows.length, rooms: allRooms.size, departments: departments.size, days: days.size };
+      return { total: rows.length, rooms: allRooms.size, days: days.size };
     }
     return { total: rows.length };
   }, [rows, systemId]);
 
-  if (systemId === 'teacher' || systemId === 'student' || systemId === 'tracking') {
-    const s = stats as { departments: number; teachers: number; rooms: number; days: number; subjects: number; practicalCount: number; theoryCount: number; total: number };
+  if (systemId === 'teacher' || systemId === 'student' || systemId === 'tracking' || systemId === 'assignments') {
+    const s = stats as { departments: number; teachers: number; rooms: number; days: number; subjects: number; practicalCount: number; theoryCount: number; total: number; practicalHours: number; theoryHours: number };
     return (
       <div className="schedule-stats">
         <div className="schedule-stats-header">📊 إحصائيات التقرير</div>
@@ -187,6 +211,8 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
             active={activeStatFilter === 'عملي'}
             onClick={() => onFilterApply('نوع المحاضرة', activeStatFilter === 'عملي' ? '' : 'عملي')}
           />
+          <StatCard label="مجموع الساعات النظرية" value={s.theoryHours} icon="⏱️" color="#0891b2" />
+          <StatCard label="مجموع الساعات العملية" value={s.practicalHours} icon="🔧" color="#be185d" />
         </div>
       </div>
     );
@@ -271,14 +297,13 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
   }
 
   if (systemId === 'emptyRooms') {
-    const s = stats as { total: number; rooms: number; departments: number; days: number };
+    const s = stats as { total: number; rooms: number; days: number };
     return (
       <div className="schedule-stats">
         <div className="schedule-stats-header">📊 إحصائيات القاعات الشاغرة</div>
         <div className="schedule-stats-grid">
           <StatCard label="فترات شاغرة" value={s.total} icon="🏛️" color="#22c55e" />
           <StatCard label="قاعات" value={s.rooms} icon="🚪" color="#2563eb" />
-          <StatCard label="الأقسام" value={s.departments} icon="🏢" color="#7c3aed" />
           <StatCard label="الأيام" value={s.days} icon="📅" color="#d97706" />
         </div>
       </div>
@@ -288,7 +313,7 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
   return null;
 };
 
-/* ───── Excel export (improved) ───── */
+/* ───── Excel export (improved with styling) ───── */
 function exportToExcel(title: string, headers: string[], rows: ScheduleRow[]) {
   const data = rows.map(r => {
     const obj: Record<string, string> = {};
@@ -297,14 +322,59 @@ function exportToExcel(title: string, headers: string[], rows: ScheduleRow[]) {
   });
   const ws = XLSX.utils.json_to_sheet(data, { header: headers });
 
-  /* RTL + column widths */
+  /* Column widths */
   ws['!cols'] = headers.map(h => {
     const maxLen = Math.max(h.length, ...rows.slice(0, 100).map(r => (r[h] || '').length));
     return { wch: Math.max(maxLen * 1.8, 12) };
   });
 
-  /* Freeze first row */
-  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  /* Style header row */
+  const headerStyle = {
+    font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12, name: "Cairo" },
+    fill: { fgColor: { rgb: "0F4C81" } },
+    alignment: { horizontal: "center" as const, vertical: "center" as const, wrapText: true },
+    border: {
+      top: { style: "thin" as const, color: { rgb: "0B3558" } },
+      bottom: { style: "thin" as const, color: { rgb: "0B3558" } },
+      left: { style: "thin" as const, color: { rgb: "0B3558" } },
+      right: { style: "thin" as const, color: { rgb: "0B3558" } },
+    },
+  };
+  const dataStyleEven = {
+    font: { sz: 11, name: "Cairo" },
+    alignment: { horizontal: "center" as const, vertical: "center" as const, wrapText: true },
+    fill: { fgColor: { rgb: "F0F6FF" } },
+    border: {
+      top: { style: "thin" as const, color: { rgb: "C5D3E3" } },
+      bottom: { style: "thin" as const, color: { rgb: "C5D3E3" } },
+      left: { style: "thin" as const, color: { rgb: "C5D3E3" } },
+      right: { style: "thin" as const, color: { rgb: "C5D3E3" } },
+    },
+  };
+  const dataStyleOdd = {
+    font: { sz: 11, name: "Cairo" },
+    alignment: { horizontal: "center" as const, vertical: "center" as const, wrapText: true },
+    border: {
+      top: { style: "thin" as const, color: { rgb: "C5D3E3" } },
+      bottom: { style: "thin" as const, color: { rgb: "C5D3E3" } },
+      left: { style: "thin" as const, color: { rgb: "C5D3E3" } },
+      right: { style: "thin" as const, color: { rgb: "C5D3E3" } },
+    },
+  };
+
+  /* Apply styles */
+  for (let c = 0; c < headers.length; c++) {
+    const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+    if (ws[cellRef]) ws[cellRef].s = headerStyle;
+  }
+  for (let r = 0; r < rows.length; r++) {
+    for (let c = 0; c < headers.length; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r: r + 1, c });
+      if (ws[cellRef]) ws[cellRef].s = r % 2 === 0 ? dataStyleEven : dataStyleOdd;
+    }
+  }
+
+  /* Freeze first row + RTL */
   (ws as any)['!sheetViews'] = [{ rightToLeft: true, pane: { ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' } }];
 
   /* Auto filter */
@@ -390,7 +460,7 @@ const ScheduleSystem = () => {
         else if (statFilter === 'conflict') result = result.filter(r => r['التضارب'] && r['التضارب'] !== '');
       } else if (activeSystem === 'hours') {
         result = result.filter(r => r['التدقيق حسب الاسبوع'] === statFilter);
-      } else if (activeSystem === 'teacher' || activeSystem === 'student' || activeSystem === 'tracking') {
+      } else if (activeSystem === 'teacher' || activeSystem === 'student' || activeSystem === 'tracking' || activeSystem === 'assignments') {
         if (statFilter === 'نظري' || statFilter === 'عملي') {
           result = result.filter(r => r['نوع المحاضرة'] === statFilter);
         }
@@ -435,7 +505,6 @@ const ScheduleSystem = () => {
     if (key === '__stat') {
       setStatFilter(prev => prev === value ? null : value);
     } else {
-      // For hours tab filter by audit value; for others filter by lecture type
       setStatFilter(prev => prev === value ? null : value);
     }
   };
@@ -451,24 +520,37 @@ const ScheduleSystem = () => {
   };
 
   const handlePrint = () => {
-    openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML);
+    const isSinglePage = activeSystem === 'teacher';
+    openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML, isSinglePage);
   };
 
   const handleShortReport = () => {
     const sr = system.shortReport;
     if (!sr) return;
     if (sr.mode === 'excludeHeaders' && sr.headers) {
-      generateExcludeHeadersReport(filteredRows, system.headers, sr.headers, sr.title, FOOTER_HTML);
+      // For teacher short report, include teacher name in title
+      let reportTitle = sr.title;
+      if (activeSystem === 'teacher') {
+        const teacherName = filters['اسم التدريسي'];
+        if (teacherName) reportTitle = `جدول التدريسي : ${teacherName}`;
+      }
+      generateExcludeHeadersReport(filteredRows, system.headers, sr.headers, reportTitle, FOOTER_HTML);
     } else if (sr.mode === 'afterHeader' && sr.header) {
       generateAfterHeaderReport(filteredRows, system.headers, sr.header, sr.title, FOOTER_HTML);
     }
   };
 
+  // Find the combo filter key for the current system
+  const comboFilterKey = useMemo(() => {
+    const comboFilter = system.filters.find(f => f.control === 'combo');
+    return comboFilter?.key || 'اسم التدريسي';
+  }, [system]);
+
   const comboOptions = useMemo(() => {
-    const options = getFilterOptions('اسم التدريسي');
+    const options = getFilterOptions(comboFilterKey);
     if (!comboQuery) return options;
     return options.filter(o => o.includes(comboQuery));
-  }, [filters, comboQuery, system, getFilterOptions]);
+  }, [filters, comboQuery, system, getFilterOptions, comboFilterKey]);
 
   return (
     <div className={`schedule-body ${isDark ? 'dark' : ''}`} dir="rtl">
