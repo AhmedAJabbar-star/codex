@@ -633,175 +633,181 @@ const ScheduleSystem = () => {
             </button>
           </div>
 
-          {/* Filters */}
-          <div className="schedule-filters" style={{
-            gridTemplateColumns: system.filters.length > 4
-              ? `repeat(${Math.min(system.filters.length, 4)}, minmax(160px, 1fr))`
-              : `repeat(${system.filters.length}, minmax(180px, 1fr))`
-          }}>
-            {system.filters.map(f => (
-              <div key={f.key} className="flex flex-col gap-2 min-w-0">
-                <span className="schedule-filter-label">{f.label}</span>
-                {f.control === 'combo' ? (
-                  <div ref={comboRef} className={`relative ${comboOpen ? 'z-30' : ''}`}>
-                    <div
-                      className={`relative flex items-center min-h-[52px] rounded-2xl border border-[var(--schedule-border)] px-4 cursor-pointer transition-all ${comboOpen ? 'border-blue-400/45 shadow-[0_0_0_4px_rgba(37,99,235,.14)]' : ''}`}
-                      style={{
-                        background: isDark
-                          ? 'linear-gradient(180deg, rgba(13,22,38,.92), rgba(10,18,33,.84))'
-                          : 'linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,255,.76))',
-                      }}
-                      onClick={() => setComboOpen(!comboOpen)}
-                    >
-                      <input
-                        type="text"
-                        className="flex-1 min-w-0 border-none outline-none bg-transparent font-extrabold text-sm text-[var(--schedule-text)]"
-                        style={{ minHeight: 'auto', boxShadow: 'none', padding: 0 }}
-                        placeholder="ابحث عن التدريسي..."
-                        value={filters[f.key] || comboQuery}
-                        onChange={e => {
-                          setComboQuery(e.target.value);
-                          setComboOpen(true);
-                          if (filters[f.key]) {
-                            const newF = { ...filters };
-                            delete newF[f.key];
-                            setFilters(newF);
-                          }
-                        }}
-                        onClick={e => { e.stopPropagation(); setComboOpen(true); }}
-                      />
-                      <div className="flex items-center gap-1.5 absolute left-2 top-1/2 -translate-y-1/2">
-                        {(filters[f.key] || comboQuery) && (
-                          <button
-                            className="w-8 h-8 rounded-xl grid place-items-center text-sm font-black schedule-btn"
-                            style={{ minHeight: 32, padding: 0 }}
-                            onClick={e => { e.stopPropagation(); setComboQuery(''); const newF = { ...filters }; delete newF[f.key]; setFilters(newF); }}
-                          >✕</button>
+          {activeSystem === 'charts' ? (
+            <ChartsPanel />
+          ) : (
+            <>
+              {/* Filters */}
+              <div className="schedule-filters" style={{
+                gridTemplateColumns: system.filters.length > 4
+                  ? `repeat(${Math.min(system.filters.length, 4)}, minmax(160px, 1fr))`
+                  : `repeat(${system.filters.length}, minmax(180px, 1fr))`
+              }}>
+                {system.filters.map(f => (
+                  <div key={f.key} className="flex flex-col gap-2 min-w-0">
+                    <span className="schedule-filter-label">{f.label}</span>
+                    {f.control === 'combo' ? (
+                      <div ref={comboRef} className={`relative ${comboOpen ? 'z-30' : ''}`}>
+                        <div
+                          className={`relative flex items-center min-h-[52px] rounded-2xl border border-[var(--schedule-border)] px-4 cursor-pointer transition-all ${comboOpen ? 'border-blue-400/45 shadow-[0_0_0_4px_rgba(37,99,235,.14)]' : ''}`}
+                          style={{
+                            background: isDark
+                              ? 'linear-gradient(180deg, rgba(13,22,38,.92), rgba(10,18,33,.84))'
+                              : 'linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,255,.76))',
+                          }}
+                          onClick={() => setComboOpen(!comboOpen)}
+                        >
+                          <input
+                            type="text"
+                            className="flex-1 min-w-0 border-none outline-none bg-transparent font-extrabold text-sm text-[var(--schedule-text)]"
+                            style={{ minHeight: 'auto', boxShadow: 'none', padding: 0 }}
+                            placeholder="ابحث عن التدريسي..."
+                            value={filters[f.key] || comboQuery}
+                            onChange={e => {
+                              setComboQuery(e.target.value);
+                              setComboOpen(true);
+                              if (filters[f.key]) {
+                                const newF = { ...filters };
+                                delete newF[f.key];
+                                setFilters(newF);
+                              }
+                            }}
+                            onClick={e => { e.stopPropagation(); setComboOpen(true); }}
+                          />
+                          <div className="flex items-center gap-1.5 absolute left-2 top-1/2 -translate-y-1/2">
+                            {(filters[f.key] || comboQuery) && (
+                              <button
+                                className="w-8 h-8 rounded-xl grid place-items-center text-sm font-black schedule-btn"
+                                style={{ minHeight: 32, padding: 0 }}
+                                onClick={e => { e.stopPropagation(); setComboQuery(''); const newF = { ...filters }; delete newF[f.key]; setFilters(newF); }}
+                              >✕</button>
+                            )}
+                            <span className={`text-xs transition-transform ${comboOpen ? 'rotate-180' : ''}`}>▼</span>
+                          </div>
+                        </div>
+                        {comboOpen && (
+                          <div className="absolute inset-x-0 top-[calc(100%+10px)] z-25 rounded-[22px] border border-[var(--schedule-border)] overflow-hidden"
+                            style={{
+                              background: isDark
+                                ? 'linear-gradient(180deg, rgba(11,19,33,.98), rgba(9,16,29,.96))'
+                                : 'linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.94))',
+                              boxShadow: '0 26px 60px rgba(15,23,42,.18)',
+                              backdropFilter: 'blur(14px)',
+                            }}>
+                            <div className="flex items-center justify-between gap-2.5 px-4 py-3.5 border-b border-[var(--schedule-border)] text-xs font-black text-[var(--schedule-muted)]"
+                              style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03))' }}>
+                              <strong className="text-[var(--schedule-text)] text-[13px]">اختر التدريسي</strong>
+                              <span>{comboOptions.length} نتيجة</span>
+                            </div>
+                            <div className="max-h-[300px] overflow-auto p-2.5 flex flex-col gap-2">
+                              {comboOptions.length === 0 ? (
+                                <div className="text-center py-4 text-[var(--schedule-muted)] text-sm font-extrabold border border-dashed border-[var(--schedule-border)] rounded-2xl">لا توجد نتائج</div>
+                              ) : comboOptions.map(opt => (
+                                <button key={opt}
+                                  className={`w-full text-right rounded-2xl px-3.5 py-3 text-sm font-extrabold border transition-colors ${filters[f.key] === opt ? 'border-blue-400/20 text-[var(--schedule-accent-blue)]' : 'border-transparent'}`}
+                                  style={{
+                                    background: filters[f.key] === opt
+                                      ? 'linear-gradient(180deg, rgba(37,99,235,.12), rgba(37,99,235,.08))'
+                                      : isDark ? 'linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02))' : 'linear-gradient(180deg, rgba(255,255,255,.92), rgba(246,249,255,.82))',
+                                    minHeight: 46,
+                                  }}
+                                  onClick={() => { handleFilterChange(f.key, opt); setComboQuery(''); setComboOpen(false); }}
+                                >{opt}</button>
+                              ))}
+                            </div>
+                          </div>
                         )}
-                        <span className={`text-xs transition-transform ${comboOpen ? 'rotate-180' : ''}`}>▼</span>
                       </div>
-                    </div>
-                    {comboOpen && (
-                      <div className="absolute inset-x-0 top-[calc(100%+10px)] z-25 rounded-[22px] border border-[var(--schedule-border)] overflow-hidden"
-                        style={{
-                          background: isDark
-                            ? 'linear-gradient(180deg, rgba(11,19,33,.98), rgba(9,16,29,.96))'
-                            : 'linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.94))',
-                          boxShadow: '0 26px 60px rgba(15,23,42,.18)',
-                          backdropFilter: 'blur(14px)',
-                        }}>
-                        <div className="flex items-center justify-between gap-2.5 px-4 py-3.5 border-b border-[var(--schedule-border)] text-xs font-black text-[var(--schedule-muted)]"
-                          style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03))' }}>
-                          <strong className="text-[var(--schedule-text)] text-[13px]">اختر التدريسي</strong>
-                          <span>{comboOptions.length} نتيجة</span>
-                        </div>
-                        <div className="max-h-[300px] overflow-auto p-2.5 flex flex-col gap-2">
-                          {comboOptions.length === 0 ? (
-                            <div className="text-center py-4 text-[var(--schedule-muted)] text-sm font-extrabold border border-dashed border-[var(--schedule-border)] rounded-2xl">لا توجد نتائج</div>
-                          ) : comboOptions.map(opt => (
-                            <button key={opt}
-                              className={`w-full text-right rounded-2xl px-3.5 py-3 text-sm font-extrabold border transition-colors ${filters[f.key] === opt ? 'border-blue-400/20 text-[var(--schedule-accent-blue)]' : 'border-transparent'}`}
-                              style={{
-                                background: filters[f.key] === opt
-                                  ? 'linear-gradient(180deg, rgba(37,99,235,.12), rgba(37,99,235,.08))'
-                                  : isDark ? 'linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02))' : 'linear-gradient(180deg, rgba(255,255,255,.92), rgba(246,249,255,.82))',
-                                minHeight: 46,
-                              }}
-                              onClick={() => { handleFilterChange(f.key, opt); setComboQuery(''); setComboOpen(false); }}
-                            >{opt}</button>
-                          ))}
-                        </div>
-                      </div>
+                    ) : f.control === 'timeSelect' ? (
+                      <select
+                        className="schedule-select"
+                        value={filters[f.key] || ''}
+                        onChange={e => handleTimeChange(f.key, e.target.value)}
+                        style={{ cursor: 'pointer', paddingInlineEnd: 44, minHeight: 52 }}
+                      >
+                        <option value="">— الكل —</option>
+                        {TIME_OPTIONS_ARABIC.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    ) : f.control === 'time' ? (
+                      <input
+                        type="time"
+                        className="schedule-select"
+                        value={filters[f.key] || ''}
+                        onChange={e => handleTimeChange(f.key, e.target.value)}
+                        style={{ cursor: 'pointer', paddingInlineEnd: 16, minHeight: 52 }}
+                      />
+                    ) : (
+                      <select className="schedule-select" value={filters[f.key] || ''} onChange={e => handleFilterChange(f.key, e.target.value)} style={{ cursor: 'pointer', paddingInlineEnd: 44 }}>
+                        <option value="">— الكل —</option>
+                        {getFilterOptions(f.key).map(v => <option key={v} value={v}>{v}</option>)}
+                      </select>
                     )}
                   </div>
-                ) : f.control === 'timeSelect' ? (
-                  <select
-                    className="schedule-select"
-                    value={filters[f.key] || ''}
-                    onChange={e => handleTimeChange(f.key, e.target.value)}
-                    style={{ cursor: 'pointer', paddingInlineEnd: 44, minHeight: 52 }}
-                  >
-                    <option value="">— الكل —</option>
-                    {TIME_OPTIONS_ARABIC.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                ) : f.control === 'time' ? (
-                  <input
-                    type="time"
-                    className="schedule-select"
-                    value={filters[f.key] || ''}
-                    onChange={e => handleTimeChange(f.key, e.target.value)}
-                    style={{ cursor: 'pointer', paddingInlineEnd: 16, minHeight: 52 }}
-                  />
+                ))}
+              </div>
+
+              {/* Toolbar */}
+              <div className="schedule-toolbar">
+                <button className="schedule-btn schedule-btn-primary" onClick={handlePrint}>🖨️ طباعة الجدول</button>
+                {system.shortReport && (
+                  <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
+                )}
+                <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(124,58,237,.28)' }} onClick={() => exportToExcel(system.appTitle, system.headers, filteredRows)}>📥 تصدير Excel</button>
+                <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }} onClick={() => exportToPDF(system.appTitle, system.headers, filteredRows)}>📄 تصدير PDF</button>
+                <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
+                <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
+              </div>
+
+              {/* Statistics for all tabs */}
+              <SystemStatistics
+                rows={filteredRows}
+                allRows={system.rows}
+                systemId={activeSystem}
+                onFilterApply={handleStatFilter}
+                activeStatFilter={statFilter}
+              />
+
+              {/* Table */}
+              <div className="schedule-table-wrap">
+                {filteredRows.length === 0 ? (
+                  <div className="schedule-empty">
+                    <span className="text-[34px] mb-2.5 opacity-70">📄</span>
+                    لا توجد بيانات مطابقة.
+                  </div>
                 ) : (
-                  <select className="schedule-select" value={filters[f.key] || ''} onChange={e => handleFilterChange(f.key, e.target.value)} style={{ cursor: 'pointer', paddingInlineEnd: 44 }}>
-                    <option value="">— الكل —</option>
-                    {getFilterOptions(f.key).map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
+                  <table className="schedule-table">
+                    <thead>
+                      <tr>{system.headers.map(h => <th key={h}>{h}</th>)}</tr>
+                    </thead>
+                    <tbody>
+                      {filteredRows.map((row, i) => {
+                        const hasWarning = activeSystem === 'report' && (
+                          (row['نقص البيانات'] && row['نقص البيانات'] !== 'سليم') ||
+                          (row['التضارب'] && row['التضارب'] !== '')
+                        );
+                        return (
+                          <tr key={i} className={hasWarning ? 'schedule-row-warning' : ''}>
+                            {system.headers.map(h => {
+                              let cellClass = '';
+                              const val = row[h] || '';
+                              if (h === 'نقص البيانات' && val && val !== 'سليم') cellClass = 'schedule-cell-warn';
+                              if (h === 'التضارب' && val) cellClass = 'schedule-cell-danger';
+                              if (h === 'التدقيق حسب الاسبوع') {
+                                if (val.includes('✅')) cellClass = 'schedule-cell-ok';
+                                else if (val.includes('⚠️')) cellClass = 'schedule-cell-warn';
+                                else if (val.includes('❌')) cellClass = 'schedule-cell-danger';
+                              }
+                              return <td key={h} className={cellClass}>{val}</td>;
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 )}
               </div>
-            ))}
-          </div>
-
-          {/* Toolbar */}
-          <div className="schedule-toolbar">
-            <button className="schedule-btn schedule-btn-primary" onClick={handlePrint}>🖨️ طباعة الجدول</button>
-            {system.shortReport && (
-              <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
-            )}
-            <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(124,58,237,.28)' }} onClick={() => exportToExcel(system.appTitle, system.headers, filteredRows)}>📥 تصدير Excel</button>
-            <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }} onClick={() => exportToPDF(system.appTitle, system.headers, filteredRows)}>📄 تصدير PDF</button>
-            <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
-            <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
-          </div>
-
-          {/* Statistics for all tabs */}
-          <SystemStatistics
-            rows={filteredRows}
-            allRows={system.rows}
-            systemId={activeSystem}
-            onFilterApply={handleStatFilter}
-            activeStatFilter={statFilter}
-          />
-
-          {/* Table */}
-          <div className="schedule-table-wrap">
-            {filteredRows.length === 0 ? (
-              <div className="schedule-empty">
-                <span className="text-[34px] mb-2.5 opacity-70">📄</span>
-                لا توجد بيانات مطابقة.
-              </div>
-            ) : (
-              <table className="schedule-table">
-                <thead>
-                  <tr>{system.headers.map(h => <th key={h}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map((row, i) => {
-                    const hasWarning = activeSystem === 'report' && (
-                      (row['نقص البيانات'] && row['نقص البيانات'] !== 'سليم') ||
-                      (row['التضارب'] && row['التضارب'] !== '')
-                    );
-                    return (
-                      <tr key={i} className={hasWarning ? 'schedule-row-warning' : ''}>
-                        {system.headers.map(h => {
-                          let cellClass = '';
-                          const val = row[h] || '';
-                          if (h === 'نقص البيانات' && val && val !== 'سليم') cellClass = 'schedule-cell-warn';
-                          if (h === 'التضارب' && val) cellClass = 'schedule-cell-danger';
-                          if (h === 'التدقيق حسب الاسبوع') {
-                            if (val.includes('✅')) cellClass = 'schedule-cell-ok';
-                            else if (val.includes('⚠️')) cellClass = 'schedule-cell-warn';
-                            else if (val.includes('❌')) cellClass = 'schedule-cell-danger';
-                          }
-                          return <td key={h} className={cellClass}>{val}</td>;
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Footer */}
           <div className="schedule-footer">
