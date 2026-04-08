@@ -627,6 +627,10 @@ const ScheduleSystem = () => {
                 <span className="system-slide-badge">{sys.rows.length}</span>
               </button>
             ))}
+            <button className={`system-slide ${activeSystem === 'charts' ? 'active' : ''}`} onClick={() => switchSystem('charts')}>
+              <span className="system-slide-icon">📈</span>
+              <span>الإحصائيات</span>
+            </button>
           </div>
 
           {/* Filters */}
