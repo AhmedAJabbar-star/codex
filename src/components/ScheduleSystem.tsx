@@ -379,7 +379,7 @@ const ScheduleSystem = () => {
   const filteredRows = useMemo(() => {
     let result = system.rows.filter(row => {
       const standardPass = system.filters.every(f => {
-        if (f.control === 'time') return true;
+        if (f.control === 'time' || f.control === 'timeSelect') return true;
         const val = filters[f.key];
         if (!val) return true;
         return row[f.key] === val;
@@ -389,25 +389,42 @@ const ScheduleSystem = () => {
       if (system.timeFilter) {
         const fromStr = filters['__timeFrom'];
         const toStr = filters['__timeTo'];
-        if (fromStr && toStr) {
-          const filterStart = parseTimeToMinutes(fromStr);
-          const filterEnd = parseTimeToMinutes(toStr);
-          const lectureStart = parseTimeToMinutes(row[system.timeFilter.startKey] || '');
-          const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
-          if (filterStart !== null && filterEnd !== null && lectureStart !== null && lectureEnd !== null) {
-            if (!(lectureStart < filterEnd && lectureEnd > filterStart)) return false;
+        const mode = system.timeFilter.mode || 'overlap';
+        const lectureStart = parseTimeToMinutes(row[system.timeFilter.startKey] || '');
+        const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
+
+        if (mode === 'containment') {
+          // For empty rooms: show only if room period is within the selected range
+          if (fromStr) {
+            const filterStart = parseTimeToMinutes(fromStr);
+            if (filterStart !== null && lectureStart !== null) {
+              if (lectureStart < filterStart) return false;
+            }
           }
-        } else if (fromStr) {
-          const filterStart = parseTimeToMinutes(fromStr);
-          const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
-          if (filterStart !== null && lectureEnd !== null) {
-            if (lectureEnd <= filterStart) return false;
+          if (toStr) {
+            const filterEnd = parseTimeToMinutes(toStr);
+            if (filterEnd !== null && lectureEnd !== null) {
+              if (lectureEnd > filterEnd) return false;
+            }
           }
-        } else if (toStr) {
-          const filterEnd = parseTimeToMinutes(toStr);
-          const lectureStart = parseTimeToMinutes(row[system.timeFilter.startKey] || '');
-          if (filterEnd !== null && lectureStart !== null) {
-            if (lectureStart >= filterEnd) return false;
+        } else {
+          // Overlap mode for tracking
+          if (fromStr && toStr) {
+            const filterStart = parseTimeToMinutes(fromStr);
+            const filterEnd = parseTimeToMinutes(toStr);
+            if (filterStart !== null && filterEnd !== null && lectureStart !== null && lectureEnd !== null) {
+              if (!(lectureStart < filterEnd && lectureEnd > filterStart)) return false;
+            }
+          } else if (fromStr) {
+            const filterStart = parseTimeToMinutes(fromStr);
+            if (filterStart !== null && lectureEnd !== null) {
+              if (lectureEnd <= filterStart) return false;
+            }
+          } else if (toStr) {
+            const filterEnd = parseTimeToMinutes(toStr);
+            if (filterEnd !== null && lectureStart !== null) {
+              if (lectureStart >= filterEnd) return false;
+            }
           }
         }
       }
