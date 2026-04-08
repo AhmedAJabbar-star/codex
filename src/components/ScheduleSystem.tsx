@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
-import * as XLSX from 'xlsx';
+// Excel export uses HTML table approach for styling support
 import universityLogo from '@/assets/university-logo.jpg';
 
 /* ───── Time parsing helper ───── */
