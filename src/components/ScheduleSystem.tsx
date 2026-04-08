@@ -451,7 +451,7 @@ const ScheduleSystem = () => {
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
-    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time');
+    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect');
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
@@ -467,7 +467,7 @@ const ScheduleSystem = () => {
     const newFilters = { ...filters };
     newFilters[key] = value;
     system.filters.slice(filterIndex + 1).forEach(f => {
-      if (f.control !== 'time') delete newFilters[f.key];
+      if (f.control !== 'time' && f.control !== 'timeSelect') delete newFilters[f.key];
     });
     setFilters(newFilters);
   };
