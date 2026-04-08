@@ -232,7 +232,7 @@ const ScheduleSystem = () => {
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
-    const upstreamFilters = system.filters.slice(0, filterIndex);
+    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time');
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
@@ -247,7 +247,17 @@ const ScheduleSystem = () => {
     const filterIndex = system.filters.findIndex(f => f.key === key);
     const newFilters = { ...filters };
     newFilters[key] = value;
-    system.filters.slice(filterIndex + 1).forEach(f => { delete newFilters[f.key]; });
+    // Don't cascade-clear time filters
+    system.filters.slice(filterIndex + 1).forEach(f => {
+      if (f.control !== 'time') delete newFilters[f.key];
+    });
+    setFilters(newFilters);
+  };
+
+  const handleTimeChange = (key: string, value: string) => {
+    const newFilters = { ...filters };
+    if (value) newFilters[key] = value;
+    else delete newFilters[key];
     setFilters(newFilters);
   };
 
