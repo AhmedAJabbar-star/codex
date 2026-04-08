@@ -765,6 +765,45 @@ const ScheduleSystem = () => {
 
   const clearFilters = () => { setFilters({}); setComboQuery(''); setStatFilter(null); };
 
+  const addBooking = () => {
+    if (!bookingForm.room || !bookingForm.day || !bookingForm.date || !bookingForm.fromTime || !bookingForm.toTime) return;
+    const newBooking: Booking = {
+      id: Date.now().toString(),
+      room: bookingForm.room,
+      day: bookingForm.day,
+      date: bookingForm.date,
+      fromTime: bookingForm.fromTime,
+      toTime: bookingForm.toTime,
+      note: bookingForm.note,
+    };
+    const updated = [...bookings, newBooking];
+    setBookings(updated);
+    saveBookings(updated);
+    setBookingForm({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
+    setShowBookingDialog(false);
+  };
+
+  const removeBooking = (id: string) => {
+    const updated = bookings.filter(b => b.id !== id);
+    setBookings(updated);
+    saveBookings(updated);
+  };
+
+  const getBookingNote = (room: string, day: string, fromTime: string, toTime: string): string | null => {
+    const fromMin = parseTimeToMinutes(fromTime);
+    const toMin = parseTimeToMinutes(toTime);
+    if (fromMin === null || toMin === null) return null;
+    const match = bookings.find(b => {
+      if (b.room !== room || b.day !== day) return false;
+      const bFrom = parseTimeToMinutes(b.fromTime);
+      const bTo = parseTimeToMinutes(b.toTime);
+      if (bFrom === null || bTo === null) return false;
+      return bFrom < toMin && bTo > fromMin;
+    });
+    if (!match) return null;
+    return `⚠️ محجوزة - ${match.date} من ${match.fromTime} إلى ${match.toTime}`;
+  };
+
   const switchSystem = (id: string) => {
     setActiveSystem(id);
     setFilters({});
