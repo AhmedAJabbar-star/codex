@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
-import XLSX from 'xlsx-js-style';
+import * as XLSX from 'xlsx';
 import universityLogo from '@/assets/university-logo.jpg';
 
 /* ───── Time parsing helper ───── */
