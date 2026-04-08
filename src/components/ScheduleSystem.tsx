@@ -606,6 +606,25 @@ const ChartsPanel = () => {
   );
 };
 
+interface Booking {
+  id: string;
+  room: string;
+  day: string;
+  date: string;
+  fromTime: string;
+  toTime: string;
+  note?: string;
+}
+
+function loadBookings(): Booking[] {
+  try {
+    return JSON.parse(localStorage.getItem('room_bookings') || '[]');
+  } catch { return []; }
+}
+function saveBookings(bookings: Booking[]) {
+  localStorage.setItem('room_bookings', JSON.stringify(bookings));
+}
+
 const ScheduleSystem = () => {
   const [activeSystem, setActiveSystem] = useState('teacher');
   const [isDark, setIsDark] = useState(false);
@@ -614,6 +633,9 @@ const ScheduleSystem = () => {
   const [comboQuery, setComboQuery] = useState('');
   const [statFilter, setStatFilter] = useState<string | null>(null);
   const comboRef = useRef<HTMLDivElement>(null);
+  const [bookings, setBookings] = useState<Booking[]>(loadBookings);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
 
   const system = useMemo(() => SYSTEMS.find(s => s.id === activeSystem) || SYSTEMS[0], [activeSystem]);
 
