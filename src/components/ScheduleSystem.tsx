@@ -1012,9 +1012,27 @@ const ScheduleSystem = () => {
                 )}
                 <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(124,58,237,.28)' }} onClick={() => exportToExcel(system.appTitle, system.headers, filteredRows)}>📥 تصدير Excel</button>
                 <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }} onClick={() => exportToPDF(system.appTitle, system.headers, filteredRows)}>📄 تصدير PDF</button>
+                {activeSystem === 'emptyRooms' && (
+                  <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(5,150,105,.28)' }} onClick={() => setShowBookingDialog(true)}>📅 حجز مؤقت</button>
+                )}
                 <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
                 <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
               </div>
+
+              {/* Active Bookings List */}
+              {activeSystem === 'emptyRooms' && bookings.length > 0 && (
+                <div className="schedule-stats" style={{ marginBottom: 12 }}>
+                  <div className="schedule-stats-header">📅 الحجوزات المؤقتة ({bookings.length})</div>
+                  <div className="flex flex-wrap gap-2 p-3">
+                    {bookings.map(b => (
+                      <div key={b.id} className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold" style={{ background: 'linear-gradient(135deg, rgba(5,150,105,.1), rgba(5,150,105,.05))', border: '1px solid rgba(5,150,105,.2)' }}>
+                        <span>🏛️ {b.room} | {b.day} | {b.date} | {b.fromTime} - {b.toTime}</span>
+                        <button onClick={() => removeBooking(b.id)} className="text-red-500 hover:text-red-700 font-black">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
 
               {/* Statistics for all tabs */}
               <SystemStatistics
