@@ -1,0 +1,219 @@
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { SYSTEMS, TIME_OPTIONS_ARABIC, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import universityLogo from '@/assets/university-logo.jpg';
+
+/* ───── Time parsing helper ───── */
+export function parseTimeToMinutes(timeStr: string): number | null {
+  if (!timeStr) return null;
+  if (/^\d{1,2}:\d{2}$/.test(timeStr)) {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  }
+  const match = timeStr.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|ص|م)/i);
+  if (!match) return null;
+  let h = parseInt(match[1]);
+  const m = parseInt(match[2]);
+  const period = match[4];
+  const isAM = period === 'AM' || period === 'am' || period === 'ص';
+  const isPM = period === 'PM' || period === 'pm' || period === 'م';
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+/* ───── Print helper ───── */
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string, singlePage?: boolean) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+
+  const tableRows = rows.map((r, i) =>
+    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`
+  ).join('');
+
+  const colCount = headers.length;
+  const fontSize = singlePage ? '7px' : colCount > 12 ? '9px' : colCount > 8 ? '10px' : '11px';
+  const singlePageCSS = singlePage ? `
+    @page{size:landscape;margin:4mm}
+    html,body{height:100vh;overflow:hidden}
+    .print-wrap{max-height:100vh;overflow:hidden}
+    table{font-size:${fontSize} !important}
+    td,th{padding:3px 2px !important}
+  ` : `@page{size:landscape;margin:6mm}`;
+
+  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:0}
+.print-header{text-align:center;padding:20px 15px 15px;border-bottom:3px double #0f4c81}
+.print-header img{width:80px;height:80px;object-fit:contain;margin-bottom:8px}
+.print-header h1{font-size:18px;color:#0f4c81;margin:0 0 4px;font-weight:900}
+.print-header h2{font-size:22px;color:#000;margin:0;font-weight:900}
+.print-header .subtitle{font-size:12px;color:#555;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:12px}
+th{background:#0f4c81;color:#fff;padding:8px 5px;font-weight:800;border:1px solid #0b3558;white-space:nowrap;text-align:center}
+td{padding:6px 5px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle}
+tr.even{background:#f0f6ff}
+tr.odd{background:#fff}
+tr:hover{background:#e3edfa !important}
+.footer{margin-top:18px;border-top:3px double #0f4c81;padding:12px 15px;font-size:11px;line-height:2;color:#333}
+.footer strong{color:#0f4c81}
+.stats-bar{display:flex;gap:12px;justify-content:center;padding:10px 15px;flex-wrap:wrap}
+.stats-bar .stat{background:#f0f6ff;border:1px solid #c5d3e3;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;color:#0f4c81}
+@media print{
+  ${singlePageCSS}
+  body{padding:0}
+  tr,td,th{page-break-inside:avoid}
+  .print-header{border-bottom-color:#000}
+  .footer{border-top-color:#000}
+}
+</style></head><body>
+<div class="print-wrap">
+<div class="print-header">
+<img src="${universityLogo}" alt="شعار الجامعة"/>
+<h1>كلية الهندسة المدنية - الجامعة التكنولوجية</h1>
+<h2>${title}</h2>
+<div class="subtitle">عدد السجلات: ${rows.length}</div>
+</div>
+<div class="stats-bar">
+<div class="stat">📊 إجمالي: ${rows.length}</div>
+</div>
+<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+<tbody>${tableRows}</tbody></table>
+<div class="footer">${footerHtml}</div>
+</div>
+<script>window.onafterprint=()=>window.close();window.print();<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+/* ───── Short report modes ───── */
+export function generateExcludeHeadersReport(rows: ScheduleRow[], allHeaders: string[], excludeHeaders: string[], title: string, footerHtml: string) {
+  const displayHeaders = allHeaders.filter(h => !excludeHeaders.includes(h));
+  openPrintWindow(title, displayHeaders, rows, footerHtml, true);
+}
+
+export function generateAfterHeaderReport(rows: ScheduleRow[], allHeaders: string[], headerKey: string, title: string, footerHtml: string) {
+  const idx = allHeaders.indexOf(headerKey);
+  const displayHeaders = idx >= 0 ? allHeaders.slice(idx + 1) : allHeaders;
+  openPrintWindow(title, displayHeaders, rows, footerHtml);
+}
+
+/* ───── Excel export ───── */
+export function exportToExcel(title: string, headers: string[], rows: ScheduleRow[]) {
+  const headerCells = headers.map(h =>
+    `<th style="background-color:#0F4C81;color:#FFFFFF;font-weight:bold;font-size:12pt;text-align:center;border:1px solid #0B3558;padding:8px;font-family:Cairo,Arial">${h}</th>`
+  ).join('');
+
+  const dataRows = rows.map((r, i) => {
+    const bgColor = i % 2 === 0 ? '#F0F6FF' : '#FFFFFF';
+    const cells = headers.map(h =>
+      `<td style="background-color:${bgColor};text-align:center;border:1px solid #C5D3E3;padding:6px;font-size:11pt;font-family:Cairo,Arial">${r[h] || ''}</td>`
+    ).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8">
+    <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+    <x:Name>الجدول</x:Name>
+    <x:WorksheetOptions><x:DisplayRightToLeft/><x:FreezePanes/><x:FrozenNoSplit/><x:SplitHorizontal>1</x:SplitHorizontal><x:TopRowBottomPane>1</x:TopRowBottomPane><x:ActivePane>2</x:ActivePane></x:WorksheetOptions>
+    <x:AutoFilter x:Range="A1:${String.fromCharCode(64 + headers.length)}1"/>
+    </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+    </head>
+    <body><table dir="rtl">${`<tr>${headerCells}</tr>`}${dataRows}</table></body></html>`;
+
+  const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title}.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ───── PDF export ───── */
+export function exportToPDF(title: string, headers: string[], rows: ScheduleRow[]) {
+  const tableRows = rows.map((r, i) =>
+    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`
+  ).join('');
+
+  const colCount = headers.length;
+  const fontSize = colCount > 12 ? '8px' : colCount > 8 ? '9px' : '10px';
+
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><title>${title} - PDF</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:10mm}
+@page{size:landscape;margin:6mm}
+h1{text-align:center;font-size:18px;color:#0f4c81;margin-bottom:4px;font-weight:900}
+h2{text-align:center;font-size:14px;color:#333;margin-bottom:8px;font-weight:700}
+.info{text-align:center;font-size:11px;color:#555;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:${fontSize}}
+th{background:#0f4c81;color:#fff;padding:6px 4px;font-weight:800;border:1px solid #0b3558;white-space:nowrap;text-align:center}
+td{padding:5px 4px;border:1px solid #c5d3e3;text-align:center;font-weight:600}
+tr.even{background:#f0f6ff}
+tr.odd{background:#fff}
+.footer{margin-top:15px;border-top:2px solid #0f4c81;padding-top:10px;font-size:10px;line-height:2;color:#333}
+.footer strong{color:#0f4c81}
+@media print{body{padding:0}tr,td,th{page-break-inside:avoid}}
+</style></head><body>
+<h1>${title}</h1>
+<h2>كلية الهندسة المدنية - الجامعة التكنولوجية</h2>
+<div class="info">عدد السجلات: ${rows.length} | تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</div>
+<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+<tbody>${tableRows}</tbody></table>
+<div class="footer">
+<div><strong>برمجة :</strong> المدرس الدكتور احمد عبدالامير جبار عيسى - كلية الهندسة المدنية</div>
+<div><strong>تصميم :</strong> الاستاذ الدكتور وائل شوقي عبد الصاحب - معاون العميد للشؤون الادارية</div>
+<div><strong>إشراف :</strong> الأستاذ الدكتور علي مجيد خضير الدهوي - عميد كلية الهندسة المدنية</div>
+</div>
+<script>window.onafterprint=()=>window.close();window.print();<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+/* ───── Stat Card ───── */
+interface StatCardProps {
+  label: string;
+  value: number | string;
+  icon: string;
+  color: string;
+  active?: boolean;
+  onClick?: () => void;
+}
+
+export const StatCard = ({ label, value, icon, color, active, onClick }: StatCardProps) => (
+  <button
+    className={`schedule-stat-card schedule-stat-interactive ${active ? 'schedule-stat-active' : ''}`}
+    style={{ '--stat-color': color } as React.CSSProperties}
+    onClick={onClick}
+  >
+    <span className="schedule-stat-icon">{icon}</span>
+    <span className="schedule-stat-value">{value}</span>
+    <span className="schedule-stat-label">{label}</span>
+  </button>
+);
+
+/* ───── Compute lecture duration ───── */
+export function computeDurationHours(row: ScheduleRow): number {
+  const start = parseTimeToMinutes(row['بدء المحاضرة'] || '');
+  const end = parseTimeToMinutes(row['نهاية المحاضرة'] || '');
+  if (start === null || end === null) return 0;
+  return (end - start) / 60;
+}
+
+export const FOOTER_HTML = `
+<div><strong>برمجة :</strong> المدرس الدكتور احمد عبدالامير جبار عيسى - كلية الهندسة المدنية</div>
+<div><strong>تصميم :</strong> الاستاذ الدكتور وائل شوقي عبد الصاحب - معاون العميد للشؤون الادارية</div>
+<div><strong>إشراف :</strong> الأستاذ الدكتور علي مجيد خضير الدهوي - عميد كلية الهندسة المدنية</div>`;
+
+export { universityLogo, TIME_OPTIONS_ARABIC };
+export type { ScheduleRow, SystemConfig };
