@@ -219,24 +219,71 @@ const SingleSystemPage = ({ systemIds, showBackButton = true }: Props) => {
     setStatFilter(null);
   };
 
+  const checkRequiredFilters = useCallback((): boolean => {
+    if (!system.requiredFilters || system.requiredFilters.length === 0) return true;
+    const missing = system.requiredFilters.filter(key => !filters[key]);
+    if (missing.length > 0) {
+      const labels = missing.map(key => {
+        const f = system.filters.find(fl => fl.key === key);
+        return f?.label || key;
+      });
+      toast.error(`يرجى تحديد: ${labels.join(' و ')} قبل المتابعة`, {
+        style: { direction: 'rtl', textAlign: 'right' },
+      });
+      return false;
+    }
+    return true;
+  }, [system, filters]);
+
   const handlePrint = () => {
+    if (!checkRequiredFilters()) return;
     const isSinglePage = activeSystem === 'teacher';
     openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML, isSinglePage);
   };
 
   const handleShortReport = () => {
+    if (!checkRequiredFilters()) return;
     const sr = system.shortReport;
     if (!sr) return;
     if (sr.mode === 'excludeHeaders' && sr.headers) {
+      // Build info lines from filtered columns
+      const infoLines: string[] = [];
+      sr.headers.forEach(headerKey => {
+        const val = filters[headerKey];
+        if (val) {
+          const filterDef = system.filters.find(f => f.key === headerKey);
+          const label = filterDef?.label || headerKey;
+          infoLines.push(`<div class="info-line"><strong>${label} :</strong> ${val}</div>`);
+        }
+      });
+      // Also include day if filtered
+      if (filters['اليوم']) {
+        infoLines.push(`<div class="info-line"><strong>اليوم :</strong> ${filters['اليوم']}</div>`);
+      }
+
       let reportTitle = sr.title;
       if (activeSystem === 'teacher') {
         const teacherName = filters['اسم التدريسي'];
         if (teacherName) reportTitle = `جدول التدريسي : ${teacherName}`;
       }
-      generateExcludeHeadersReport(filteredRows, system.headers, sr.headers, reportTitle, FOOTER_HTML);
+      
+      // Use exclude headers report with info header
+      const displayHeaders = system.headers.filter(h => !sr.headers.includes(h));
+      const infoHtml = infoLines.length > 0 ? infoLines.join('') : '';
+      openShortReportWindow(reportTitle, displayHeaders, filteredRows, FOOTER_HTML, infoHtml, activeSystem === 'teacher');
     } else if (sr.mode === 'afterHeader' && sr.header) {
       generateAfterHeaderReport(filteredRows, system.headers, sr.header, sr.title, FOOTER_HTML);
     }
+  };
+
+  const handleExcel = () => {
+    if (!checkRequiredFilters()) return;
+    exportToExcel(system.appTitle, system.headers, filteredRows);
+  };
+
+  const handlePDF = () => {
+    if (!checkRequiredFilters()) return;
+    exportToPDF(system.appTitle, system.headers, filteredRows);
   };
 
   const comboFilterKey = useMemo(() => {
