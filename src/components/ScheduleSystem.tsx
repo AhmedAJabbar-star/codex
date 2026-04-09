@@ -657,6 +657,11 @@ const ScheduleSystem = () => {
         if (f.control === 'time' || f.control === 'timeSelect') return true;
         const val = filters[f.key];
         if (!val) return true;
+        if (f.control === 'number') {
+          const inputNum = parseFloat(val);
+          const cellNum = parseFloat(row[f.key] || '0');
+          return !isNaN(inputNum) && !isNaN(cellNum) && cellNum >= inputNum;
+        }
         if (f.matchMode === 'contains') {
           return (row[f.key] || '').includes(val);
         }
@@ -731,7 +736,7 @@ const ScheduleSystem = () => {
     const filterDef = system.filters.find(f => f.key === filterKey);
     if (filterDef?.fixedOptions) return filterDef.fixedOptions;
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
-    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect');
+    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number');
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
@@ -753,7 +758,7 @@ const ScheduleSystem = () => {
     const newFilters = { ...filters };
     newFilters[key] = value;
     system.filters.slice(filterIndex + 1).forEach(f => {
-      if (f.control !== 'time' && f.control !== 'timeSelect') delete newFilters[f.key];
+      if (f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number') delete newFilters[f.key];
     });
     setFilters(newFilters);
   };
@@ -987,6 +992,16 @@ const ScheduleSystem = () => {
                           </div>
                         )}
                       </div>
+                    ) : f.control === 'number' ? (
+                      <input
+                        type="number"
+                        className="schedule-select"
+                        placeholder={`أدخل ${f.label}`}
+                        value={filters[f.key] || ''}
+                        onChange={e => handleFilterChange(f.key, e.target.value)}
+                        style={{ cursor: 'text', paddingInlineEnd: 16, minHeight: 52 }}
+                        min="0"
+                      />
                     ) : f.control === 'timeSelect' ? (
                       <select
                         className="schedule-select"
