@@ -246,20 +246,18 @@ const SingleSystemPage = ({ systemIds, showBackButton = true }: Props) => {
     const sr = system.shortReport;
     if (!sr) return;
     if (sr.mode === 'excludeHeaders' && sr.headers) {
-      // Build info lines from filtered columns
+      // Build info lines from actively filtered columns only
       const infoLines: string[] = [];
+      const activelyFilteredHeaders: string[] = [];
       sr.headers.forEach(headerKey => {
         const val = filters[headerKey];
         if (val) {
+          activelyFilteredHeaders.push(headerKey);
           const filterDef = system.filters.find(f => f.key === headerKey);
           const label = filterDef?.label || headerKey;
           infoLines.push(`<div class="info-line"><strong>${label} :</strong> ${val}</div>`);
         }
       });
-      // Also include day if filtered
-      if (filters['اليوم']) {
-        infoLines.push(`<div class="info-line"><strong>اليوم :</strong> ${filters['اليوم']}</div>`);
-      }
 
       let reportTitle = sr.title;
       if (activeSystem === 'teacher') {
@@ -267,8 +265,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true }: Props) => {
         if (teacherName) reportTitle = `جدول التدريسي : ${teacherName}`;
       }
       
-      // Use exclude headers report with info header
-      const displayHeaders = system.headers.filter(h => !sr.headers.includes(h));
+      // Only hide columns that are actively filtered
+      const displayHeaders = system.headers.filter(h => !activelyFilteredHeaders.includes(h));
       const infoHtml = infoLines.length > 0 ? infoLines.join('') : '';
       openShortReportWindow(reportTitle, displayHeaders, filteredRows, FOOTER_HTML, infoHtml, activeSystem === 'teacher');
     } else if (sr.mode === 'afterHeader' && sr.header) {
