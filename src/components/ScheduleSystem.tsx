@@ -657,6 +657,9 @@ const ScheduleSystem = () => {
         if (f.control === 'time' || f.control === 'timeSelect') return true;
         const val = filters[f.key];
         if (!val) return true;
+        if (f.matchMode === 'contains') {
+          return (row[f.key] || '').includes(val);
+        }
         return row[f.key] === val;
       });
       if (!standardPass) return false;
