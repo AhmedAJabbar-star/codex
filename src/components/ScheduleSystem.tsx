@@ -736,7 +736,7 @@ const ScheduleSystem = () => {
     const filterDef = system.filters.find(f => f.key === filterKey);
     if (filterDef?.fixedOptions) return filterDef.fixedOptions;
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
-    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect');
+    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number');
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
