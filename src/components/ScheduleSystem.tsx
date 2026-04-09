@@ -758,7 +758,7 @@ const ScheduleSystem = () => {
     const newFilters = { ...filters };
     newFilters[key] = value;
     system.filters.slice(filterIndex + 1).forEach(f => {
-      if (f.control !== 'time' && f.control !== 'timeSelect') delete newFilters[f.key];
+      if (f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number') delete newFilters[f.key];
     });
     setFilters(newFilters);
   };
