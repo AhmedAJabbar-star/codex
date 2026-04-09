@@ -50,9 +50,9 @@ const systemCards = [
   },
   {
     id: 'assignments',
-    title: 'تكليفات الأستاذ',
+    title: 'تكليفات التدريسي',
     icon: '📑',
-    description: 'عرض تكليفات الأساتذة حسب الكلية والقسم',
+    description: 'عرض تكليفات التدريسيين حسب الكلية والقسم',
     path: '/assignments',
     color: '#dc2626',
     gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
