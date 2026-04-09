@@ -13,7 +13,7 @@ interface Props {
 const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFilter }: Props) => {
   const stats = useMemo(() => {
     if (systemId === 'teacher' || systemId === 'student' || systemId === 'tracking' || systemId === 'assignments') {
-      const departments = new Set(rows.map(r => r['القسم'] || r['القسم الذي تنتمي اليه']));
+      const departments = new Set(rows.map(r => r['القسم'] || r['القسم الذي تنتمي اليه']).filter(Boolean));
       const teachers = new Set(rows.map(r => r['اسم التدريسي']).filter(Boolean));
       const rooms = new Set(rows.map(r => r['القاعة أو المختبر']).filter(Boolean));
       const days = new Set(rows.map(r => r['اليوم']).filter(Boolean));
@@ -23,7 +23,9 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
       let practicalHours = 0;
       let theoryHours = 0;
       rows.forEach(r => {
-        const dur = computeDurationHours(r);
+        const dur = systemId === 'assignments'
+          ? parseFloat(r['الساعات النهائية'] || r['مدة المحاضرة'] || '0') || computeDurationHours(r)
+          : computeDurationHours(r);
         if (r['نوع المحاضرة'] === 'عملي') practicalHours += dur;
         else if (r['نوع المحاضرة'] === 'نظري') theoryHours += dur;
       });
