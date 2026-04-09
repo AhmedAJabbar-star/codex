@@ -1023,7 +1023,15 @@ const ScheduleSystem = () => {
                         type="time"
                         className="schedule-select"
                         value={filters[f.key] || ''}
-                        onChange={e => handleTimeChange(f.key, e.target.value)}
+                        min={f.key === '__timeTo' && filters['__timeFrom'] ? filters['__timeFrom'] : undefined}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (f.key === '__timeTo' && filters['__timeFrom'] && val && val < filters['__timeFrom']) return;
+                          handleTimeChange(f.key, val);
+                          if (f.key === '__timeFrom' && filters['__timeTo'] && filters['__timeTo'] < val) {
+                            handleTimeChange('__timeTo', '');
+                          }
+                        }}
                         style={{ cursor: 'pointer', paddingInlineEnd: 16, minHeight: 52 }}
                       />
                     ) : (
