@@ -657,6 +657,11 @@ const ScheduleSystem = () => {
         if (f.control === 'time' || f.control === 'timeSelect') return true;
         const val = filters[f.key];
         if (!val) return true;
+        if (f.control === 'number') {
+          const inputNum = parseFloat(val);
+          const cellNum = parseFloat(row[f.key] || '0');
+          return !isNaN(inputNum) && !isNaN(cellNum) && cellNum >= inputNum;
+        }
         if (f.matchMode === 'contains') {
           return (row[f.key] || '').includes(val);
         }
