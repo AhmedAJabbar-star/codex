@@ -12,6 +12,7 @@ import SystemStatistics from './SystemStatistics';
 interface Props {
   systemIds: string[];
   showBackButton?: boolean;
+  systemsOverride?: SystemConfig[];
 }
 
 interface Booking {
@@ -31,7 +32,7 @@ function saveBookings(bookings: Booking[]) {
   localStorage.setItem('room_bookings', JSON.stringify(bookings));
 }
 
-const SingleSystemPage = ({ systemIds, showBackButton = true }: Props) => {
+const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }: Props) => {
   const navigate = useNavigate();
   const [activeSystem, setActiveSystem] = useState(systemIds[0]);
   const [isDark, setIsDark] = useState(false);
@@ -44,8 +45,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true }: Props) => {
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
 
-  const systems = useMemo(() => SYSTEMS.filter(s => systemIds.includes(s.id)), [systemIds]);
+  const systems = useMemo(() => {
+    if (systemsOverride && systemsOverride.length > 0) return systemsOverride;
+    return SYSTEMS.filter(s => systemIds.includes(s.id));
+  }, [systemIds, systemsOverride]);
   const system = useMemo(() => systems.find(s => s.id === activeSystem) || systems[0], [activeSystem, systems]);
+
+  useEffect(() => {
+    if (systems.length > 0 && !systems.some((sys) => sys.id === activeSystem)) {
+      setActiveSystem(systems[0].id);
+    }
+  }, [systems, activeSystem]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
