@@ -677,17 +677,23 @@ const ScheduleSystem = () => {
         const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
 
         if (mode === 'containment') {
-          // For empty rooms: show only if room period is within the selected range
-          if (fromStr) {
+          // For empty rooms: show only if room's free period CONTAINS the requested range
+          // i.e. room starts at or before filter start, AND ends at or after filter end
+          if (fromStr && toStr) {
+            const filterStart = parseTimeToMinutes(fromStr);
+            const filterEnd = parseTimeToMinutes(toStr);
+            if (filterStart !== null && filterEnd !== null && lectureStart !== null && lectureEnd !== null) {
+              if (!(lectureStart <= filterStart && lectureEnd >= filterEnd)) return false;
+            }
+          } else if (fromStr) {
             const filterStart = parseTimeToMinutes(fromStr);
             if (filterStart !== null && lectureStart !== null) {
-              if (lectureStart < filterStart) return false;
+              if (lectureStart > filterStart) return false;
             }
-          }
-          if (toStr) {
+          } else if (toStr) {
             const filterEnd = parseTimeToMinutes(toStr);
             if (filterEnd !== null && lectureEnd !== null) {
-              if (lectureEnd > filterEnd) return false;
+              if (lectureEnd < filterEnd) return false;
             }
           }
         } else {
