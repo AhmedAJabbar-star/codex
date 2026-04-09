@@ -657,6 +657,9 @@ const ScheduleSystem = () => {
         if (f.control === 'time' || f.control === 'timeSelect') return true;
         const val = filters[f.key];
         if (!val) return true;
+        if (f.matchMode === 'contains') {
+          return (row[f.key] || '').includes(val);
+        }
         return row[f.key] === val;
       });
       if (!standardPass) return false;
@@ -725,12 +728,20 @@ const ScheduleSystem = () => {
   }, [system, filters, statFilter, activeSystem]);
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
+    const filterDef = system.filters.find(f => f.key === filterKey);
+    if (filterDef?.fixedOptions) return filterDef.fixedOptions;
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
     const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect');
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
-      if (val) rows = rows.filter(r => r[f.key] === val);
+      if (val) {
+        if (f.matchMode === 'contains') {
+          rows = rows.filter(r => (r[f.key] || '').includes(val));
+        } else {
+          rows = rows.filter(r => r[f.key] === val);
+        }
+      }
     });
     const values = [...new Set(rows.map(r => r[filterKey]).filter(Boolean))];
     values.sort();
