@@ -992,6 +992,16 @@ const ScheduleSystem = () => {
                           </div>
                         )}
                       </div>
+                    ) : f.control === 'number' ? (
+                      <input
+                        type="number"
+                        className="schedule-select"
+                        placeholder={`أدخل ${f.label}`}
+                        value={filters[f.key] || ''}
+                        onChange={e => handleFilterChange(f.key, e.target.value)}
+                        style={{ cursor: 'text', paddingInlineEnd: 16, minHeight: 52 }}
+                        min="0"
+                      />
                     ) : f.control === 'timeSelect' ? (
                       <select
                         className="schedule-select"
