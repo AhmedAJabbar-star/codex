@@ -676,9 +676,14 @@ const ScheduleSystem = () => {
         const lectureStart = parseTimeToMinutes(row[system.timeFilter.startKey] || '');
         const lectureEnd = parseTimeToMinutes(row[system.timeFilter.endKey] || '');
 
+        // Validate: if both times set but from >= to, it's invalid — no results
+        if (fromStr && toStr) {
+          const fS = parseTimeToMinutes(fromStr);
+          const fE = parseTimeToMinutes(toStr);
+          if (fS !== null && fE !== null && fS >= fE) return false;
+        }
+
         if (mode === 'containment') {
-          // For empty rooms: show only if room's free period CONTAINS the requested range
-          // i.e. room starts at or before filter start, AND ends at or after filter end
           if (fromStr && toStr) {
             const filterStart = parseTimeToMinutes(fromStr);
             const filterEnd = parseTimeToMinutes(toStr);
@@ -1023,12 +1028,15 @@ const ScheduleSystem = () => {
                         type="time"
                         className="schedule-select"
                         value={filters[f.key] || ''}
-                        min={f.key === '__timeTo' && filters['__timeFrom'] ? filters['__timeFrom'] : undefined}
+                        min={f.key === '__timeTo' && filters['__timeFrom'] ? filters['__timeFrom'] : '07:00'}
+                        max="22:00"
                         onChange={e => {
                           const val = e.target.value;
-                          if (f.key === '__timeTo' && filters['__timeFrom'] && val && val < filters['__timeFrom']) return;
+                          // Block times outside university hours (07:00–22:00)
+                          if (val && (val < '07:00' || val > '22:00')) return;
+                          if (f.key === '__timeTo' && filters['__timeFrom'] && val && val <= filters['__timeFrom']) return;
                           handleTimeChange(f.key, val);
-                          if (f.key === '__timeFrom' && filters['__timeTo'] && filters['__timeTo'] < val) {
+                          if (f.key === '__timeFrom' && filters['__timeTo'] && filters['__timeTo'] <= val) {
                             handleTimeChange('__timeTo', '');
                           }
                         }}
