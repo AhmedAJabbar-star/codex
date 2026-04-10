@@ -34,7 +34,7 @@ const AssignmentsPage = () => {
   }
 
   if (isLoading && !rows) {
-    return loadingShell('جاري جلب بيانات تكليفات التدريسي مباشرة من ورقة Individualassignments...');
+    return loadingShell('جاري التحميل...', true);
   }
 
   if (error || !systemsOverride) {
