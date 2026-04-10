@@ -4,10 +4,10 @@ import SingleSystemPage from '@/components/shared/SingleSystemPage';
 import { SYSTEMS, type SystemConfig } from '@/data/scheduleData';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 
-const loadingShell = (message: string) => (
+const loadingShell = (message: string, isLoading = false) => (
   <div className="schedule-body min-h-screen flex items-center justify-center px-4" dir="rtl">
     <div className="schedule-card max-w-xl w-full text-center">
-      <div className="text-4xl mb-4">📑</div>
+      <div className="text-4xl mb-4">{isLoading ? '⏳' : '📑'}</div>
       <p className="text-lg font-extrabold text-[var(--schedule-text)]">{message}</p>
     </div>
   </div>
