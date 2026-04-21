@@ -194,7 +194,7 @@ tr.odd{background:#fff}
   <div class="info-cell"><strong>الكلية</strong>${college || 'كلية الهندسة المدنية'}</div>
 </div>
 
-<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+<table><thead><tr>${headers.map(h => `<th class="${isNarrow(h) ? 'narrow' : ''}">${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 
 <div class="pledge">
