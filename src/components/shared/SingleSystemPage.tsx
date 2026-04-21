@@ -5,6 +5,7 @@ import { SYSTEMS, TIME_OPTIONS_ARABIC, type SystemConfig, type ScheduleRow } fro
 import {
   parseTimeToMinutes, openPrintWindow, openShortReportWindow,
   generateAfterHeaderReport, exportToExcel, exportToPDF,
+  openAssignmentsPrintWindow,
   FOOTER_HTML, universityLogo
 } from './ScheduleHelpers';
 import SystemStatistics from './SystemStatistics';
