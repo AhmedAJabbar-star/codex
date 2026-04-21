@@ -98,9 +98,13 @@ export function openAssignmentsPrintWindow(opts: {
   headers: string[];
   rows: ScheduleRow[];
 }) {
-  const { teacherName, semester, department, college, headers, rows } = opts;
+  const { teacherName, semester, department, college, headers: rawHeaders, rows } = opts;
   const w = window.open('', '_blank');
   if (!w) return;
+
+  // Exclude teacher-name column (already shown in title + info band) and any redundant department/college columns
+  const EXCLUDED = ['اسم التدريسي', 'التدريسي', 'اسم المدرس', 'القسم', 'القسم الذي تنتمي اليه', 'الكلية', 'الكلية التي تنتمي اليها', 'الفصل الدراسي'];
+  const headers = rawHeaders.filter(h => !EXCLUDED.includes((h || '').trim()));
 
   const title = `تكليفات ${teacherName || '—'} للفصل الدراسي ${semester || '—'}`;
   const tableRows = rows.map((r, i) =>
