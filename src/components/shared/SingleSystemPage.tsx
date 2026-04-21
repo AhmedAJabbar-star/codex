@@ -494,7 +494,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
           {/* Toolbar */}
           <div className="schedule-toolbar">
-            <button className="schedule-btn schedule-btn-primary" onClick={handlePrint}>🖨️ طباعة الجدول</button>
+            <button className="schedule-btn schedule-btn-primary" onClick={handlePrint}>🖨️ {activeSystem === 'assignments' ? 'طباعة التكليفات' : 'طباعة الجدول'}</button>
             {system.shortReport && (
               <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
             )}
