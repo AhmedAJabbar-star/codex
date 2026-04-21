@@ -89,6 +89,132 @@ tr:hover{background:#e3edfa !important}
   w.document.close();
 }
 
+/* ───── Official Assignments Print (تكليفات التدريسي) ───── */
+export function openAssignmentsPrintWindow(opts: {
+  teacherName: string;
+  semester: string;
+  department: string;
+  college: string;
+  headers: string[];
+  rows: ScheduleRow[];
+}) {
+  const { teacherName, semester, department, college, headers, rows } = opts;
+  const w = window.open('', '_blank');
+  if (!w) return;
+
+  const title = `تكليفات ${teacherName || '—'} للفصل الدراسي ${semester || '—'}`;
+  const tableRows = rows.map((r, i) =>
+    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`
+  ).join('');
+  const colCount = headers.length;
+  const fontSize = colCount > 12 ? '9px' : colCount > 8 ? '10px' : '11px';
+  const today = new Date().toLocaleDateString('ar-IQ');
+
+  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:0}
+.page{padding:14mm 12mm;position:relative}
+.page::before{content:"";position:absolute;inset:8mm;border:2px double #0f4c81;border-radius:6px;pointer-events:none;z-index:0}
+.content{position:relative;z-index:1}
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.06);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
+.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:10px 14px;border-bottom:3px double #0f4c81}
+.official-header img{width:85px;height:85px;object-fit:contain;justify-self:center}
+.header-text{text-align:center}
+.header-text .ar1{font-family:'Amiri',serif;font-size:18px;font-weight:700;color:#0f4c81;margin-bottom:2px}
+.header-text .ar2{font-size:14px;font-weight:800;color:#000;margin-bottom:2px}
+.header-text .ar3{font-size:12px;font-weight:700;color:#333}
+.header-side{font-size:10px;text-align:center;color:#555;line-height:1.6}
+.header-side strong{color:#0f4c81;display:block;margin-bottom:3px;font-size:11px}
+.doc-title{margin:14px auto 6px;text-align:center}
+.doc-title h1{font-family:'Amiri',serif;font-size:24px;color:#0f4c81;font-weight:700;letter-spacing:1px;display:inline-block;padding:8px 30px;border-top:2px solid #0f4c81;border-bottom:2px solid #0f4c81}
+.info-band{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0;padding:10px;background:#f7faff;border:1px solid #c5d3e3;border-radius:6px}
+.info-cell{font-size:11px;font-weight:700;color:#333;padding:4px 8px;border-right:3px solid #0f4c81;background:#fff;border-radius:3px}
+.info-cell strong{color:#0f4c81;display:block;font-size:10px;margin-bottom:2px}
+table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:6px}
+th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:8px 5px;font-weight:800;border:1px solid #0b3558;white-space:nowrap;text-align:center}
+td{padding:6px 5px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle}
+tr.even{background:#f0f6ff}
+tr.odd{background:#fff}
+.pledge{margin-top:18px;padding:14px 18px;border:2px solid #0f4c81;border-radius:6px;background:#f7faff;font-size:13px;font-weight:700;line-height:2;text-align:justify;color:#000}
+.pledge strong{color:#0f4c81}
+.signatures{margin-top:30px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;page-break-inside:avoid}
+.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:8px}
+.sig-label{font-size:11px;font-weight:800;color:#0f4c81;margin-bottom:30px}
+.sig-name{font-size:12px;font-weight:700;color:#000;min-height:18px;border-bottom:1px dotted #888;padding-bottom:3px;margin-bottom:6px}
+.sig-sub{font-size:10px;color:#555}
+.stamp-box{position:relative;min-height:90px}
+.stamp-circle{display:inline-block;width:80px;height:80px;border:2px dashed #0f4c81;border-radius:50%;font-size:9px;color:#0f4c81;font-weight:800;line-height:80px;margin:4px auto;opacity:.7}
+.doc-meta{margin-top:14px;display:flex;justify-content:space-between;font-size:10px;color:#555;padding:6px 12px;border-top:1px solid #c5d3e3}
+@page{size:A4 landscape;margin:6mm}
+@media print{
+  body{padding:0}
+  tr,td,th{page-break-inside:avoid}
+  .signatures{page-break-inside:avoid}
+  .pledge{page-break-inside:avoid}
+}
+</style></head><body>
+<div class="watermark">رسمي</div>
+<div class="page"><div class="content">
+<div class="official-header">
+  <div class="header-side"><strong>جمهورية العراق</strong>وزارة التعليم العالي<br/>والبحث العلمي</div>
+  <div class="header-text">
+    <img src="${universityLogo}" alt="شعار"/>
+    <div class="ar1">الجامعة التكنولوجية</div>
+    <div class="ar2">كلية الهندسة المدنية</div>
+    <div class="ar3">${department || ''}</div>
+  </div>
+  <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education<br/>University of Technology</div>
+</div>
+
+<div class="doc-title"><h1>${title}</h1></div>
+
+<div class="info-band">
+  <div class="info-cell"><strong>اسم التدريسي</strong>${teacherName || '—'}</div>
+  <div class="info-cell"><strong>الفصل الدراسي</strong>${semester || '—'}</div>
+  <div class="info-cell"><strong>القسم</strong>${department || '—'}</div>
+  <div class="info-cell"><strong>الكلية</strong>${college || 'كلية الهندسة المدنية'}</div>
+</div>
+
+<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+<tbody>${tableRows}</tbody></table>
+
+<div class="pledge">
+<strong>إقرار وتعهد :</strong> اؤيد صحة كافة المعلومات المذكورة بالاستمارة وهي تشمل كافة التكليفات لفصل الدراسي اعلاه واتعهد بعدم المطالبة باي تكليفات اخرى غير مذكورة في هذه الاستمارة مستقبلا.
+</div>
+
+<div class="signatures">
+  <div class="sig-box">
+    <div class="sig-label">اسم التدريسي</div>
+    <div class="sig-name">${teacherName || ''}</div>
+    <div class="sig-sub">التوقيع : ............................</div>
+  </div>
+  <div class="sig-box stamp-box">
+    <div class="sig-label">ختم القسم</div>
+    <div class="stamp-circle">ختم القسم</div>
+    <div class="sig-sub">${department || ''}</div>
+  </div>
+  <div class="sig-box">
+    <div class="sig-label">رئيس القسم</div>
+    <div class="sig-name"></div>
+    <div class="sig-sub">التوقيع : ............................</div>
+  </div>
+</div>
+
+<div class="doc-meta">
+  <span>تاريخ الإصدار : ${today}</span>
+  <span>عدد التكليفات : ${rows.length}</span>
+</div>
+
+</div></div>
+<script>window.onafterprint=()=>window.close();window.print();<\/script>
+</body></html>`);
+  w.document.close();
+}
+
 /* ───── Short report with info header ───── */
 export function openShortReportWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string, infoHtml: string, singlePage?: boolean) {
   const w = window.open('', '_blank');
