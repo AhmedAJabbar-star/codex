@@ -246,8 +246,24 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return true;
   }, [system, filters]);
 
+  const buildAssignmentsContext = () => {
+    const teacherName = filters['اسم التدريسي'] || '';
+    const semester = filters['الفصل الدراسي'] || filters['الكورس'] || '';
+    const department = filters['القسم الذي تنتمي اليه'] || filters['القسم'] || '';
+    const college = filters['الكلية التي تنتمي اليها'] || filters['الكلية'] || 'كلية الهندسة المدنية';
+    return { teacherName, semester, department, college };
+  };
+
   const handlePrint = () => {
     if (!checkRequiredFilters()) return;
+    if (activeSystem === 'assignments') {
+      const { teacherName, semester, department, college } = buildAssignmentsContext();
+      openAssignmentsPrintWindow({
+        teacherName, semester, department, college,
+        headers: system.headers, rows: filteredRows,
+      });
+      return;
+    }
     const isSinglePage = activeSystem === 'teacher';
     openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML, isSinglePage);
   };
@@ -292,6 +308,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   const handlePDF = () => {
     if (!checkRequiredFilters()) return;
+    if (activeSystem === 'assignments') {
+      const { teacherName, semester, department, college } = buildAssignmentsContext();
+      openAssignmentsPrintWindow({
+        teacherName, semester, department, college,
+        headers: system.headers, rows: filteredRows,
+      });
+      return;
+    }
     exportToPDF(system.appTitle, system.headers, filteredRows);
   };
 
