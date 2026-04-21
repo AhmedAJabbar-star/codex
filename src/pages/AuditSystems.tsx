@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import SingleSystemPage from '@/components/shared/SingleSystemPage';
+import { useLiveSystems } from '@/hooks/useLiveSchedule';
+import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 
 const AUDIT_PASSWORD = 'ahmed1';
 
 const AuditSystemsPage = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const { systemsOverride, error, isLoading } = useLiveSystems(['report', 'hours']);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +48,10 @@ const AuditSystemsPage = () => {
     );
   }
 
-  return <SingleSystemPage systemIds={['report', 'hours']} />;
+  if (isLoading && !systemsOverride) return <LiveLoadingShell />;
+  if (error || !systemsOverride) return <LiveLoadingShell error={error} />;
+
+  return <SingleSystemPage systemIds={['report', 'hours']} systemsOverride={systemsOverride} />;
 };
 
 export default AuditSystemsPage;
