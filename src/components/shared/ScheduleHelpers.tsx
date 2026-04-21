@@ -103,7 +103,7 @@ export function openAssignmentsPrintWindow(opts: {
   if (!w) return;
 
   // Exclude teacher-name column (already shown in title + info band) and any redundant department/college columns
-  const EXCLUDED = ['اسم التدريسي', 'التدريسي', 'اسم المدرس', 'القسم', 'القسم الذي تنتمي اليه', 'الكلية', 'الكلية التي تنتمي اليها', 'الفصل الدراسي'];
+  const EXCLUDED = ['اسم التدريسي', 'التدريسي', 'اسم المدرس', 'الفصل الدراسي'];
   const headers = rawHeaders.filter(h => !EXCLUDED.includes((h || '').trim()));
 
   const title = `تكليفات ${teacherName || '—'} للفصل الدراسي ${semester || '—'}`;
