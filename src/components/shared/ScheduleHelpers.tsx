@@ -107,7 +107,14 @@ export function openAssignmentsPrintWindow(opts: {
     `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`
   ).join('');
   const colCount = headers.length;
-  const fontSize = colCount > 12 ? '9px' : colCount > 8 ? '10px' : '11px';
+  const rowCount = rows.length;
+  // Dynamic font sizing — shrink when many columns OR many rows to fit width on a single A4 page
+  // (height grows automatically with portrait orientation)
+  const baseFont = colCount > 14 ? 7.5 : colCount > 12 ? 8.5 : colCount > 10 ? 9.5 : colCount > 8 ? 10.5 : 11.5;
+  const rowFactor = rowCount > 40 ? 0.85 : rowCount > 25 ? 0.92 : 1;
+  const fontSize = `${(baseFont * rowFactor).toFixed(1)}px`;
+  const cellPadV = rowCount > 30 ? 2 : rowCount > 18 ? 3 : 5;
+  const cellPadH = colCount > 12 ? 2 : 4;
   const today = new Date().toLocaleDateString('ar-IQ');
 
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
