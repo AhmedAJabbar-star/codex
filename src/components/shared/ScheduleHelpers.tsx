@@ -151,6 +151,7 @@ body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:0}
 table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:4px;table-layout:auto}
 th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;font-size:${fontSize};line-height:1.2}
 td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;word-break:break-word}
+td.narrow{white-space:nowrap;font-size:calc(${fontSize} - 1.5px);padding-left:1px;padding-right:1px;letter-spacing:-0.2px}
 tr.even{background:#f0f6ff}
 tr.odd{background:#fff}
 .pledge{margin-top:10px;padding:8px 12px;border:2px solid #0f4c81;border-radius:6px;background:#f7faff;font-size:11px;font-weight:700;line-height:1.7;text-align:justify;color:#000}
