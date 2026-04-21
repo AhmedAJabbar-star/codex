@@ -107,8 +107,11 @@ export function openAssignmentsPrintWindow(opts: {
   const headers = rawHeaders.filter(h => !EXCLUDED.includes((h || '').trim()));
 
   const title = `تكليفات ${teacherName || '—'} للفصل الدراسي ${semester || '—'}`;
+  // Narrow columns whose values are short single words — render smaller and prevent line breaks
+  const NARROW_COLS = ['اليوم', 'الدراسة', 'المرحلة', 'الشعبة', 'المجموعة', 'نوع المحاضرة', 'الساعات النهائية', 'مدة المحاضرة'];
+  const isNarrow = (h: string) => NARROW_COLS.includes((h || '').trim());
   const tableRows = rows.map((r, i) =>
-    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`
+    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td class="${isNarrow(h) ? 'narrow' : ''}">${r[h] || ''}</td>`).join('')}</tr>`
   ).join('');
   const colCount = headers.length;
   const rowCount = rows.length;
