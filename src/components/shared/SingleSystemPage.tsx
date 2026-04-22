@@ -249,8 +249,25 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const buildAssignmentsContext = () => {
     const teacherName = filters['اسم التدريسي'] || '';
     const semester = filters['الفصل الدراسي'] || filters['الكورس'] || '';
-    const department = filters['القسم الذي تنتمي اليه'] || filters['القسم'] || '';
-    const college = filters['الكلية التي تنتمي اليها'] || filters['الكلية'] || 'كلية الهندسة المدنية';
+    const pickFromRows = (keys: string[]): string => {
+      for (const row of filteredRows) {
+        for (const key of keys) {
+          const val = (row[key] || '').trim();
+          if (val) return val;
+        }
+      }
+      return '';
+    };
+    const department =
+      filters['القسم الذي تنتمي اليه'] ||
+      filters['القسم'] ||
+      pickFromRows(['القسم الذي تنتمي اليه', 'القسم']) ||
+      '';
+    const college =
+      filters['الكلية التي تنتمي اليها'] ||
+      filters['الكلية'] ||
+      pickFromRows(['الكلية التي تنتمي اليها', 'الكلية']) ||
+      'كلية الهندسة المدنية';
     return { teacherName, semester, department, college };
   };
 
