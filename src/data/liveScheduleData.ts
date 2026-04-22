@@ -255,27 +255,64 @@ export interface LiveScheduleData {
   hours: ScheduleRow[];
   tracking: ScheduleRow[];
   emptyRooms: ScheduleRow[];
+  lectureTypeAudit: ScheduleRow[];
+  assignmentsAudit: ScheduleRow[];
+  assignmentsAuditHeaders: string[];
+}
+
+function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
+  return studentRows
+    .filter((r) => {
+      const dept = (r['القسم'] || '').trim();
+      const type = (r['نوع المحاضرة'] || '').trim();
+      return dept !== '' && type === '';
+    })
+    .map((r) => ({
+      ...r,
+      'نوع المحاضرة': LECTURE_TYPE_PLACEHOLDER,
+    }));
+}
+
+async function fetchAssignmentsAuditSheet(): Promise<{
+  rows: ScheduleRow[];
+  headers: string[];
+}> {
+  const response = await fetch(buildCsvUrl(SHEET_GIDS.assignmentsAudit), { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`تعذر جلب بيانات ورقة التكليفات (HTTP ${response.status})`);
+  }
+  const csvText = (await response.text()).replace(/^\uFEFF/, '');
+  const [headerRow = [], ...dataRows] = parseCsv(csvText);
+  const rawHeaders = headerRow.map((h) => compactText(h));
+  const headers = rawHeaders.filter((h) => h && !ASSIGNMENTS_AUDIT_EXCLUDED.includes(h));
+  const rows = mapRows(rawHeaders, dataRows);
+  return { rows, headers };
 }
 
 export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
-  const [teacherRaw, studentRaw, reportRaw, hoursRaw] = await Promise.all([
+  const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData] = await Promise.all([
     fetchSheet(SHEET_GIDS.teacher),
     fetchSheet(SHEET_GIDS.student),
     fetchSheet(SHEET_GIDS.report),
     fetchSheet(SHEET_GIDS.hours),
+    fetchAssignmentsAuditSheet(),
   ]);
 
   const teacher = postProcessTeacher(teacherRaw);
   const student = postProcessStudent(studentRaw);
   const emptyRooms = generateEmptyRoomsFromStudent(student);
+  const lectureTypeAudit = buildLectureTypeAudit(student);
 
   return {
     teacher,
     student,
     report: reportRaw,
     hours: hoursRaw,
-    tracking: student, // متابعة سير التدريسات تستخدم نفس بيانات جدول الطالب
+    tracking: student,
     emptyRooms,
+    lectureTypeAudit,
+    assignmentsAudit: assignmentsAuditData.rows,
+    assignmentsAuditHeaders: assignmentsAuditData.headers,
   };
 }
 
