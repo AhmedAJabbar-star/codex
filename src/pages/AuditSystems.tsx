@@ -9,7 +9,8 @@ const AUDIT_PASSWORD = 'ahmed1';
 const AuditSystemsPage = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const { systemsOverride, error, isLoading } = useLiveSystems(['report', 'hours']);
+  const auditIds = ['report', 'hours', 'lectureTypeAudit', 'assignmentsAudit'];
+  const { systemsOverride, error, isLoading } = useLiveSystems(auditIds);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +52,7 @@ const AuditSystemsPage = () => {
   if (isLoading && !systemsOverride) return <LiveLoadingShell />;
   if (error || !systemsOverride) return <LiveLoadingShell error={error} />;
 
-  return <SingleSystemPage systemIds={['report', 'hours']} systemsOverride={systemsOverride} />;
+  return <SingleSystemPage systemIds={auditIds} systemsOverride={systemsOverride} />;
 };
 
 export default AuditSystemsPage;
