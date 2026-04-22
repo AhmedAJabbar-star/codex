@@ -70,9 +70,8 @@ const systemCards = [
 
 const getSystemRowCount = (id: string): number => {
   if (id === 'audit') {
-    const report = SYSTEMS.find(s => s.id === 'report');
-    const hours = SYSTEMS.find(s => s.id === 'hours');
-    return (report?.rows.length || 0) + (hours?.rows.length || 0);
+    const ids = ['report', 'hours', 'lectureTypeAudit', 'assignmentsAudit'];
+    return ids.reduce((sum, sid) => sum + (SYSTEMS.find(s => s.id === sid)?.rows.length || 0), 0);
   }
   if (id === 'charts') return 0;
   const sys = SYSTEMS.find(s => s.id === id);
