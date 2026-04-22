@@ -14,7 +14,21 @@ export const SHEET_GIDS = {
   student: '1765483005',         // الجدول حسب القسم واليوم
   report: '587741649',           // Schedulereport
   hours: '1878774467',           // الساعات
+  assignmentsAudit: '1416068353', // التكليفات
 } as const;
+
+// أعمدة يجب استبعادها من تقرير "تدقيق تكليفات القسم"
+const ASSIGNMENTS_AUDIT_EXCLUDED = [
+  'المواليد',
+  'العمر',
+  'المنصب',
+  'عضوية اللجان الامتحانية',
+  'عضضضوية اللجان الامتحانية',
+];
+
+// نص يحل محل قيمة "نوع المحاضرة" الفارغة في تقرير تدقيق نوع المحاضرة
+export const LECTURE_TYPE_PLACEHOLDER =
+  'لن يظهر في التكليفات لعدم تحديد نوع الدرس نظري او عملي';
 
 export type SheetKey = keyof typeof SHEET_GIDS;
 
