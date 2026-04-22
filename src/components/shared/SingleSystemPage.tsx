@@ -559,10 +559,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 </thead>
                 <tbody>
                   {filteredRows.map((row, i) => {
-                    const hasWarning = activeSystem === 'report' && (
+                    const lectureTypeMissing =
+                      activeSystem === 'lectureTypeAudit' &&
+                      (row['نوع المحاضرة'] || '').includes('لن يظهر');
+                    const assignmentsAuditIssue =
+                      activeSystem === 'assignmentsAudit' &&
+                      (row['نتيجة التدقيق الاول'] || '').trim() !== '' &&
+                      (row['نتيجة التدقيق الاول'] || '').trim() !== 'سليم';
+                    const hasWarning = (activeSystem === 'report' && (
                       (row['نقص البيانات'] && row['نقص البيانات'] !== 'سليم') ||
                       (row['التضارب'] && row['التضارب'] !== '')
-                    );
+                    )) || lectureTypeMissing || assignmentsAuditIssue;
                     return (
                       <tr key={i} className={hasWarning ? 'schedule-row-warning' : ''}>
                         {system.headers.map(h => {
@@ -570,6 +577,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           const val = row[h] || '';
                           if (h === 'نقص البيانات' && val && val !== 'سليم') cellClass = 'schedule-cell-warn';
                           if (h === 'التضارب' && val) cellClass = 'schedule-cell-danger';
+                          if (h === 'نوع المحاضرة' && activeSystem === 'lectureTypeAudit' && val.includes('لن يظهر')) cellClass = 'schedule-cell-danger';
+                          if (h === 'نتيجة التدقيق الاول' && val && val.trim() !== 'سليم') cellClass = 'schedule-cell-warn';
                           if (h === 'التدقيق حسب الاسبوع') {
                             if (val.includes('✅')) cellClass = 'schedule-cell-ok';
                             else if (val.includes('⚠️')) cellClass = 'schedule-cell-warn';

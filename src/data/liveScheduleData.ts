@@ -14,7 +14,21 @@ export const SHEET_GIDS = {
   student: '1765483005',         // الجدول حسب القسم واليوم
   report: '587741649',           // Schedulereport
   hours: '1878774467',           // الساعات
+  assignmentsAudit: '1416068353', // التكليفات
 } as const;
+
+// أعمدة يجب استبعادها من تقرير "تدقيق تكليفات القسم"
+const ASSIGNMENTS_AUDIT_EXCLUDED = [
+  'المواليد',
+  'العمر',
+  'المنصب',
+  'عضوية اللجان الامتحانية',
+  'عضضضوية اللجان الامتحانية',
+];
+
+// نص يحل محل قيمة "نوع المحاضرة" الفارغة في تقرير تدقيق نوع المحاضرة
+export const LECTURE_TYPE_PLACEHOLDER =
+  'لن يظهر في التكليفات لعدم تحديد نوع الدرس نظري او عملي';
 
 export type SheetKey = keyof typeof SHEET_GIDS;
 
@@ -241,27 +255,64 @@ export interface LiveScheduleData {
   hours: ScheduleRow[];
   tracking: ScheduleRow[];
   emptyRooms: ScheduleRow[];
+  lectureTypeAudit: ScheduleRow[];
+  assignmentsAudit: ScheduleRow[];
+  assignmentsAuditHeaders: string[];
+}
+
+function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
+  return studentRows
+    .filter((r) => {
+      const dept = (r['القسم'] || '').trim();
+      const type = (r['نوع المحاضرة'] || '').trim();
+      return dept !== '' && type === '';
+    })
+    .map((r) => ({
+      ...r,
+      'نوع المحاضرة': LECTURE_TYPE_PLACEHOLDER,
+    }));
+}
+
+async function fetchAssignmentsAuditSheet(): Promise<{
+  rows: ScheduleRow[];
+  headers: string[];
+}> {
+  const response = await fetch(buildCsvUrl(SHEET_GIDS.assignmentsAudit), { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`تعذر جلب بيانات ورقة التكليفات (HTTP ${response.status})`);
+  }
+  const csvText = (await response.text()).replace(/^\uFEFF/, '');
+  const [headerRow = [], ...dataRows] = parseCsv(csvText);
+  const rawHeaders = headerRow.map((h) => compactText(h));
+  const headers = rawHeaders.filter((h) => h && !ASSIGNMENTS_AUDIT_EXCLUDED.includes(h));
+  const rows = mapRows(rawHeaders, dataRows);
+  return { rows, headers };
 }
 
 export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
-  const [teacherRaw, studentRaw, reportRaw, hoursRaw] = await Promise.all([
+  const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData] = await Promise.all([
     fetchSheet(SHEET_GIDS.teacher),
     fetchSheet(SHEET_GIDS.student),
     fetchSheet(SHEET_GIDS.report),
     fetchSheet(SHEET_GIDS.hours),
+    fetchAssignmentsAuditSheet(),
   ]);
 
   const teacher = postProcessTeacher(teacherRaw);
   const student = postProcessStudent(studentRaw);
   const emptyRooms = generateEmptyRoomsFromStudent(student);
+  const lectureTypeAudit = buildLectureTypeAudit(student);
 
   return {
     teacher,
     student,
     report: reportRaw,
     hours: hoursRaw,
-    tracking: student, // متابعة سير التدريسات تستخدم نفس بيانات جدول الطالب
+    tracking: student,
     emptyRooms,
+    lectureTypeAudit,
+    assignmentsAudit: assignmentsAuditData.rows,
+    assignmentsAuditHeaders: assignmentsAuditData.headers,
   };
 }
 

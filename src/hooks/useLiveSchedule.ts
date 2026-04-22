@@ -36,13 +36,27 @@ export function useLiveSystems(systemIds: string[]) {
       hours: data.hours,
       tracking: data.tracking,
       emptyRooms: data.emptyRooms,
+      lectureTypeAudit: data.lectureTypeAudit,
+      assignmentsAudit: data.assignmentsAudit,
+    };
+    const headersMap: Record<string, string[]> = {
+      assignmentsAudit: data.assignmentsAuditHeaders,
     };
     const result: SystemConfig[] = [];
     systemIds.forEach((id) => {
       const base = SYSTEMS.find((s) => s.id === id);
       if (!base) return;
       const liveRows = liveMap[id];
-      result.push(liveRows ? { ...base, rows: liveRows } : base);
+      const liveHeaders = headersMap[id];
+      if (liveRows) {
+        result.push({
+          ...base,
+          rows: liveRows,
+          headers: liveHeaders && liveHeaders.length > 0 ? liveHeaders : base.headers,
+        });
+      } else {
+        result.push(base);
+      }
     });
     return result;
   }, [data, systemIds]);
