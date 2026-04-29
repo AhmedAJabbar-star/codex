@@ -61,6 +61,15 @@ const systemCards = [
     gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
   },
   {
+    id: 'errors',
+    title: 'ملخص الأخطاء',
+    icon: '⚠️',
+    description: 'تجميع جميع الحالات غير السليمة من أنظمة التدقيق حسب القسم واليوم',
+    path: '/errors',
+    color: '#ef4444',
+    gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+  },
+  {
     id: 'charts',
     title: 'الإحصائيات',
     icon: '📈',
