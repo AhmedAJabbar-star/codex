@@ -111,6 +111,22 @@ const Dashboard = () => {
         (liveData?.assignmentsAudit.length || 0)
       );
     }
+    if (id === 'errors') {
+      if (!liveData) return 0;
+      const isInvalid = (v: string) => {
+        const t = (v || '').trim();
+        if (!t) return false;
+        return !['سليم', 'مطابق', 'صحيح', 'لا يوجد', '✓', 'ok', 'OK'].includes(t);
+      };
+      let count = 0;
+      liveData.report.forEach((r) => {
+        if (isInvalid(r['نقص البيانات'] || '') || (r['التضارب'] || '').trim()) count += 1;
+      });
+      liveData.hours.forEach((r) => { if (isInvalid(r['التدقيق حسب الاسبوع'] || '')) count += 1; });
+      count += liveData.lectureTypeAudit.length;
+      liveData.assignmentsAudit.forEach((r) => { if (isInvalid(r['نتيجة التدقيق الاول'] || '')) count += 1; });
+      return count;
+    }
     if (id === 'charts') return 0;
     if (liveMap[id] !== undefined) return liveMap[id]!;
     const sys = SYSTEMS.find(s => s.id === id);
