@@ -15,6 +15,7 @@ const Tracking = lazy(() => import("./pages/Tracking"));
 const EmptyRooms = lazy(() => import("./pages/EmptyRooms"));
 const Assignments = lazy(() => import("./pages/Assignments"));
 const Charts = lazy(() => import("./pages/Charts"));
+const ErrorsSummary = lazy(() => import("./pages/ErrorsSummary"));
 
 const queryClient = new QueryClient();
 
