@@ -1,21 +1,41 @@
 import { useMemo } from 'react';
-import { SYSTEMS } from '@/data/scheduleData';
+import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { StatCard } from '@/components/shared/ScheduleHelpers';
 import { useNavigate } from 'react-router-dom';
+import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
+import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
+import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 
 const CHART_COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#be185d', '#65a30d', '#ea580c', '#6366f1'];
 
 const ChartsPage = () => {
   const navigate = useNavigate();
+  const { data: liveData, error: liveError, isLoading: liveLoading } = useLiveScheduleData();
+  const { data: assignmentsRows } = useQuery({
+    queryKey: ['individual-assignments'],
+    queryFn: () => fetchIndividualAssignmentRows(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: false,
+    retry: 1,
+  });
 
   const chartData = useMemo(() => {
-    const teacherSys = SYSTEMS.find(s => s.id === 'teacher');
-    const studentSys = SYSTEMS.find(s => s.id === 'student');
-    const reportSys = SYSTEMS.find(s => s.id === 'report');
-    const hoursSys = SYSTEMS.find(s => s.id === 'hours');
-    const emptyRoomsSys = SYSTEMS.find(s => s.id === 'emptyRooms');
-    const assignmentsSys = SYSTEMS.find(s => s.id === 'assignments');
+    const teacherRowsLive = liveData?.teacher || [];
+    const studentRowsLive = liveData?.student || [];
+    const reportRowsLive = liveData?.report || [];
+    const hoursRowsLive = liveData?.hours || [];
+    const emptyRoomsLive = liveData?.emptyRooms || [];
+    const assignmentsLive = assignmentsRows || [];
+    const teacherSys = { rows: teacherRowsLive };
+    const studentSys = { rows: studentRowsLive };
+    const reportSys = { rows: reportRowsLive };
+    const hoursSys = { rows: hoursRowsLive };
+    const emptyRoomsSys = { rows: emptyRoomsLive };
+    const assignmentsSys = { rows: assignmentsLive };
 
     const dayCount: Record<string, number> = {};
     (teacherSys?.rows || []).forEach(r => { const d = r['اليوم'] || ''; if (d) dayCount[d] = (dayCount[d] || 0) + 1; });
@@ -64,9 +84,12 @@ const ChartsPage = () => {
     };
 
     return { byDay, byType, byDept, emptyDayData, auditData, hoursData, summary };
-  }, []);
+  }, [liveData, assignmentsRows]);
 
   const { byDay, byType, byDept, emptyDayData, auditData, hoursData, summary } = chartData;
+
+  if (liveLoading && !liveData) return <LiveLoadingShell />;
+  if (liveError && !liveData) return <LiveLoadingShell error={liveError} />;
 
   const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="schedule-card" style={{ padding: '20px', marginBottom: '16px' }}>

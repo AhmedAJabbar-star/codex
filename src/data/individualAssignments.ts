@@ -1,10 +1,6 @@
 import type { ScheduleRow } from '@/data/scheduleData';
 
 const INDIVIDUAL_ASSIGNMENTS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1147039908&single=true&output=csv';
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-let cachedRows: ScheduleRow[] | null = null;
-let lastFetchedAt = 0;
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -96,14 +92,8 @@ function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
     });
 }
 
-export async function fetchIndividualAssignmentRows(forceRefresh = false): Promise<ScheduleRow[]> {
-  const isCacheValid = cachedRows && Date.now() - lastFetchedAt < CACHE_TTL_MS;
-
-  if (!forceRefresh && isCacheValid) {
-    return cachedRows;
-  }
-
-  const response = await fetch(INDIVIDUAL_ASSIGNMENTS_CSV_URL);
+export async function fetchIndividualAssignmentRows(): Promise<ScheduleRow[]> {
+  const response = await fetch(INDIVIDUAL_ASSIGNMENTS_CSV_URL, { cache: 'no-store' });
 
   if (!response.ok) {
     throw new Error('تعذر جلب بيانات تكليفات التدريسي من Google Sheets');
@@ -117,9 +107,5 @@ export async function fetchIndividualAssignmentRows(forceRefresh = false): Promi
     throw new Error('تعذر قراءة ترويسات ورقة Individualassignments');
   }
 
-  const rows = mapRows(headers, dataRows);
-  cachedRows = rows;
-  lastFetchedAt = Date.now();
-
-  return rows;
+  return mapRows(headers, dataRows);
 }

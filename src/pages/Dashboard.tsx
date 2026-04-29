@@ -1,5 +1,8 @@
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { SYSTEMS } from '@/data/scheduleData';
+import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
+import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import universityLogo from '@/assets/university-logo.jpg';
 
 const systemCards = [
@@ -68,18 +71,41 @@ const systemCards = [
   },
 ];
 
-const getSystemRowCount = (id: string): number => {
-  if (id === 'audit') {
-    const ids = ['report', 'hours', 'lectureTypeAudit', 'assignmentsAudit'];
-    return ids.reduce((sum, sid) => sum + (SYSTEMS.find(s => s.id === sid)?.rows.length || 0), 0);
-  }
-  if (id === 'charts') return 0;
-  const sys = SYSTEMS.find(s => s.id === id);
-  return sys?.rows.length || 0;
-};
-
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { data: liveData } = useLiveScheduleData();
+  const { data: assignmentsRows } = useQuery({
+    queryKey: ['individual-assignments'],
+    queryFn: () => fetchIndividualAssignmentRows(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: false,
+    retry: 1,
+  });
+
+  const getSystemRowCount = (id: string): number => {
+    const liveMap: Record<string, number | undefined> = {
+      teacher: liveData?.teacher.length,
+      student: liveData?.student.length,
+      tracking: liveData?.tracking.length,
+      emptyRooms: liveData?.emptyRooms.length,
+      assignments: assignmentsRows?.length,
+    };
+    if (id === 'audit') {
+      return (
+        (liveData?.report.length || 0) +
+        (liveData?.hours.length || 0) +
+        (liveData?.lectureTypeAudit.length || 0) +
+        (liveData?.assignmentsAudit.length || 0)
+      );
+    }
+    if (id === 'charts') return 0;
+    if (liveMap[id] !== undefined) return liveMap[id]!;
+    const sys = SYSTEMS.find(s => s.id === id);
+    return sys?.rows.length || 0;
+  };
 
   return (
     <div className="schedule-body" dir="rtl">
