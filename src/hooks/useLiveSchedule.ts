@@ -11,10 +11,11 @@ export function useLiveScheduleData() {
   return useQuery<LiveScheduleData>({
     queryKey: ['live-schedule-data'],
     queryFn: fetchLiveScheduleData,
-    staleTime: 5 * 60 * 1000,        // 5 min
+    staleTime: 0,                    // البيانات قديمة فوراً → جلب لحظي عند فتح أي صفحة
     gcTime: 30 * 60 * 1000,          // 30 min
+    refetchOnMount: 'always',        // تحديث لحظي عند فتح أي صفحة تقرير
     refetchOnWindowFocus: true,      // إعادة الجلب عند العودة للنافذة
-    refetchInterval: 5 * 60 * 1000,  // تحديث تلقائي كل 5 دقائق
+    refetchInterval: 60 * 1000,      // تحديث تلقائي كل 60 ثانية
     refetchIntervalInBackground: false,
     retry: 1,
   });
