@@ -9,6 +9,7 @@ import {
   FOOTER_HTML, universityLogo
 } from './ScheduleHelpers';
 import SystemStatistics from './SystemStatistics';
+import RefreshButton from './RefreshButton';
 
 interface Props {
   systemIds: string[];
