@@ -92,14 +92,8 @@ function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
     });
 }
 
-export async function fetchIndividualAssignmentRows(forceRefresh = false): Promise<ScheduleRow[]> {
-  const isCacheValid = cachedRows && Date.now() - lastFetchedAt < CACHE_TTL_MS;
-
-  if (!forceRefresh && isCacheValid) {
-    return cachedRows;
-  }
-
-  const response = await fetch(INDIVIDUAL_ASSIGNMENTS_CSV_URL);
+export async function fetchIndividualAssignmentRows(): Promise<ScheduleRow[]> {
+  const response = await fetch(INDIVIDUAL_ASSIGNMENTS_CSV_URL, { cache: 'no-store' });
 
   if (!response.ok) {
     throw new Error('تعذر جلب بيانات تكليفات التدريسي من Google Sheets');
@@ -113,9 +107,5 @@ export async function fetchIndividualAssignmentRows(forceRefresh = false): Promi
     throw new Error('تعذر قراءة ترويسات ورقة Individualassignments');
   }
 
-  const rows = mapRows(headers, dataRows);
-  cachedRows = rows;
-  lastFetchedAt = Date.now();
-
-  return rows;
+  return mapRows(headers, dataRows);
 }
