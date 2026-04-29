@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
+import RefreshButton from '@/components/shared/RefreshButton';
 
 const CHART_COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#be185d', '#65a30d', '#ea580c', '#6366f1'];
 
