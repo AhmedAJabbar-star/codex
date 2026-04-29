@@ -15,10 +15,11 @@ const ChartsPage = () => {
   const { data: assignmentsRows } = useQuery({
     queryKey: ['individual-assignments'],
     queryFn: () => fetchIndividualAssignmentRows(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
-    refetchInterval: 5 * 60 * 1000,
+    refetchInterval: 60 * 1000,
     refetchIntervalInBackground: false,
     retry: 1,
   });
