@@ -105,7 +105,10 @@ const ChartsPage = () => {
         <div className="schedule-card p-4">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-black text-[var(--schedule-text)]">📈 الإحصائيات العامة</h1>
-            <button onClick={() => navigate('/')} className="schedule-btn" style={{ minHeight: 38, padding: '8px 16px', borderRadius: 999 }}>🏠 الرئيسية</button>
+            <div className="flex flex-wrap gap-2 items-center">
+              <RefreshButton compact />
+              <button onClick={() => navigate('/')} className="schedule-btn" style={{ minHeight: 38, padding: '8px 16px', borderRadius: 999 }}>🏠 الرئيسية</button>
+            </div>
           </div>
 
           <div className="schedule-stats-grid mb-6">
