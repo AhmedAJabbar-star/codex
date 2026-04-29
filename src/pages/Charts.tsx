@@ -84,9 +84,12 @@ const ChartsPage = () => {
     };
 
     return { byDay, byType, byDept, emptyDayData, auditData, hoursData, summary };
-  }, []);
+  }, [liveData, assignmentsRows]);
 
   const { byDay, byType, byDept, emptyDayData, auditData, hoursData, summary } = chartData;
+
+  if (liveLoading && !liveData) return <LiveLoadingShell />;
+  if (liveError && !liveData) return <LiveLoadingShell error={liveError} />;
 
   const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="schedule-card" style={{ padding: '20px', marginBottom: '16px' }}>
