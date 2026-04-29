@@ -5,6 +5,7 @@ import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import { LECTURE_TYPE_PLACEHOLDER } from '@/data/liveScheduleData';
+import RefreshButton from '@/components/shared/RefreshButton';
 import type { ScheduleRow } from '@/data/scheduleData';
 
 type ErrorRecord = {
