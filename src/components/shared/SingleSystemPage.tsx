@@ -9,6 +9,7 @@ import {
   FOOTER_HTML, universityLogo
 } from './ScheduleHelpers';
 import SystemStatistics from './SystemStatistics';
+import RefreshButton from './RefreshButton';
 
 interface Props {
   systemIds: string[];
@@ -355,13 +356,16 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           <header className="schedule-header">
             <div className="flex flex-col items-center gap-2.5 text-center relative">
               {showBackButton && (
-                <button
-                  onClick={() => navigate('/')}
-                  className="schedule-btn absolute top-0 right-0"
-                  style={{ minHeight: 38, padding: '8px 16px', borderRadius: 999 }}
-                >
-                  🏠 الرئيسية
-                </button>
+                <div className="absolute top-0 right-0 flex items-center gap-2">
+                  <RefreshButton compact />
+                  <button
+                    onClick={() => navigate('/')}
+                    className="schedule-btn"
+                    style={{ minHeight: 38, padding: '8px 16px', borderRadius: 999 }}
+                  >
+                    🏠 الرئيسية
+                  </button>
+                </div>
               )}
               <img
                 src={universityLogo}

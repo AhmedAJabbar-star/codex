@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { SYSTEMS } from '@/data/scheduleData';
 import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
+import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
 
 const systemCards = [
@@ -152,7 +153,10 @@ const Dashboard = () => {
               <h1 className="m-0 text-[clamp(1.8rem,3vw,2.8rem)] font-black leading-tight text-[var(--schedule-text)]" style={{ letterSpacing: '-.02em' }}>
                 نظام إدارة الجداول الدراسية
               </h1>
-              <span className="schedule-badge">جاهز</span>
+              <div className="flex flex-wrap gap-3 items-center justify-center">
+                <span className="schedule-badge">جاهز</span>
+                <RefreshButton compact />
+              </div>
             </div>
           </header>
 

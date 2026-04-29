@@ -5,6 +5,7 @@ import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import { LECTURE_TYPE_PLACEHOLDER } from '@/data/liveScheduleData';
+import RefreshButton from '@/components/shared/RefreshButton';
 import type { ScheduleRow } from '@/data/scheduleData';
 
 type ErrorRecord = {
@@ -176,7 +177,8 @@ const ErrorsSummaryPage = () => {
                 تجميع الحالات غير السليمة من جميع أنظمة التدقيق — حسب القسم واليوم
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              <RefreshButton compact />
               <button onClick={() => navigate('/audit')} className="schedule-btn" style={{ minHeight: 38 }}>
                 📋 أنظمة التدقيق
               </button>
