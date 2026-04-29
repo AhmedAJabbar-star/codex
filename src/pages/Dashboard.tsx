@@ -1,5 +1,8 @@
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { SYSTEMS } from '@/data/scheduleData';
+import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
+import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import universityLogo from '@/assets/university-logo.jpg';
 
 const systemCards = [
