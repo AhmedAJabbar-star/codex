@@ -177,7 +177,8 @@ const ErrorsSummaryPage = () => {
                 تجميع الحالات غير السليمة من جميع أنظمة التدقيق — حسب القسم واليوم
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              <RefreshButton compact />
               <button onClick={() => navigate('/audit')} className="schedule-btn" style={{ minHeight: 38 }}>
                 📋 أنظمة التدقيق
               </button>
