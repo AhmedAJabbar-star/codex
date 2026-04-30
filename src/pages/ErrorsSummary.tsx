@@ -283,6 +283,46 @@ const ErrorsSummaryPage = () => {
             </div>
           </div>
 
+          {/* رسم بياني: أعلى 10 أقسام أخطاءً */}
+          {filtered.length > 0 && (
+            <div className="mb-6 rounded-2xl border border-[var(--schedule-border)] p-4" style={{ background: 'var(--schedule-card-bg)' }}>
+              <h3 className="text-lg font-black text-[var(--schedule-text)] mb-3">
+                📈 أعلى الأقسام في عدد الحالات غير السليمة
+              </h3>
+              <div style={{ width: '100%', height: 280 }}>
+                <ResponsiveContainer>
+                  <BarChart
+                    data={(() => {
+                      const counts = new Map<string, number>();
+                      filtered.forEach((e) => counts.set(e.department, (counts.get(e.department) || 0) + 1));
+                      return Array.from(counts.entries())
+                        .map(([department, count]) => ({ department, count }))
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 10);
+                    })()}
+                    margin={{ top: 8, right: 16, left: 8, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,.25)" />
+                    <XAxis
+                      dataKey="department"
+                      tick={{ fontSize: 11, fontWeight: 700, fill: 'var(--schedule-text)' }}
+                      angle={-25}
+                      textAnchor="end"
+                      interval={0}
+                      height={70}
+                    />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fontWeight: 700, fill: 'var(--schedule-text)' }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: '1px solid var(--schedule-border)', fontWeight: 800 }}
+                      formatter={(v: number) => [v.toLocaleString('ar-SA'), 'عدد الأخطاء']}
+                    />
+                    <Bar dataKey="count" fill="#dc2626" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
           {/* مصفوفة قسم × يوم */}
           <div className="mb-6">
             <h3 className="text-lg font-black text-[var(--schedule-text)] mb-3">
