@@ -161,9 +161,7 @@ Deno.serve(async (req) => {
       const { count } = await supabase
         .from("teacher_users")
         .select("*", { count: "exact", head: true });
-      if ((count || 0) <= 1) {
-        try { await syncFromSheet("auto-init"); } catch (_) { /* ignore */ }
-      }
+      try { await syncFromSheet("auto-init"); } catch (_) { /* ignore */ }
       const { data } = await supabase
         .from("teacher_users")
         .select("full_name")
@@ -180,7 +178,12 @@ Deno.serve(async (req) => {
         .eq("full_name", full_name)
         .maybeSingle();
       if (!user) return json({ error: "اسم التدريسي غير موجود" }, 401);
-      const ok = await bcrypt.compare(password, user.password_hash);
+      let ok = false;
+      try {
+        ok = await bcrypt.compare(password, user.password_hash);
+      } catch (_) {
+        return json({ error: "تعذر التحقق من كلمة المرور لهذا المستخدم. اطلب إعادة تعيين كلمة المرور من المدير." }, 400);
+      }
       if (!ok) return json({ error: "كلمة المرور غير صحيحة" }, 401);
       const { data: sess } = await supabase
         .from("teacher_sessions")
@@ -223,7 +226,12 @@ Deno.serve(async (req) => {
         .select("password_hash")
         .eq("id", user.id)
         .single();
-      const ok = await bcrypt.compare(old_password || "", full!.password_hash);
+      let ok = false;
+      try {
+        ok = await bcrypt.compare(old_password || "", full!.password_hash);
+      } catch (_) {
+        return json({ error: "تعذر التحقق من كلمة المرور الحالية" }, 400);
+      }
       if (!ok) return json({ error: "كلمة المرور الحالية غير صحيحة" }, 401);
       const newHash = await bcrypt.hash(new_password);
       await supabase
