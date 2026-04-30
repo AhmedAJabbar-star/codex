@@ -146,6 +146,10 @@
   color: var(--schedule-text);
   position: relative;
   overflow-x: hidden;
+  padding-bottom: 44px; /* مساحة لشريط الحالة الثابت */
+}
+@media print {
+  .schedule-body { padding-bottom: 0 !important; }
 }
 
 .schedule-body::before,
