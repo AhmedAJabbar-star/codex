@@ -62,6 +62,15 @@ const systemCards = [
     gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
   },
   {
+    id: 'individualAssignments',
+    title: 'التكليفات الفردية',
+    icon: '🪪',
+    description: 'دخول التدريسي بحسابه الشخصي لعرض تكليفاته فقط',
+    path: '/individual-assignments',
+    color: '#9333ea',
+    gradient: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+  },
+  {
     id: 'errors',
     title: 'ملخص الأخطاء',
     icon: '⚠️',
