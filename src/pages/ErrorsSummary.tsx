@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import { LECTURE_TYPE_PLACEHOLDER } from '@/data/liveScheduleData';
 import RefreshButton from '@/components/shared/RefreshButton';
+import { exportToExcel, exportToPDF } from '@/components/shared/ScheduleHelpers';
 import type { ScheduleRow } from '@/data/scheduleData';
 
 type ErrorRecord = {
@@ -179,6 +181,38 @@ const ErrorsSummaryPage = () => {
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               <RefreshButton compact />
+              <button
+                onClick={() => {
+                  const headers = ['النظام', 'القسم', 'اليوم', 'سبب الخطأ'];
+                  const rows = filtered.map((e) => ({
+                    'النظام': SOURCE_META[e.source].label,
+                    'القسم': e.department,
+                    'اليوم': e.day,
+                    'سبب الخطأ': e.reason,
+                  }));
+                  exportToExcel('ملخص الأخطاء', headers, rows);
+                }}
+                className="schedule-btn"
+                style={{ minHeight: 38 }}
+              >
+                📊 Excel
+              </button>
+              <button
+                onClick={() => {
+                  const headers = ['النظام', 'القسم', 'اليوم', 'سبب الخطأ'];
+                  const rows = filtered.map((e) => ({
+                    'النظام': SOURCE_META[e.source].label,
+                    'القسم': e.department,
+                    'اليوم': e.day,
+                    'سبب الخطأ': e.reason,
+                  }));
+                  exportToPDF('ملخص الأخطاء', headers, rows);
+                }}
+                className="schedule-btn"
+                style={{ minHeight: 38 }}
+              >
+                📄 PDF
+              </button>
               <button onClick={() => navigate('/audit')} className="schedule-btn" style={{ minHeight: 38 }}>
                 📋 أنظمة التدقيق
               </button>
