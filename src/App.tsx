@@ -7,6 +7,8 @@ import { lazy, Suspense } from "react";
 
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import StatusBar from "./components/shared/StatusBar";
+import CommandPalette from "./components/shared/CommandPalette";
 
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
@@ -34,6 +36,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <CommandPalette />
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -48,6 +51,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        <StatusBar />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

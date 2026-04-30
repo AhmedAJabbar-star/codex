@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import { LECTURE_TYPE_PLACEHOLDER } from '@/data/liveScheduleData';
 import RefreshButton from '@/components/shared/RefreshButton';
+import { exportToExcel, exportToPDF } from '@/components/shared/ScheduleHelpers';
 import type { ScheduleRow } from '@/data/scheduleData';
 
 type ErrorRecord = {
@@ -179,6 +181,38 @@ const ErrorsSummaryPage = () => {
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               <RefreshButton compact />
+              <button
+                onClick={() => {
+                  const headers = ['النظام', 'القسم', 'اليوم', 'سبب الخطأ'];
+                  const rows = filtered.map((e) => ({
+                    'النظام': SOURCE_META[e.source].label,
+                    'القسم': e.department,
+                    'اليوم': e.day,
+                    'سبب الخطأ': e.reason,
+                  }));
+                  exportToExcel('ملخص الأخطاء', headers, rows);
+                }}
+                className="schedule-btn"
+                style={{ minHeight: 38 }}
+              >
+                📊 Excel
+              </button>
+              <button
+                onClick={() => {
+                  const headers = ['النظام', 'القسم', 'اليوم', 'سبب الخطأ'];
+                  const rows = filtered.map((e) => ({
+                    'النظام': SOURCE_META[e.source].label,
+                    'القسم': e.department,
+                    'اليوم': e.day,
+                    'سبب الخطأ': e.reason,
+                  }));
+                  exportToPDF('ملخص الأخطاء', headers, rows);
+                }}
+                className="schedule-btn"
+                style={{ minHeight: 38 }}
+              >
+                📄 PDF
+              </button>
               <button onClick={() => navigate('/audit')} className="schedule-btn" style={{ minHeight: 38 }}>
                 📋 أنظمة التدقيق
               </button>
@@ -248,6 +282,46 @@ const ErrorsSummaryPage = () => {
               </select>
             </div>
           </div>
+
+          {/* رسم بياني: أعلى 10 أقسام أخطاءً */}
+          {filtered.length > 0 && (
+            <div className="mb-6 rounded-2xl border border-[var(--schedule-border)] p-4" style={{ background: 'var(--schedule-card-bg)' }}>
+              <h3 className="text-lg font-black text-[var(--schedule-text)] mb-3">
+                📈 أعلى الأقسام في عدد الحالات غير السليمة
+              </h3>
+              <div style={{ width: '100%', height: 280 }}>
+                <ResponsiveContainer>
+                  <BarChart
+                    data={(() => {
+                      const counts = new Map<string, number>();
+                      filtered.forEach((e) => counts.set(e.department, (counts.get(e.department) || 0) + 1));
+                      return Array.from(counts.entries())
+                        .map(([department, count]) => ({ department, count }))
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 10);
+                    })()}
+                    margin={{ top: 8, right: 16, left: 8, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,.25)" />
+                    <XAxis
+                      dataKey="department"
+                      tick={{ fontSize: 11, fontWeight: 700, fill: 'var(--schedule-text)' }}
+                      angle={-25}
+                      textAnchor="end"
+                      interval={0}
+                      height={70}
+                    />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fontWeight: 700, fill: 'var(--schedule-text)' }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: '1px solid var(--schedule-border)', fontWeight: 800 }}
+                      formatter={(v: number) => [v.toLocaleString('ar-SA'), 'عدد الأخطاء']}
+                    />
+                    <Bar dataKey="count" fill="#dc2626" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {/* مصفوفة قسم × يوم */}
           <div className="mb-6">
