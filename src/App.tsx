@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense } from "react";
 
 import Dashboard from "./pages/Dashboard";
+import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
 
