@@ -18,6 +18,7 @@ const EmptyRooms = lazy(() => import("./pages/EmptyRooms"));
 const Assignments = lazy(() => import("./pages/Assignments"));
 const Charts = lazy(() => import("./pages/Charts"));
 const ErrorsSummary = lazy(() => import("./pages/ErrorsSummary"));
+const IndividualAssignments = lazy(() => import("./pages/IndividualAssignments"));
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/assignments" element={<Assignments />} />
             <Route path="/charts" element={<Charts />} />
             <Route path="/errors" element={<ErrorsSummary />} />
+            <Route path="/individual-assignments" element={<IndividualAssignments />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
