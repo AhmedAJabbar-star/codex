@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
-import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import { LECTURE_TYPE_PLACEHOLDER } from '@/data/liveScheduleData';
 import RefreshButton from '@/components/shared/RefreshButton';
@@ -42,17 +40,6 @@ const ErrorsSummaryPage = () => {
   const [selectedDay, setSelectedDay] = useState<string>('all');
 
   const { data: liveData, error: liveError, isLoading: liveLoading } = useLiveScheduleData();
-  const { data: assignmentsRows } = useQuery({
-    queryKey: ['individual-assignments'],
-    queryFn: () => fetchIndividualAssignmentRows(),
-    staleTime: 0,
-    refetchOnMount: 'always',
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchInterval: 60 * 1000,
-    refetchIntervalInBackground: false,
-    retry: 1,
-  });
 
   const allErrors = useMemo<ErrorRecord[]>(() => {
     if (!liveData) return [];
@@ -158,6 +145,30 @@ const ErrorsSummaryPage = () => {
     return { map, usedDays, usedDepts };
   }, [filtered]);
 
+
+  const actionableSummary = useMemo(() => {
+    const byDept = new Map<string, { total: number; systems: Record<string, number>; topReasons: Map<string, number> }>();
+    filtered.forEach((e) => {
+      if (!byDept.has(e.department)) {
+        byDept.set(e.department, { total: 0, systems: { report: 0, hours: 0, lectureType: 0, assignments: 0 }, topReasons: new Map() });
+      }
+      const entry = byDept.get(e.department)!;
+      entry.total += 1;
+      entry.systems[e.source] = (entry.systems[e.source] || 0) + 1;
+      entry.topReasons.set(e.reason, (entry.topReasons.get(e.reason) || 0) + 1);
+    });
+
+    return Array.from(byDept.entries())
+      .map(([department, data]) => ({
+        department,
+        total: data.total,
+        systems: data.systems,
+        topReason: Array.from(data.topReasons.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'غير محدد',
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+  }, [filtered]);
+
   const sourceCounts = useMemo(() => {
     const counts: Record<string, number> = { report: 0, hours: 0, lectureType: 0, assignments: 0 };
     allErrors.forEach((e) => { counts[e.source] = (counts[e.source] || 0) + 1; });
@@ -242,6 +253,48 @@ const ErrorsSummaryPage = () => {
                 <div className="text-xs font-semibold text-[var(--schedule-muted)] mt-1">حالة غير سليمة</div>
               </button>
             ))}
+          </div>
+
+          {/* ملخص خدمي قابل للتنفيذ */}
+          <div className="rounded-2xl border border-[var(--schedule-border)] p-4 mb-5 bg-[var(--schedule-accent-blue)]/5">
+            <h2 className="text-lg font-black text-[var(--schedule-text)] mb-2">🧭 أين نبدأ المعالجة؟</h2>
+            <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-3">
+              الملخص التالي يربط بين أنظمة التدقيق الأربعة ويعرض الأقسام الأكثر تأثراً مع السبب الأكثر تكراراً.
+            </p>
+            {actionableSummary.length === 0 ? (
+              <p className="text-sm font-bold text-green-700">✅ لا توجد حالات تتطلب معالجة ضمن الفلاتر الحالية.</p>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--schedule-border)]">
+                      <th className="p-2 text-right font-black">#</th>
+                      <th className="p-2 text-right font-black">القسم</th>
+                      <th className="p-2 text-center font-black">إجمالي الأخطاء</th>
+                      <th className="p-2 text-center font-black">تدقيق الجدول</th>
+                      <th className="p-2 text-center font-black">تدقيق الساعات</th>
+                      <th className="p-2 text-center font-black">تدقيق نوع المحاضرة</th>
+                      <th className="p-2 text-center font-black">تدقيق التكليفات</th>
+                      <th className="p-2 text-right font-black">أكثر سبب متكرر</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {actionableSummary.map((row, idx) => (
+                      <tr key={row.department} className="border-b border-[var(--schedule-border)]/50">
+                        <td className="p-2 font-black">{idx + 1}</td>
+                        <td className="p-2 font-bold">{row.department}</td>
+                        <td className="p-2 text-center font-black">{row.total}</td>
+                        <td className="p-2 text-center">{row.systems.report || 0}</td>
+                        <td className="p-2 text-center">{row.systems.hours || 0}</td>
+                        <td className="p-2 text-center">{row.systems.lectureType || 0}</td>
+                        <td className="p-2 text-center">{row.systems.assignments || 0}</td>
+                        <td className="p-2 text-xs">{row.topReason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* فلاتر */}
