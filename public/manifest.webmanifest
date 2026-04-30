@@ -1,0 +1,27 @@
+{
+  "name": "نظام إدارة الجداول الدراسية - كلية الهندسة المدنية",
+  "short_name": "الجداول",
+  "description": "نظام موحّد لإدارة وتدقيق الجداول الدراسية - الجامعة التكنولوجية",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "ar",
+  "dir": "rtl",
+  "background_color": "#f3f7fd",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
