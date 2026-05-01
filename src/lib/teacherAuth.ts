@@ -65,8 +65,12 @@ async function call<T = any>(action: string, payload: Record<string, any> = {}):
       try {
         const txt = typeof ctx.body === 'string' ? ctx.body : await new Response(ctx.body).text();
         const j = JSON.parse(txt);
-        if (j?.error) throw new Error(j.error);
-      } catch (_) { /* fall through */ }
+        if (j?.error) throw toFriendlyAuthError(new Error(j.error));
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message) {
+          throw toFriendlyAuthError(parseErr);
+        }
+      }
     }
     throw toFriendlyAuthError(error);
   }
