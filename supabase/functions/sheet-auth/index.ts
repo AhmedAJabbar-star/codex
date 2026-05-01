@@ -419,6 +419,13 @@ Deno.serve(async (req) => {
           all = await getFallbackUsersFromAssignments();
         }
         names = teacherNamesFromUsers(all);
+      let all = await getAllUsers();
+      let names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+      // If users sheet is still empty in production, sync once from assignments CSV.
+      if (names.length === 0) {
+        await syncFromAssignments("list-users-auto-sync");
+        all = await getAllUsers();
+        names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
       }
       return json({ users: names.sort((a,b) => a.localeCompare(b, "ar")) });
     }
