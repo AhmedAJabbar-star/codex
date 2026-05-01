@@ -3,7 +3,7 @@
 // Sheets used: "users" and "archive" (auto-created if missing).
 // Sessions are in-memory (resets on cold start; tokens last 7 days max).
 
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+import bcrypt from "npm:bcryptjs@2.4.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +43,22 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
   for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
   return buf.buffer;
 }
+
+function parseServiceAccount(raw: string) {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.private_key === "string") {
+      parsed.private_key = parsed.private_key.replace(/\\n/g, "\n");
+    }
+    if (!parsed?.client_email || !parsed?.private_key) {
+      throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON ناقص");
+    }
+    return parsed;
+  } catch (e) {
+    throw new Error(`GOOGLE_SERVICE_ACCOUNT_JSON غير صالح: ${(e as Error).message}`);
+  }
+}
+
 function b64url(input: string | Uint8Array): string {
   const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
   let s = btoa(String.fromCharCode(...bytes));
@@ -54,7 +70,7 @@ async function getAccessToken(): Promise<string> {
     return cachedToken.token;
   }
   if (!SA_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON غير مُهيأ");
-  const sa = JSON.parse(SA_JSON);
+  const sa = parseServiceAccount(SA_JSON);
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
@@ -229,7 +245,7 @@ function parseCsv(text: string): string[][] {
 async function ensureAdmin() {
   const existing = await findUserByName("aa");
   if (existing) return;
-  const hash = await bcrypt.hash("aa");
+  const hash = await bcrypt.hash("aa", 10);
   const id = uuid();
   const now = new Date().toISOString();
   await appendRow("users", USERS_HEADERS, {
@@ -266,7 +282,7 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
 
   const all = await getAllUsers();
   const existing = new Set(all.map((u) => clean(u.full_name)));
-  const defaultHash = await bcrypt.hash("123");
+  const defaultHash = await bcrypt.hash("123", 10);
   let added = 0;
   for (const [name, info] of map.entries()) {
     if (existing.has(name)) continue;
@@ -326,9 +342,15 @@ Deno.serve(async (req) => {
     await ensureAdmin();
 
     if (action === "list-users") {
-      // Fast path: return whatever exists. Never block on sync here.
-      const all = await getAllUsers();
-      return json({ users: all.map((u) => u.full_name).filter((n) => n && n !== "aa").sort((a,b) => a.localeCompare(b, "ar")) });
+      let all = await getAllUsers();
+      let names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+      // If users sheet is still empty in production, sync once from assignments CSV.
+      if (names.length === 0) {
+        await syncFromAssignments("list-users-auto-sync");
+        all = await getAllUsers();
+        names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+      }
+      return json({ users: names.sort((a,b) => a.localeCompare(b, "ar")) });
     }
 
     if (action === "background-sync") {
@@ -371,7 +393,7 @@ Deno.serve(async (req) => {
       if (!new_password || new_password.length < 3) return json({ error: "كلمة المرور الجديدة قصيرة جداً" }, 400);
       const ok = await bcrypt.compare(old_password || "", u.password_hash);
       if (!ok) return json({ error: "كلمة المرور الحالية غير صحيحة" }, 401);
-      const newHash = await bcrypt.hash(new_password);
+      const newHash = await bcrypt.hash(new_password, 10);
       const found = await findUserById(u.id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
@@ -406,7 +428,7 @@ Deno.serve(async (req) => {
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, new_password } = body;
       const pw = new_password || "123";
-      const hash = await bcrypt.hash(pw);
+      const hash = await bcrypt.hash(pw, 10);
       const found = await findUserById(user_id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
@@ -424,7 +446,7 @@ Deno.serve(async (req) => {
       const exists = await findUserByName(full_name);
       if (exists) return json({ error: "الاسم موجود مسبقاً" }, 400);
       const pw = password || "123";
-      const hash = await bcrypt.hash(pw);
+      const hash = await bcrypt.hash(pw, 10);
       const id = uuid(); const now = new Date().toISOString();
       await appendRow("users", USERS_HEADERS, {
         id, full_name, department: department || "", college: college || "",
