@@ -1,0 +1,472 @@
+// Sheet-backed auth for Individual Assignments.
+// Backend = Google Sheets (via Service Account JWT). NO Supabase DB usage.
+// Sheets used: "users" and "archive" (auto-created if missing).
+// Sessions are in-memory (resets on cold start; tokens last 7 days max).
+
+import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const SHEET_ID = Deno.env.get("GOOGLE_SHEET_ID") || "1vAuWBa1ERY0EYL2T-MMTO7MYM0yP7dGJP64dBCRMSzQ";
+const SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "";
+const ASSIGNMENTS_CSV =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1416068353&single=true&output=csv";
+
+const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at"];
+const ARCHIVE_HEADERS = ["id","timestamp","user_id","full_name","action","performed_by"];
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+function clean(s: string) {
+  return (s || "").toString().replace(/^\uFEFF/, "").replace(/\s+/g, " ").trim();
+}
+function uuid() { return crypto.randomUUID(); }
+
+/* ---------------- Service Account JWT → access token ---------------- */
+let cachedToken: { token: string; exp: number } | null = null;
+
+function pemToArrayBuffer(pem: string): ArrayBuffer {
+  const b64 = pem
+    .replace(/-----BEGIN [^-]+-----/g, "")
+    .replace(/-----END [^-]+-----/g, "")
+    .replace(/\s+/g, "");
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+function b64url(input: string | Uint8Array): string {
+  const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  let s = btoa(String.fromCharCode(...bytes));
+  return s.replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+async function getAccessToken(): Promise<string> {
+  if (cachedToken && cachedToken.exp - 60 > Math.floor(Date.now() / 1000)) {
+    return cachedToken.token;
+  }
+  if (!SA_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON غير مُهيأ");
+  const sa = JSON.parse(SA_JSON);
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/spreadsheets",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+  const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    pemToArrayBuffer(sa.private_key),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = new Uint8Array(
+    await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned)),
+  );
+  const jwt = `${unsigned}.${b64url(sig)}`;
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`OAuth failed: ${JSON.stringify(data)}`);
+  cachedToken = { token: data.access_token, exp: now + (data.expires_in || 3600) };
+  return cachedToken.token;
+}
+
+/* ---------------- Sheets API helpers ---------------- */
+async function gapi(path: string, init: RequestInit = {}) {
+  const token = await getAccessToken();
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(init.headers || {}),
+    },
+  });
+  const text = await res.text();
+  let data: any = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!res.ok) throw new Error(`Sheets API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+  return data;
+}
+
+async function ensureSheet(title: string, headers: string[]) {
+  const meta = await gapi("?fields=sheets(properties(title))");
+  const exists = (meta.sheets || []).some((s: any) => s.properties?.title === title);
+  if (!exists) {
+    await gapi(":batchUpdate", {
+      method: "POST",
+      body: JSON.stringify({
+        requests: [{ addSheet: { properties: { title } } }],
+      }),
+    });
+    // Write headers
+    await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
+      method: "PUT",
+      body: JSON.stringify({ values: [headers] }),
+    });
+  } else {
+    // Make sure headers exist (row 1 not empty)
+    const r = await gapi(`/values/${encodeURIComponent(title)}!A1:Z1`);
+    if (!r.values || r.values.length === 0 || (r.values[0] || []).length === 0) {
+      await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
+        method: "PUT",
+        body: JSON.stringify({ values: [headers] }),
+      });
+    }
+  }
+}
+
+async function readAll(title: string, headers: string[]): Promise<Record<string,string>[]> {
+  const r = await gapi(`/values/${encodeURIComponent(title)}!A2:Z`);
+  const rows = (r.values || []) as string[][];
+  return rows
+    .filter((row) => row.some((c) => clean(c)))
+    .map((row) => {
+      const obj: Record<string,string> = {};
+      headers.forEach((h, i) => { obj[h] = (row[i] ?? "").toString(); });
+      return obj;
+    });
+}
+
+async function appendRow(title: string, headers: string[], obj: Record<string,any>) {
+  const row = headers.map((h) => obj[h] === undefined || obj[h] === null ? "" : String(obj[h]));
+  await gapi(`/values/${encodeURIComponent(title)}!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+    method: "POST",
+    body: JSON.stringify({ values: [row] }),
+  });
+}
+
+async function updateRowByIndex(title: string, headers: string[], rowIndex0: number, obj: Record<string,any>) {
+  // rowIndex0 is 0-based among data rows (so sheet row = rowIndex0 + 2)
+  const sheetRow = rowIndex0 + 2;
+  const row = headers.map((h) => obj[h] === undefined || obj[h] === null ? "" : String(obj[h]));
+  const range = `${title}!A${sheetRow}:${String.fromCharCode(64 + headers.length)}${sheetRow}`;
+  await gapi(`/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
+    method: "PUT",
+    body: JSON.stringify({ values: [row] }),
+  });
+}
+
+async function deleteRowByIndex(title: string, rowIndex0: number) {
+  const meta = await gapi("?fields=sheets(properties(sheetId,title))");
+  const sheet = (meta.sheets || []).find((s: any) => s.properties?.title === title);
+  if (!sheet) throw new Error(`Sheet ${title} not found`);
+  const sheetId = sheet.properties.sheetId;
+  await gapi(":batchUpdate", {
+    method: "POST",
+    body: JSON.stringify({
+      requests: [{
+        deleteDimension: {
+          range: { sheetId, dimension: "ROWS", startIndex: rowIndex0 + 1, endIndex: rowIndex0 + 2 },
+        },
+      }],
+    }),
+  });
+}
+
+/* ---------------- High-level user store ---------------- */
+async function getAllUsers() {
+  await ensureSheet("users", USERS_HEADERS);
+  return readAll("users", USERS_HEADERS);
+}
+async function findUserByName(name: string) {
+  const all = await getAllUsers();
+  const idx = all.findIndex((u) => clean(u.full_name) === clean(name));
+  return idx >= 0 ? { user: all[idx], index: idx } : null;
+}
+async function findUserById(id: string) {
+  const all = await getAllUsers();
+  const idx = all.findIndex((u) => u.id === id);
+  return idx >= 0 ? { user: all[idx], index: idx } : null;
+}
+
+async function archive(action: string, full_name: string, performed_by: string, user_id = "") {
+  await ensureSheet("archive", ARCHIVE_HEADERS);
+  await appendRow("archive", ARCHIVE_HEADERS, {
+    id: uuid(),
+    timestamp: new Date().toISOString(),
+    user_id,
+    full_name,
+    action,
+    performed_by,
+  });
+}
+
+/* ---------------- Bootstrap (admin + sync from assignments CSV) ---------------- */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = []; let cur: string[] = []; let v = ""; let q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i+1] === '"') { v += '"'; i++; } else q = false; } else v += c;
+      continue;
+    }
+    if (c === '"') q = true;
+    else if (c === ",") { cur.push(v); v = ""; }
+    else if (c === "\n") { cur.push(v); rows.push(cur); cur = []; v = ""; }
+    else if (c !== "\r") v += c;
+  }
+  if (v.length || cur.length) { cur.push(v); rows.push(cur); }
+  return rows;
+}
+
+async function ensureAdmin() {
+  const existing = await findUserByName("aa");
+  if (existing) return;
+  const hash = await bcrypt.hash("aa");
+  const id = uuid();
+  const now = new Date().toISOString();
+  await appendRow("users", USERS_HEADERS, {
+    id, full_name: "aa", department: "", college: "",
+    role: "admin", password_hash: hash,
+    must_change_password: "false", is_manual: "true",
+    created_at: now, updated_at: now,
+  });
+  await archive("admin_create", "aa", "system", id);
+}
+
+async function syncFromAssignments(performedBy: string): Promise<{added:number; total:number}> {
+  const res = await fetch(ASSIGNMENTS_CSV, { cache: "no-store" });
+  if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
+  const text = (await res.text()).replace(/^\uFEFF/, "");
+  const [head = [], ...data] = parseCsv(text);
+  const headers = head.map(clean);
+  const nameIdx = headers.findIndex((h) => h.includes("اسم التدريسي"));
+  const deptIdx = headers.findIndex((h) => h.includes("القسم"));
+  const colIdx = headers.findIndex((h) => h.includes("الكلية"));
+  if (nameIdx === -1) throw new Error("لم يتم العثور على عمود اسم التدريسي");
+
+  const map = new Map<string, { dept: string; college: string }>();
+  for (const row of data) {
+    const name = clean(row[nameIdx] || "");
+    if (!name) continue;
+    if (!map.has(name)) {
+      map.set(name, {
+        dept: clean(row[deptIdx] || ""),
+        college: clean(row[colIdx] || ""),
+      });
+    }
+  }
+
+  const all = await getAllUsers();
+  const existing = new Set(all.map((u) => clean(u.full_name)));
+  const defaultHash = await bcrypt.hash("123");
+  let added = 0;
+  for (const [name, info] of map.entries()) {
+    if (existing.has(name)) continue;
+    const id = uuid(); const now = new Date().toISOString();
+    await appendRow("users", USERS_HEADERS, {
+      id, full_name: name, department: info.dept, college: info.college,
+      role: "user", password_hash: defaultHash,
+      must_change_password: "true", is_manual: "false",
+      created_at: now, updated_at: now,
+    });
+    await archive("initial_create", name, performedBy, id);
+    added++;
+  }
+  const total = all.length + added;
+  return { added, total };
+}
+
+/* ---------------- Sessions (in-memory) ---------------- */
+type Sess = { user_id: string; expires_at: number };
+const SESSIONS = new Map<string, Sess>();
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function createSession(user_id: string): string {
+  const token = uuid();
+  SESSIONS.set(token, { user_id, expires_at: Date.now() + SESSION_TTL_MS });
+  return token;
+}
+async function getSessionUser(token: string | null) {
+  if (!token) return null;
+  const s = SESSIONS.get(token);
+  if (!s || s.expires_at < Date.now()) { SESSIONS.delete(token!); return null; }
+  const found = await findUserById(s.user_id);
+  return found ? found.user : null;
+}
+
+function publicUser(u: Record<string,string>) {
+  return {
+    id: u.id,
+    full_name: u.full_name,
+    department: u.department || "",
+    college: u.college || "",
+    role: (u.role === "admin" ? "admin" : "user") as "admin" | "user",
+    must_change_password: String(u.must_change_password).toLowerCase() === "true",
+  };
+}
+
+/* ---------------- Handler ---------------- */
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  try {
+    const body = await req.json().catch(() => ({}));
+    const { action } = body as { action: string };
+
+    // Always make sure base sheets + admin exist
+    await ensureSheet("users", USERS_HEADERS);
+    await ensureSheet("archive", ARCHIVE_HEADERS);
+    await ensureAdmin();
+
+    if (action === "list-users") {
+      const all = await getAllUsers();
+      // First-run auto-sync if only admin
+      if (all.length <= 1) {
+        try { await syncFromAssignments("auto-init"); } catch (_) { /* ignore */ }
+      }
+      const refreshed = await getAllUsers();
+      return json({ users: refreshed.map((u) => u.full_name).sort((a,b) => a.localeCompare(b, "ar")) });
+    }
+
+    if (action === "login") {
+      const { full_name, password } = body;
+      if (!full_name || !password) return json({ error: "البيانات ناقصة" }, 400);
+      const found = await findUserByName(full_name);
+      if (!found) return json({ error: "اسم التدريسي غير موجود" }, 401);
+      const ok = await bcrypt.compare(password, found.user.password_hash);
+      if (!ok) return json({ error: "كلمة المرور غير صحيحة" }, 401);
+      const token = createSession(found.user.id);
+      return json({ token, user: publicUser(found.user) });
+    }
+
+    if (action === "logout") {
+      if (body.token) SESSIONS.delete(body.token);
+      return json({ ok: true });
+    }
+
+    if (action === "me") {
+      const u = await getSessionUser(body.token);
+      if (!u) return json({ error: "الجلسة منتهية" }, 401);
+      return json({ user: publicUser(u) });
+    }
+
+    if (action === "change-password") {
+      const u = await getSessionUser(body.token);
+      if (!u) return json({ error: "الجلسة منتهية" }, 401);
+      const { old_password, new_password } = body;
+      if (!new_password || new_password.length < 3) return json({ error: "كلمة المرور الجديدة قصيرة جداً" }, 400);
+      const ok = await bcrypt.compare(old_password || "", u.password_hash);
+      if (!ok) return json({ error: "كلمة المرور الحالية غير صحيحة" }, 401);
+      const newHash = await bcrypt.hash(new_password);
+      const found = await findUserById(u.id);
+      if (!found) return json({ error: "المستخدم غير موجود" }, 404);
+      await updateRowByIndex("users", USERS_HEADERS, found.index, {
+        ...found.user,
+        password_hash: newHash,
+        must_change_password: "false",
+        updated_at: new Date().toISOString(),
+      });
+      await archive("self_change", u.full_name, "self", u.id);
+      return json({ ok: true });
+    }
+
+    /* ---- Admin ---- */
+    const requireAdmin = async () => {
+      const u = await getSessionUser(body.token);
+      if (!u || u.role !== "admin") return null;
+      return u;
+    };
+
+    if (action === "admin-list") {
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const all = await getAllUsers();
+      const users = all.map((u) => ({
+        ...publicUser(u),
+        is_manual: String(u.is_manual).toLowerCase() === "true",
+        created_at: u.created_at,
+      }));
+      return json({ users });
+    }
+
+    if (action === "admin-reset-password") {
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const { user_id, new_password } = body;
+      const pw = new_password || "123";
+      const hash = await bcrypt.hash(pw);
+      const found = await findUserById(user_id);
+      if (!found) return json({ error: "المستخدم غير موجود" }, 404);
+      await updateRowByIndex("users", USERS_HEADERS, found.index, {
+        ...found.user, password_hash: hash, must_change_password: "true",
+        updated_at: new Date().toISOString(),
+      });
+      await archive("admin_reset", found.user.full_name, a.full_name, user_id);
+      return json({ ok: true, new_password: pw });
+    }
+
+    if (action === "admin-create-user") {
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const { full_name, department, college, role, password } = body;
+      if (!full_name) return json({ error: "الاسم مطلوب" }, 400);
+      const exists = await findUserByName(full_name);
+      if (exists) return json({ error: "الاسم موجود مسبقاً" }, 400);
+      const pw = password || "123";
+      const hash = await bcrypt.hash(pw);
+      const id = uuid(); const now = new Date().toISOString();
+      await appendRow("users", USERS_HEADERS, {
+        id, full_name, department: department || "", college: college || "",
+        role: role === "admin" ? "admin" : "user",
+        password_hash: hash, must_change_password: "true", is_manual: "true",
+        created_at: now, updated_at: now,
+      });
+      await archive("admin_create", full_name, a.full_name, id);
+      return json({ ok: true, password: pw });
+    }
+
+    if (action === "admin-delete-user") {
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const { user_id } = body;
+      const found = await findUserById(user_id);
+      if (!found) return json({ ok: true });
+      if (found.user.full_name === "aa") return json({ error: "لا يمكن حذف حساب المدير الافتراضي" }, 400);
+      await deleteRowByIndex("users", found.index);
+      await archive("admin_delete", found.user.full_name, a.full_name, user_id);
+      return json({ ok: true });
+    }
+
+    if (action === "admin-sync") {
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const r = await syncFromAssignments(a.full_name);
+      return json(r);
+    }
+
+    if (action === "admin-archive") {
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      await ensureSheet("archive", ARCHIVE_HEADERS);
+      const all = await readAll("archive", ARCHIVE_HEADERS);
+      const archive = all
+        .map((r) => ({
+          id: r.id,
+          user_id: r.user_id || null,
+          full_name: r.full_name,
+          action: r.action,
+          performed_by: r.performed_by || null,
+          created_at: r.timestamp,
+        }))
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .slice(0, 500);
+      return json({ archive });
+    }
+
+    return json({ error: "إجراء غير معروف" }, 400);
+  } catch (e) {
+    console.error("sheet-auth error:", e);
+    return json({ error: (e as Error).message }, 500);
+  }
+});
