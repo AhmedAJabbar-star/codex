@@ -399,6 +399,7 @@ Deno.serve(async (req) => {
     // NOTE: Keep this block as the single source of truth for teacher-name loading
     // to avoid merge conflicts between fallback and non-fallback branches.
     if (action === "list-users") {
+<<<<<<< codex/fix-error-in-lovable-version-593xf7
       let all = sheetsReady ? await getAllUsers() : await getFallbackUsersFromAssignments();
       let names = teacherNamesFromUsers(all);
       // If users sheet is still empty in production, sync once from assignments CSV.
@@ -410,6 +411,15 @@ Deno.serve(async (req) => {
           all = await getFallbackUsersFromAssignments();
         }
         names = teacherNamesFromUsers(all);
+=======
+      let all = await getAllUsers();
+      let names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+      // If users sheet is still empty in production, sync once from assignments CSV.
+      if (names.length === 0) {
+        await syncFromAssignments("list-users-auto-sync");
+        all = await getAllUsers();
+        names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+>>>>>>> main
       }
       return json({ users: names.sort((a,b) => a.localeCompare(b, "ar")) });
     }
