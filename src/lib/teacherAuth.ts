@@ -66,6 +66,17 @@ export async function fetchTeacherList(): Promise<string[]> {
   return r.users || [];
 }
 
+/**
+ * Fire-and-forget: ask the edge function to append any new teacher names from
+ * the assignments sheet to the users sheet. Existing rows (and their passwords)
+ * are never modified. Safe to call frequently — runs on the server.
+ */
+export function backgroundSyncTeachers(): void {
+  supabase.functions
+    .invoke(FN, { body: { action: 'background-sync' } })
+    .catch(() => { /* ignore */ });
+}
+
 export async function login(full_name: string, password: string): Promise<Session> {
   const r = await call<{ token: string; user: TeacherUser }>('login', { full_name, password });
   const s = { token: r.token, user: r.user };
