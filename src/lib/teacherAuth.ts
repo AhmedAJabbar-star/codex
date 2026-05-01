@@ -102,8 +102,20 @@ export function backgroundSyncTeachers(): void {
     .catch(() => { /* ignore */ });
 }
 
+function normalizeTeacherName(name: string): string {
+  return (name || '')
+    .replace(/\uFEFF/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export async function login(full_name: string, password: string): Promise<Session> {
-  const r = await call<{ token: string; user: TeacherUser }>('login', { full_name, password });
+  const normalizedName = normalizeTeacherName(full_name);
+  const normalizedPassword = (password || '').trim();
+  const r = await call<{ token: string; user: TeacherUser }>('login', {
+    full_name: normalizedName,
+    password: normalizedPassword,
+  });
   const s = { token: r.token, user: r.user };
   setSession(s);
   return s;
