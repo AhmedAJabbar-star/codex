@@ -8,7 +8,7 @@ import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import {
   getSession, setSession, login, logout, refreshMe, changePassword,
   fetchTeacherList, backgroundSyncTeachers, adminListUsers, adminResetPassword, adminCreateUser,
-  adminDeleteUser, adminSync, adminArchive,
+  adminDeleteUser, adminSync, adminArchive, setConnectionConfig, getConnectionConfig,
   type TeacherUser, type AdminUser, type ArchiveEntry,
 } from '@/lib/teacherAuth';
 
@@ -28,6 +28,15 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
   const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [showConn, setShowConn] = useState(false);
+  const [conn, setConn] = useState(() => {
+    const current = getConnectionConfig();
+    return {
+      sheet_id: current?.sheet_id || '',
+      service_account_json: current?.service_account_json || '',
+      assignments_csv: current?.assignments_csv || '',
+    };
+  });
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['teacher-users-list'],
@@ -58,6 +67,19 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
     } finally {
       setSubmitting(false);
     }
+  };
+  const saveConnection = () => {
+    if (!conn.sheet_id.trim() || !conn.service_account_json.trim()) {
+      toast.error('يرجى إدخال Google Sheet ID و Service Account JSON');
+      return;
+    }
+    setConnectionConfig({
+      sheet_id: conn.sheet_id.trim(),
+      service_account_json: conn.service_account_json.trim(),
+      assignments_csv: conn.assignments_csv.trim() || undefined,
+    });
+    toast.success('تم حفظ إعدادات الربط');
+    setShowConn(false);
   };
 
   return (
@@ -108,6 +130,23 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
         <button type="submit" disabled={submitting} className="schedule-btn schedule-btn-primary w-full" style={{ minHeight: 48 }}>
           {submitting ? '⏳ جاري الدخول…' : '🔓 دخول'}
         </button>
+        <button type="button" className="schedule-btn w-full" style={{ minHeight: 44 }} onClick={() => setShowConn((v) => !v)}>
+          ⚙️ إعداد ربط Google Sheet
+        </button>
+        {showConn && (
+          <div className="border rounded-xl p-3 bg-white/70 flex flex-col gap-2">
+            <label className="text-xs font-bold">Google Sheet ID</label>
+            <input className="schedule-select w-full text-left" dir="ltr" value={conn.sheet_id}
+              onChange={(e) => setConn((c) => ({ ...c, sheet_id: e.target.value }))} />
+            <label className="text-xs font-bold">Google Service Account JSON</label>
+            <textarea className="schedule-select w-full text-left" dir="ltr" rows={5} value={conn.service_account_json}
+              onChange={(e) => setConn((c) => ({ ...c, service_account_json: e.target.value }))} />
+            <label className="text-xs font-bold">Assignments CSV URL (اختياري)</label>
+            <input className="schedule-select w-full text-left" dir="ltr" value={conn.assignments_csv}
+              onChange={(e) => setConn((c) => ({ ...c, assignments_csv: e.target.value }))} />
+            <button type="button" className="schedule-btn schedule-btn-primary" onClick={saveConnection}>💾 حفظ إعدادات الربط</button>
+          </div>
+        )}
 
         <button
           type="button"
