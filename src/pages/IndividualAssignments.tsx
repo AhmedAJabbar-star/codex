@@ -7,7 +7,7 @@ import { SYSTEMS, type SystemConfig } from '@/data/scheduleData';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import {
   getSession, setSession, login, logout, refreshMe, changePassword,
-  fetchTeacherList, adminListUsers, adminResetPassword, adminCreateUser,
+  fetchTeacherList, backgroundSyncTeachers, adminListUsers, adminResetPassword, adminCreateUser,
   adminDeleteUser, adminSync, adminArchive,
   type TeacherUser, type AdminUser, type ArchiveEntry,
 } from '@/lib/teacherAuth';
@@ -40,6 +40,10 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
     if (!q) return users;
     return users.filter((u) => u.includes(q));
   }, [users, query]);
+
+  useEffect(() => {
+    backgroundSyncTeachers();
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +108,24 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
         <button type="submit" disabled={submitting} className="schedule-btn schedule-btn-primary w-full" style={{ minHeight: 48 }}>
           {submitting ? '⏳ جاري الدخول…' : '🔓 دخول'}
         </button>
+
+        <button
+          type="button"
+          className="schedule-btn w-full"
+          style={{ minHeight: 44 }}
+          onClick={() => {
+            setName('aa');
+            setQuery('aa');
+            setOpen(false);
+            toast.message('تم اختيار حساب المدير الافتراضي (aa)');
+          }}
+        >
+          🛡️ اختيار حساب المدير (aa)
+        </button>
+
+        <p className="text-xs font-semibold text-[var(--schedule-muted)] text-center">
+          إذا بقيت القائمة فارغة، سيجري النظام جلب الأسماء مباشرة من ورقة التكليفات تلقائياً.
+        </p>
       </form>
     </Shell>
   );
