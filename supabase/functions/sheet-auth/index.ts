@@ -374,6 +374,9 @@ function publicUser(u: Record<string,string>) {
     must_change_password: String(u.must_change_password).toLowerCase() === "true",
   };
 }
+function teacherNamesFromUsers(all: Record<string, string>[]) {
+  return all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+}
 
 /* ---------------- Handler ---------------- */
 Deno.serve(async (req) => {
@@ -395,7 +398,7 @@ Deno.serve(async (req) => {
 
     if (action === "list-users") {
       let all = sheetsReady ? await getAllUsers() : await getFallbackUsersFromAssignments();
-      let names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+      let names = teacherNamesFromUsers(all);
       // If users sheet is still empty in production, sync once from assignments CSV.
       if (names.length === 0) {
         if (sheetsReady) {
@@ -404,7 +407,7 @@ Deno.serve(async (req) => {
         } else {
           all = await getFallbackUsersFromAssignments();
         }
-        names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+        names = teacherNamesFromUsers(all);
       }
       return json({ users: names.sort((a,b) => a.localeCompare(b, "ar")) });
     }
