@@ -326,13 +326,20 @@ Deno.serve(async (req) => {
     await ensureAdmin();
 
     if (action === "list-users") {
+      // Fast path: return whatever exists. Never block on sync here.
       const all = await getAllUsers();
-      // First-run auto-sync if only admin
-      if (all.length <= 1) {
-        try { await syncFromAssignments("auto-init"); } catch (_) { /* ignore */ }
+      return json({ users: all.map((u) => u.full_name).filter((n) => n && n !== "aa").sort((a,b) => a.localeCompare(b, "ar")) });
+    }
+
+    if (action === "background-sync") {
+      // Called by other pages' auto-refresh to keep users sheet up-to-date.
+      // Only APPENDS new names; never modifies existing rows or passwords.
+      try {
+        const r = await syncFromAssignments("auto-refresh");
+        return json({ ok: true, ...r });
+      } catch (e) {
+        return json({ ok: false, error: (e as Error).message });
       }
-      const refreshed = await getAllUsers();
-      return json({ users: refreshed.map((u) => u.full_name).sort((a,b) => a.localeCompare(b, "ar")) });
     }
 
     if (action === "login") {
