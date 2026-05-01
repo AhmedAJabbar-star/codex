@@ -396,6 +396,8 @@ Deno.serve(async (req) => {
       console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
     }
 
+    // NOTE: Keep this block as the single source of truth for teacher-name loading
+    // to avoid merge conflicts between fallback and non-fallback branches.
     if (action === "list-users") {
       let all = sheetsReady ? await getAllUsers() : await getFallbackUsersFromAssignments();
       let names = teacherNamesFromUsers(all);
