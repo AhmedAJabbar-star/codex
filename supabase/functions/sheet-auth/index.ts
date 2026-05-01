@@ -11,9 +11,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SHEET_ID = Deno.env.get("GOOGLE_SHEET_ID") || "1vAuWBa1ERY0EYL2T-MMTO7MYM0yP7dGJP64dBCRMSzQ";
-const SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "";
-const ASSIGNMENTS_CSV =
+const DEFAULT_SHEET_ID = Deno.env.get("GOOGLE_SHEET_ID") || "1vAuWBa1ERY0EYL2T-MMTO7MYM0yP7dGJP64dBCRMSzQ";
+const DEFAULT_SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "";
+const DEFAULT_ASSIGNMENTS_CSV =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1416068353&single=true&output=csv";
 
 const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at"];
@@ -33,6 +33,21 @@ function uuid() { return crypto.randomUUID(); }
 /* ---------------- Service Account JWT → access token ---------------- */
 let cachedToken: { token: string; exp: number } | null = null;
 let fallbackUsersCache: { users: Record<string, string>[]; exp: number } | null = null;
+let runtimeConnection: { sheetId: string; saJson: string; assignmentsCsv: string } | null = null;
+function getConnection() {
+  return runtimeConnection || { sheetId: DEFAULT_SHEET_ID, saJson: DEFAULT_SA_JSON, assignmentsCsv: DEFAULT_ASSIGNMENTS_CSV };
+}
+function setConnectionFromBody(body: any) {
+  const c = body?.connection;
+  if (!c) return;
+  const sheetId = clean(c.sheet_id || "");
+  const saJson = (c.service_account_json || "").toString().trim();
+  const assignmentsCsv = (c.assignments_csv || "").toString().trim() || DEFAULT_ASSIGNMENTS_CSV;
+  if (!sheetId || !saJson) return;
+  runtimeConnection = { sheetId, saJson, assignmentsCsv };
+  cachedToken = null;
+  fallbackUsersCache = null;
+}
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   const b64 = pem
@@ -70,8 +85,9 @@ async function getAccessToken(): Promise<string> {
   if (cachedToken && cachedToken.exp - 60 > Math.floor(Date.now() / 1000)) {
     return cachedToken.token;
   }
-  if (!SA_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON غير مُهيأ");
-  const sa = parseServiceAccount(SA_JSON);
+  const conn = getConnection();
+  if (!conn.saJson) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON غير مُهيأ");
+  const sa = parseServiceAccount(conn.saJson);
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
@@ -107,7 +123,7 @@ async function getAccessToken(): Promise<string> {
 /* ---------------- Sheets API helpers ---------------- */
 async function gapi(path: string, init: RequestInit = {}) {
   const token = await getAccessToken();
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}${path}`, {
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${getConnection().sheetId}${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -205,7 +221,7 @@ async function getAllUsers() {
 async function getFallbackUsersFromAssignments(): Promise<Record<string, string>[]> {
   const nowMs = Date.now();
   if (fallbackUsersCache && fallbackUsersCache.exp > nowMs) return fallbackUsersCache.users;
-  const res = await fetch(ASSIGNMENTS_CSV, { cache: "no-store" });
+  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store" });
   if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
   const text = (await res.text()).replace(/^\uFEFF/, "");
   const [head = [], ...data] = parseCsv(text);
@@ -313,7 +329,7 @@ async function ensureAdmin() {
 }
 
 async function syncFromAssignments(performedBy: string): Promise<{added:number; total:number}> {
-  const res = await fetch(ASSIGNMENTS_CSV, { cache: "no-store" });
+  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store" });
   if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
   const text = (await res.text()).replace(/^\uFEFF/, "");
   const [head = [], ...data] = parseCsv(text);
@@ -392,6 +408,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
+    setConnectionFromBody(body);
     const { action } = body as { action: string };
 
     // Try to initialize sheets/admin, but do not block login/list if Sheets auth is down.
@@ -419,13 +436,6 @@ Deno.serve(async (req) => {
           all = await getFallbackUsersFromAssignments();
         }
         names = teacherNamesFromUsers(all);
-      let all = await getAllUsers();
-      let names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
-      // If users sheet is still empty in production, sync once from assignments CSV.
-      if (names.length === 0) {
-        await syncFromAssignments("list-users-auto-sync");
-        all = await getAllUsers();
-        names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
       }
       return json({ users: names.sort((a,b) => a.localeCompare(b, "ar")) });
     }
