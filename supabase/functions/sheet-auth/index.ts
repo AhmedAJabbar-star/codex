@@ -3,7 +3,7 @@
 // Sheets used: "users" and "archive" (auto-created if missing).
 // Sessions are in-memory (resets on cold start; tokens last 7 days max).
 
-import bcrypt from "npm:bcryptjs@2.4.3";
+import { compare, hash } from "jsr:@wok/dbcrypt@v0.4.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -221,7 +221,7 @@ async function getFallbackUsersFromAssignments(): Promise<Record<string, string>
     if (!name || map.has(name)) continue;
     map.set(name, { dept: clean(row[deptIdx] || ""), college: clean(row[colIdx] || "") });
   }
-  const defaultHash = await bcrypt.hash("123", 10);
+  const defaultHash = await hash("123", 10);
   const users = Array.from(map.entries()).map(([full_name, info]) => ({
     id: `fallback:${full_name}`,
     full_name,
@@ -300,7 +300,7 @@ function parseCsv(text: string): string[][] {
 async function ensureAdmin() {
   const existing = await findUserByName("aa");
   if (existing) return;
-  const hash = await bcrypt.hash("aa", 10);
+  const hash = await hash("aa", 10);
   const id = uuid();
   const now = new Date().toISOString();
   await appendRow("users", USERS_HEADERS, {
@@ -337,7 +337,7 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
 
   const all = await getAllUsers();
   const existing = new Set(all.map((u) => clean(u.full_name)));
-  const defaultHash = await bcrypt.hash("123", 10);
+  const defaultHash = await hash("123", 10);
   let added = 0;
   for (const [name, info] of map.entries()) {
     if (existing.has(name)) continue;
@@ -446,7 +446,7 @@ Deno.serve(async (req) => {
       if (!full_name || !password) return json({ error: "البيانات ناقصة" }, 400);
       const found = await findUserByName(full_name);
       if (!found) return json({ error: "اسم التدريسي غير موجود" }, 401);
-      const ok = await bcrypt.compare(password, found.user.password_hash);
+      const ok = await compare(password, found.user.password_hash);
       if (!ok) return json({ error: "كلمة المرور غير صحيحة" }, 401);
       const token = createSession(found.user.id);
       return json({ token, user: publicUser(found.user) });
@@ -469,9 +469,9 @@ Deno.serve(async (req) => {
       if (!u) return json({ error: "الجلسة منتهية" }, 401);
       const { old_password, new_password } = body;
       if (!new_password || new_password.length < 3) return json({ error: "كلمة المرور الجديدة قصيرة جداً" }, 400);
-      const ok = await bcrypt.compare(old_password || "", u.password_hash);
+      const ok = await compare(old_password || "", u.password_hash);
       if (!ok) return json({ error: "كلمة المرور الحالية غير صحيحة" }, 401);
-      const newHash = await bcrypt.hash(new_password, 10);
+      const newHash = await hash(new_password, 10);
       const found = await findUserById(u.id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
@@ -508,7 +508,7 @@ Deno.serve(async (req) => {
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, new_password } = body;
       const pw = new_password || "123";
-      const hash = await bcrypt.hash(pw, 10);
+      const hash = await hash(pw, 10);
       const found = await findUserById(user_id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
@@ -527,7 +527,7 @@ Deno.serve(async (req) => {
       const exists = await findUserByName(full_name);
       if (exists) return json({ error: "الاسم موجود مسبقاً" }, 400);
       const pw = password || "123";
-      const hash = await bcrypt.hash(pw, 10);
+      const hash = await hash(pw, 10);
       const id = uuid(); const now = new Date().toISOString();
       await appendRow("users", USERS_HEADERS, {
         id, full_name, department: department || "", college: college || "",
