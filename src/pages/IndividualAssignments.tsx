@@ -390,7 +390,9 @@ const TeacherView = ({ user, onLogout, onChangePw }: { user: TeacherUser; onLogo
 
   const systemsOverride = useMemo<SystemConfig[] | undefined>(() => {
     if (!baseSystem || !rows) return undefined;
-    const myRows = rows.filter((r) => (r['اسم التدريسي'] || '').trim() === user.full_name.trim());
+    const myRows = rows
+      .filter((r) => (r['اسم التدريسي'] || '').trim() === user.full_name.trim())
+      .map((r) => ({ ...r, 'اسم التدريسي': user.full_name }));
     return [{
       ...baseSystem,
       title: `تكليفاتي - ${user.full_name}`,
