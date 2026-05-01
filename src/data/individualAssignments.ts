@@ -1,6 +1,6 @@
 import type { ScheduleRow } from '@/data/scheduleData';
 
-import { buildCsvUrl, getGoogleConfig } from '@/lib/googleConfig';
+const INDIVIDUAL_ASSIGNMENTS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1147039908&single=true&output=csv';
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -93,8 +93,7 @@ function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
 }
 
 export async function fetchIndividualAssignmentRows(): Promise<ScheduleRow[]> {
-  const cfg = getGoogleConfig();
-  const response = await fetch(buildCsvUrl(cfg.assignmentsGid || 0), { cache: 'no-store' });
+  const response = await fetch(INDIVIDUAL_ASSIGNMENTS_CSV_URL, { cache: 'no-store' });
 
   if (!response.ok) {
     throw new Error('تعذر جلب بيانات تكليفات التدريسي من Google Sheets');
