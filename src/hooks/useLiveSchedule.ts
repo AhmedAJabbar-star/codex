@@ -1,21 +1,34 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchLiveScheduleData, type LiveScheduleData } from '@/data/liveScheduleData';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import { backgroundSyncTeachers, fetchTeacherList } from '@/lib/teacherAuth';
 
 /**
  * Fetch all schedule sheets live from Google Sheets with auto-refresh.
  * Shared across all systems so a single network round-trip serves them all.
+ *
+ * Side effect: every refresh also (a) fires a background sync that appends any
+ * new teacher names to the Google Sheets users sheet (existing rows / passwords
+ * are never modified), and (b) prefetches the teachers dropdown so the
+ * Individual Assignments login is instant when opened.
  */
 export function useLiveScheduleData() {
+  const qc = useQueryClient();
   return useQuery<LiveScheduleData>({
     queryKey: ['live-schedule-data'],
-    queryFn: fetchLiveScheduleData,
-    staleTime: 0,                    // البيانات قديمة فوراً → جلب لحظي عند فتح أي صفحة
-    gcTime: 30 * 60 * 1000,          // 30 min
-    refetchOnMount: 'always',        // تحديث لحظي عند فتح أي صفحة تقرير
-    refetchOnWindowFocus: true,      // إعادة الجلب عند العودة للنافذة
-    refetchInterval: 60 * 1000,      // تحديث تلقائي كل 60 ثانية
+    queryFn: async () => {
+      const data = await fetchLiveScheduleData();
+      backgroundSyncTeachers();
+      qc.prefetchQuery({ queryKey: ['teacher-users-list'], queryFn: fetchTeacherList })
+        .catch(() => { /* ignore */ });
+      return data;
+    },
+    staleTime: 0,
+    gcTime: 30 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
     refetchIntervalInBackground: false,
     retry: 1,
   });
