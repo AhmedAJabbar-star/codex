@@ -32,7 +32,6 @@ function uuid() { return crypto.randomUUID(); }
 
 /* ---------------- Service Account JWT → access token ---------------- */
 let cachedToken: { token: string; exp: number } | null = null;
-let fallbackUsersCache: { users: Record<string, string>[]; exp: number } | null = null;
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   const b64 = pem
@@ -202,58 +201,13 @@ async function getAllUsers() {
   await ensureSheet("users", USERS_HEADERS);
   return readAll("users", USERS_HEADERS);
 }
-async function getFallbackUsersFromAssignments(): Promise<Record<string, string>[]> {
-  const nowMs = Date.now();
-  if (fallbackUsersCache && fallbackUsersCache.exp > nowMs) return fallbackUsersCache.users;
-  const res = await fetch(ASSIGNMENTS_CSV, { cache: "no-store" });
-  if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
-  const text = (await res.text()).replace(/^\uFEFF/, "");
-  const [head = [], ...data] = parseCsv(text);
-  const headers = head.map(clean);
-  const nameIdx = headers.findIndex((h) => h.includes("اسم التدريسي"));
-  const deptIdx = headers.findIndex((h) => h.includes("القسم"));
-  const colIdx = headers.findIndex((h) => h.includes("الكلية"));
-  if (nameIdx === -1) throw new Error("لم يتم العثور على عمود اسم التدريسي");
-
-  const map = new Map<string, { dept: string; college: string }>();
-  for (const row of data) {
-    const name = clean(row[nameIdx] || "");
-    if (!name || map.has(name)) continue;
-    map.set(name, { dept: clean(row[deptIdx] || ""), college: clean(row[colIdx] || "") });
-  }
-  const defaultHash = await bcrypt.hash("123", 10);
-  const users = Array.from(map.entries()).map(([full_name, info]) => ({
-    id: `fallback:${full_name}`,
-    full_name,
-    department: info.dept,
-    college: info.college,
-    role: "user",
-    password_hash: defaultHash,
-    must_change_password: "true",
-    is_manual: "false",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }));
-  fallbackUsersCache = { users, exp: nowMs + 5 * 60 * 1000 };
-  return users;
-}
 async function findUserByName(name: string) {
-  let all: Record<string, string>[] = [];
-  try {
-    all = await getAllUsers();
-  } catch {
-    all = await getFallbackUsersFromAssignments();
-  }
+  const all = await getAllUsers();
   const idx = all.findIndex((u) => clean(u.full_name) === clean(name));
   return idx >= 0 ? { user: all[idx], index: idx } : null;
 }
 async function findUserById(id: string) {
-  let all: Record<string, string>[] = [];
-  try {
-    all = await getAllUsers();
-  } catch {
-    all = await getFallbackUsersFromAssignments();
-  }
+  const all = await getAllUsers();
   const idx = all.findIndex((u) => u.id === id);
   return idx >= 0 ? { user: all[idx], index: idx } : null;
 }
@@ -374,9 +328,6 @@ function publicUser(u: Record<string,string>) {
     must_change_password: String(u.must_change_password).toLowerCase() === "true",
   };
 }
-function teacherNamesFromUsers(all: Record<string, string>[]) {
-  return all.map((u) => u.full_name).filter((n) => n && n !== "aa");
-}
 
 /* ---------------- Handler ---------------- */
 Deno.serve(async (req) => {
@@ -385,33 +336,12 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action } = body as { action: string };
 
-    // Try to initialize sheets/admin, but do not block login/list if Sheets auth is down.
-    let sheetsReady = true;
-    try {
-      await ensureSheet("users", USERS_HEADERS);
-      await ensureSheet("archive", ARCHIVE_HEADERS);
-      await ensureAdmin();
-    } catch (e) {
-      sheetsReady = false;
-      console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
-    }
+    // Always make sure base sheets + admin exist
+    await ensureSheet("users", USERS_HEADERS);
+    await ensureSheet("archive", ARCHIVE_HEADERS);
+    await ensureAdmin();
 
-    // NOTE: Keep this block as the single source of truth for teacher-name loading
-    // to avoid merge conflicts between fallback and non-fallback branches.
     if (action === "list-users") {
-<<<<<<< codex/fix-error-in-lovable-version-593xf7
-      let all = sheetsReady ? await getAllUsers() : await getFallbackUsersFromAssignments();
-      let names = teacherNamesFromUsers(all);
-      // If users sheet is still empty in production, sync once from assignments CSV.
-      if (names.length === 0) {
-        if (sheetsReady) {
-          await syncFromAssignments("list-users-auto-sync");
-          all = await getAllUsers();
-        } else {
-          all = await getFallbackUsersFromAssignments();
-        }
-        names = teacherNamesFromUsers(all);
-=======
       let all = await getAllUsers();
       let names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
       // If users sheet is still empty in production, sync once from assignments CSV.
@@ -419,7 +349,6 @@ Deno.serve(async (req) => {
         await syncFromAssignments("list-users-auto-sync");
         all = await getAllUsers();
         names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
->>>>>>> main
       }
       return json({ users: names.sort((a,b) => a.localeCompare(b, "ar")) });
     }
@@ -458,7 +387,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "change-password") {
-      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const u = await getSessionUser(body.token);
       if (!u) return json({ error: "الجلسة منتهية" }, 401);
       const { old_password, new_password } = body;
@@ -486,7 +414,6 @@ Deno.serve(async (req) => {
     };
 
     if (action === "admin-list") {
-      if (!sheetsReady) return json({ error: "لوحة المدير غير متاحة حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const all = await getAllUsers();
       const users = all.map((u) => ({
@@ -498,7 +425,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-reset-password") {
-      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, new_password } = body;
       const pw = new_password || "123";
@@ -514,7 +440,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-create-user") {
-      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { full_name, department, college, role, password } = body;
       if (!full_name) return json({ error: "الاسم مطلوب" }, 400);
@@ -534,7 +459,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-delete-user") {
-      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id } = body;
       const found = await findUserById(user_id);
@@ -546,14 +470,12 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-sync") {
-      if (!sheetsReady) return json({ error: "تعذر المزامنة حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const r = await syncFromAssignments(a.full_name);
       return json(r);
     }
 
     if (action === "admin-archive") {
-      if (!sheetsReady) return json({ error: "الأرشيف غير متاح حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       await ensureSheet("archive", ARCHIVE_HEADERS);
       const all = await readAll("archive", ARCHIVE_HEADERS);
