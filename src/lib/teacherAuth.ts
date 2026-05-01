@@ -30,6 +30,17 @@ export interface ArchiveEntry {
 
 interface Session { token: string; user: TeacherUser; }
 
+function toFriendlyAuthError(error: unknown): Error {
+  const raw = (error as Error)?.message || 'Unknown error';
+  if (raw.includes('non-2xx status code')) {
+    return new Error('تعذر الوصول إلى خدمة تسجيل الدخول حالياً. تأكد من نشر دالة المصادقة وإعداد الأسرار (GOOGLE_SERVICE_ACCOUNT_JSON و GOOGLE_SHEET_ID).');
+  }
+  if (raw.includes('Failed to fetch') || raw.includes('NetworkError')) {
+    return new Error('فشل الاتصال بخدمة تسجيل الدخول. تحقق من الاتصال بالإنترنت أو إعدادات المشروع.');
+  }
+  return new Error(raw);
+}
+
 export function getSession(): Session | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -57,9 +68,9 @@ async function call<T = any>(action: string, payload: Record<string, any> = {}):
         if (j?.error) throw new Error(j.error);
       } catch (_) { /* fall through */ }
     }
-    throw new Error(error.message);
+    throw toFriendlyAuthError(error);
   }
-  if ((data as any)?.error) throw new Error((data as any).error);
+  if ((data as any)?.error) throw toFriendlyAuthError(new Error((data as any).error));
   return data as T;
 }
 
