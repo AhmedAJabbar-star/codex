@@ -43,6 +43,22 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
   for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
   return buf.buffer;
 }
+
+function parseServiceAccount(raw: string) {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.private_key === "string") {
+      parsed.private_key = parsed.private_key.replace(/\\n/g, "\n");
+    }
+    if (!parsed?.client_email || !parsed?.private_key) {
+      throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON ناقص");
+    }
+    return parsed;
+  } catch (e) {
+    throw new Error(`GOOGLE_SERVICE_ACCOUNT_JSON غير صالح: ${(e as Error).message}`);
+  }
+}
+
 function b64url(input: string | Uint8Array): string {
   const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
   let s = btoa(String.fromCharCode(...bytes));
@@ -54,7 +70,7 @@ async function getAccessToken(): Promise<string> {
     return cachedToken.token;
   }
   if (!SA_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON غير مُهيأ");
-  const sa = JSON.parse(SA_JSON);
+  const sa = parseServiceAccount(SA_JSON);
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
@@ -326,9 +342,15 @@ Deno.serve(async (req) => {
     await ensureAdmin();
 
     if (action === "list-users") {
-      // Fast path: return whatever exists. Never block on sync here.
-      const all = await getAllUsers();
-      return json({ users: all.map((u) => u.full_name).filter((n) => n && n !== "aa").sort((a,b) => a.localeCompare(b, "ar")) });
+      let all = await getAllUsers();
+      let names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+      // If users sheet is still empty in production, sync once from assignments CSV.
+      if (names.length === 0) {
+        await syncFromAssignments("list-users-auto-sync");
+        all = await getAllUsers();
+        names = all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+      }
+      return json({ users: names.sort((a,b) => a.localeCompare(b, "ar")) });
     }
 
     if (action === "background-sync") {
