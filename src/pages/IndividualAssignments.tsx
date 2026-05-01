@@ -11,6 +11,7 @@ import {
   adminDeleteUser, adminSync, adminArchive,
   type TeacherUser, type AdminUser, type ArchiveEntry,
 } from '@/lib/teacherAuth';
+import { getGoogleConfig, saveGoogleConfig, type GoogleConfig } from '@/lib/googleConfig';
 
 const Shell = ({ children, title }: { children: React.ReactNode; title?: string }) => (
   <div className="schedule-body min-h-screen flex items-center justify-center px-4 py-8" dir="rtl">
@@ -164,7 +165,8 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
   const { data: archive = [], refetch: refetchArchive } =
     useQuery({ queryKey: ['admin-archive'], queryFn: adminArchive });
 
-  const [tab, setTab] = useState<'users' | 'archive' | 'add'>('users');
+  const [tab, setTab] = useState<'users' | 'archive' | 'add' | 'settings'>('users');
+  const [googleCfg, setGoogleCfg] = useState<GoogleConfig>(() => getGoogleConfig());
   const [search, setSearch] = useState('');
   const [newU, setNewU] = useState({ full_name: '', department: '', college: '', role: 'user' as 'user' | 'admin', password: '' });
 
@@ -237,6 +239,7 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
                 { k: 'users', l: `👥 المستخدمون (${users.length})` },
                 { k: 'add', l: '➕ إضافة مستخدم' },
                 { k: 'archive', l: `📜 الأرشيف (${archive.length})` },
+                { k: 'settings', l: '⚙️ إعدادات الربط' },
               ].map((t) => (
                 <button key={t.k} onClick={() => setTab(t.k as any)}
                   className={`px-4 py-2 font-extrabold text-sm border-b-2 transition ${
@@ -336,6 +339,39 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
               </form>
             )}
 
+
+            {tab === 'settings' && (
+              <form className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl" onSubmit={(e) => { e.preventDefault(); saveGoogleConfig(googleCfg); toast.success('تم حفظ إعدادات الربط'); }}>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-extrabold mb-1">Google Sheet ID</label>
+                  <input className="schedule-select w-full" value={googleCfg.sheetId} onChange={(e) => setGoogleCfg({ ...googleCfg, sheetId: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-extrabold mb-1">GID التكليفات</label>
+                  <input className="schedule-select w-full" value={googleCfg.assignmentsGid} onChange={(e) => setGoogleCfg({ ...googleCfg, assignmentsGid: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-extrabold mb-1">GID users</label>
+                  <input className="schedule-select w-full" value={googleCfg.usersGid} onChange={(e) => setGoogleCfg({ ...googleCfg, usersGid: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-extrabold mb-1">GID archive</label>
+                  <input className="schedule-select w-full" value={googleCfg.archiveGid} onChange={(e) => setGoogleCfg({ ...googleCfg, archiveGid: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-extrabold mb-1">Service Account Email</label>
+                  <input className="schedule-select w-full" value={googleCfg.serviceAccountEmail} onChange={(e) => setGoogleCfg({ ...googleCfg, serviceAccountEmail: e.target.value })} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-extrabold mb-1">OAuth Client ID</label>
+                  <input className="schedule-select w-full" value={googleCfg.clientId} onChange={(e) => setGoogleCfg({ ...googleCfg, clientId: e.target.value })} />
+                </div>
+                <div className="md:col-span-2">
+                  <button type="submit" className="schedule-btn schedule-btn-primary w-full" style={{ minHeight: 44 }}>💾 حفظ إعدادات الربط</button>
+                </div>
+              </form>
+            )}
+
             {tab === 'archive' && (
               <div className="overflow-auto rounded-xl border border-[var(--schedule-border)]">
                 <table className="w-full text-sm">
@@ -390,7 +426,9 @@ const TeacherView = ({ user, onLogout, onChangePw }: { user: TeacherUser; onLogo
 
   const systemsOverride = useMemo<SystemConfig[] | undefined>(() => {
     if (!baseSystem || !rows) return undefined;
-    const myRows = rows.filter((r) => (r['اسم التدريسي'] || '').trim() === user.full_name.trim());
+    const myRows = rows
+      .filter((r) => (r['اسم التدريسي'] || '').trim() === user.full_name.trim())
+      .map((r) => ({ ...r, 'اسم التدريسي': user.full_name }));
     return [{
       ...baseSystem,
       title: `تكليفاتي - ${user.full_name}`,
