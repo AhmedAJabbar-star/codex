@@ -3,6 +3,7 @@ import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import { SYSTEMS } from '@/data/scheduleData';
 
 const STORAGE_KEY = 'teacher_session_v2';
+const CONNECTION_KEY = 'teacher_sheet_connection_v1';
 const FN = 'sheet-auth';
 
 export interface TeacherUser {
@@ -29,6 +30,23 @@ export interface ArchiveEntry {
 }
 
 interface Session { token: string; user: TeacherUser; }
+export interface SheetConnectionConfig {
+  sheet_id: string;
+  service_account_json: string;
+  assignments_csv?: string;
+}
+
+export function getConnectionConfig(): SheetConnectionConfig | null {
+  try {
+    const raw = localStorage.getItem(CONNECTION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+export function setConnectionConfig(cfg: SheetConnectionConfig | null) {
+  if (cfg) localStorage.setItem(CONNECTION_KEY, JSON.stringify(cfg));
+  else localStorage.removeItem(CONNECTION_KEY);
+}
 
 function toFriendlyAuthError(error: unknown): Error {
   const raw = (error as Error)?.message || 'Unknown error';
@@ -55,8 +73,9 @@ export function setSession(s: Session | null) {
 
 async function call<T = any>(action: string, payload: Record<string, any> = {}): Promise<T> {
   const session = getSession();
+  const connection = getConnectionConfig();
   const { data, error } = await supabase.functions.invoke(FN, {
-    body: { action, token: session?.token, ...payload },
+    body: { action, token: session?.token, connection, ...payload },
   });
   if (error) {
     // Try to surface server-provided error message when present
@@ -112,8 +131,9 @@ export async function fetchTeacherList(): Promise<string[]> {
  * are never modified. Safe to call frequently — runs on the server.
  */
 export function backgroundSyncTeachers(): void {
+  const connection = getConnectionConfig();
   supabase.functions
-    .invoke(FN, { body: { action: 'background-sync' } })
+    .invoke(FN, { body: { action: 'background-sync', connection } })
     .catch(() => { /* ignore */ });
 }
 
