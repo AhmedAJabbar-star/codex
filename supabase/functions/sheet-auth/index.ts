@@ -3,7 +3,7 @@
 // Sheets used: "users" and "archive" (auto-created if missing).
 // Sessions are in-memory (resets on cold start; tokens last 7 days max).
 
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+import bcrypt from "npm:bcryptjs@2.4.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +32,7 @@ function uuid() { return crypto.randomUUID(); }
 
 /* ---------------- Service Account JWT → access token ---------------- */
 let cachedToken: { token: string; exp: number } | null = null;
+let fallbackUsersCache: { users: Record<string, string>[]; exp: number } | null = null;
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   const b64 = pem
@@ -43,6 +44,22 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
   for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
   return buf.buffer;
 }
+
+function parseServiceAccount(raw: string) {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.private_key === "string") {
+      parsed.private_key = parsed.private_key.replace(/\\n/g, "\n");
+    }
+    if (!parsed?.client_email || !parsed?.private_key) {
+      throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON ناقص");
+    }
+    return parsed;
+  } catch (e) {
+    throw new Error(`GOOGLE_SERVICE_ACCOUNT_JSON غير صالح: ${(e as Error).message}`);
+  }
+}
+
 function b64url(input: string | Uint8Array): string {
   const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
   let s = btoa(String.fromCharCode(...bytes));
@@ -54,7 +71,7 @@ async function getAccessToken(): Promise<string> {
     return cachedToken.token;
   }
   if (!SA_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON غير مُهيأ");
-  const sa = JSON.parse(SA_JSON);
+  const sa = parseServiceAccount(SA_JSON);
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
@@ -185,15 +202,69 @@ async function getAllUsers() {
   await ensureSheet("users", USERS_HEADERS);
   return readAll("users", USERS_HEADERS);
 }
+async function getFallbackUsersFromAssignments(): Promise<Record<string, string>[]> {
+  const nowMs = Date.now();
+  if (fallbackUsersCache && fallbackUsersCache.exp > nowMs) return fallbackUsersCache.users;
+  const res = await fetch(ASSIGNMENTS_CSV, { cache: "no-store" });
+  if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
+  const text = (await res.text()).replace(/^\uFEFF/, "");
+  const [head = [], ...data] = parseCsv(text);
+  const headers = head.map(clean);
+  const nameIdx = headers.findIndex((h) => h.includes("اسم التدريسي"));
+  const deptIdx = headers.findIndex((h) => h.includes("القسم"));
+  const colIdx = headers.findIndex((h) => h.includes("الكلية"));
+  if (nameIdx === -1) throw new Error("لم يتم العثور على عمود اسم التدريسي");
+
+  const map = new Map<string, { dept: string; college: string }>();
+  for (const row of data) {
+    const name = clean(row[nameIdx] || "");
+    if (!name || map.has(name)) continue;
+    map.set(name, { dept: clean(row[deptIdx] || ""), college: clean(row[colIdx] || "") });
+  }
+  const defaultHash = await bcrypt.hash("123", 10);
+  const users = Array.from(map.entries()).map(([full_name, info]) => ({
+    id: `fallback:${full_name}`,
+    full_name,
+    department: info.dept,
+    college: info.college,
+    role: "user",
+    password_hash: defaultHash,
+    must_change_password: "true",
+    is_manual: "false",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }));
+  fallbackUsersCache = { users, exp: nowMs + 5 * 60 * 1000 };
+  return users;
+}
 async function findUserByName(name: string) {
-  const all = await getAllUsers();
-  const idx = all.findIndex((u) => clean(u.full_name) === clean(name));
-  return idx >= 0 ? { user: all[idx], index: idx } : null;
+  try {
+    const all = await getAllUsers();
+    const idx = all.findIndex((u) => clean(u.full_name) === clean(name));
+    if (idx >= 0) return { user: all[idx], index: idx };
+    // If sheets are reachable but user row not yet synced, try assignments fallback.
+    const fallback = await getFallbackUsersFromAssignments();
+    const fidx = fallback.findIndex((u) => clean(u.full_name) === clean(name));
+    return fidx >= 0 ? { user: fallback[fidx], index: fidx } : null;
+  } catch {
+    const fallback = await getFallbackUsersFromAssignments();
+    const fidx = fallback.findIndex((u) => clean(u.full_name) === clean(name));
+    return fidx >= 0 ? { user: fallback[fidx], index: fidx } : null;
+  }
 }
 async function findUserById(id: string) {
-  const all = await getAllUsers();
-  const idx = all.findIndex((u) => u.id === id);
-  return idx >= 0 ? { user: all[idx], index: idx } : null;
+  try {
+    const all = await getAllUsers();
+    const idx = all.findIndex((u) => u.id === id);
+    if (idx >= 0) return { user: all[idx], index: idx };
+    const fallback = await getFallbackUsersFromAssignments();
+    const fidx = fallback.findIndex((u) => u.id === id);
+    return fidx >= 0 ? { user: fallback[fidx], index: fidx } : null;
+  } catch {
+    const fallback = await getFallbackUsersFromAssignments();
+    const fidx = fallback.findIndex((u) => u.id === id);
+    return fidx >= 0 ? { user: fallback[fidx], index: fidx } : null;
+  }
 }
 
 async function archive(action: string, full_name: string, performed_by: string, user_id = "") {
@@ -229,7 +300,7 @@ function parseCsv(text: string): string[][] {
 async function ensureAdmin() {
   const existing = await findUserByName("aa");
   if (existing) return;
-  const hash = await bcrypt.hash("aa");
+  const hash = await bcrypt.hash("aa", 10);
   const id = uuid();
   const now = new Date().toISOString();
   await appendRow("users", USERS_HEADERS, {
@@ -266,7 +337,7 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
 
   const all = await getAllUsers();
   const existing = new Set(all.map((u) => clean(u.full_name)));
-  const defaultHash = await bcrypt.hash("123");
+  const defaultHash = await bcrypt.hash("123", 10);
   let added = 0;
   for (const [name, info] of map.entries()) {
     if (existing.has(name)) continue;
@@ -312,6 +383,9 @@ function publicUser(u: Record<string,string>) {
     must_change_password: String(u.must_change_password).toLowerCase() === "true",
   };
 }
+function teacherNamesFromUsers(all: Record<string, string>[]) {
+  return all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+}
 
 /* ---------------- Handler ---------------- */
 Deno.serve(async (req) => {
@@ -320,15 +394,33 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action } = body as { action: string };
 
-    // Always make sure base sheets + admin exist
-    await ensureSheet("users", USERS_HEADERS);
-    await ensureSheet("archive", ARCHIVE_HEADERS);
-    await ensureAdmin();
+    // Try to initialize sheets/admin, but do not block login/list if Sheets auth is down.
+    let sheetsReady = true;
+    try {
+      await ensureSheet("users", USERS_HEADERS);
+      await ensureSheet("archive", ARCHIVE_HEADERS);
+      await ensureAdmin();
+    } catch (e) {
+      sheetsReady = false;
+      console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
+    }
 
+    // NOTE: Keep this block as the single source of truth for teacher-name loading
+    // to avoid merge conflicts between fallback and non-fallback branches.
     if (action === "list-users") {
-      // Fast path: return whatever exists. Never block on sync here.
-      const all = await getAllUsers();
-      return json({ users: all.map((u) => u.full_name).filter((n) => n && n !== "aa").sort((a,b) => a.localeCompare(b, "ar")) });
+      let all = sheetsReady ? await getAllUsers() : await getFallbackUsersFromAssignments();
+      let names = teacherNamesFromUsers(all);
+      // If users sheet is still empty in production, sync once from assignments CSV.
+      if (names.length === 0) {
+        if (sheetsReady) {
+          await syncFromAssignments("list-users-auto-sync");
+          all = await getAllUsers();
+        } else {
+          all = await getFallbackUsersFromAssignments();
+        }
+        names = teacherNamesFromUsers(all);
+      }
+      return json({ users: names.sort((a,b) => a.localeCompare(b, "ar")) });
     }
 
     if (action === "background-sync") {
@@ -365,13 +457,14 @@ Deno.serve(async (req) => {
     }
 
     if (action === "change-password") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const u = await getSessionUser(body.token);
       if (!u) return json({ error: "الجلسة منتهية" }, 401);
       const { old_password, new_password } = body;
       if (!new_password || new_password.length < 3) return json({ error: "كلمة المرور الجديدة قصيرة جداً" }, 400);
       const ok = await bcrypt.compare(old_password || "", u.password_hash);
       if (!ok) return json({ error: "كلمة المرور الحالية غير صحيحة" }, 401);
-      const newHash = await bcrypt.hash(new_password);
+      const newHash = await bcrypt.hash(new_password, 10);
       const found = await findUserById(u.id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
@@ -392,6 +485,7 @@ Deno.serve(async (req) => {
     };
 
     if (action === "admin-list") {
+      if (!sheetsReady) return json({ error: "لوحة المدير غير متاحة حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const all = await getAllUsers();
       const users = all.map((u) => ({
@@ -403,10 +497,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-reset-password") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, new_password } = body;
       const pw = new_password || "123";
-      const hash = await bcrypt.hash(pw);
+      const hash = await bcrypt.hash(pw, 10);
       const found = await findUserById(user_id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
@@ -418,13 +513,14 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-create-user") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { full_name, department, college, role, password } = body;
       if (!full_name) return json({ error: "الاسم مطلوب" }, 400);
       const exists = await findUserByName(full_name);
       if (exists) return json({ error: "الاسم موجود مسبقاً" }, 400);
       const pw = password || "123";
-      const hash = await bcrypt.hash(pw);
+      const hash = await bcrypt.hash(pw, 10);
       const id = uuid(); const now = new Date().toISOString();
       await appendRow("users", USERS_HEADERS, {
         id, full_name, department: department || "", college: college || "",
@@ -437,6 +533,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-delete-user") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id } = body;
       const found = await findUserById(user_id);
@@ -448,12 +545,14 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-sync") {
+      if (!sheetsReady) return json({ error: "تعذر المزامنة حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const r = await syncFromAssignments(a.full_name);
       return json(r);
     }
 
     if (action === "admin-archive") {
+      if (!sheetsReady) return json({ error: "الأرشيف غير متاح حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       await ensureSheet("archive", ARCHIVE_HEADERS);
       const all = await readAll("archive", ARCHIVE_HEADERS);
