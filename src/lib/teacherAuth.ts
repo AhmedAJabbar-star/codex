@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
+import { SYSTEMS } from '@/data/scheduleData';
 
 const STORAGE_KEY = 'teacher_session_v2';
 const FN = 'sheet-auth';
@@ -62,8 +64,31 @@ async function call<T = any>(action: string, payload: Record<string, any> = {}):
 }
 
 export async function fetchTeacherList(): Promise<string[]> {
-  const r = await call<{ users: string[] }>('list-users');
-  return r.users || [];
+  try {
+    const r = await call<{ users: string[] }>('list-users');
+    const users = (r.users || []).map((n) => n.trim()).filter(Boolean);
+    if (users.length > 0) return users;
+  } catch {
+    // Fall through to CSV fallback.
+  }
+
+  // Fallback: read names directly from assignments sheet so dropdown never stays empty.
+  const rows = await fetchIndividualAssignmentRows();
+  const names = Array.from(new Set(
+    rows
+      .map((r) => (r['اسم التدريسي'] || '').toString().trim())
+      .filter(Boolean),
+  ));
+  if (names.length > 0) return names.sort((a, b) => a.localeCompare(b, 'ar'));
+
+  // Last-resort fallback: bundled dataset used by the assignments page.
+  const systemRows = SYSTEMS.find((s) => s.id === 'individualAssignments')?.rows || [];
+  const bundledNames = Array.from(new Set(
+    systemRows
+      .map((r) => (r['اسم التدريسي'] || '').toString().trim())
+      .filter(Boolean),
+  ));
+  return bundledNames.sort((a, b) => a.localeCompare(b, 'ar'));
 }
 
 /**
