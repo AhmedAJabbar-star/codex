@@ -441,48 +441,6 @@ const ErrorsSummaryPage = () => {
             )}
           </div>
 
-          {/* التفاصيل */}
-          {filtered.length > 0 && (
-            <div>
-              <h3 className="text-lg font-black text-[var(--schedule-text)] mb-3">
-                🔍 تفاصيل الأخطاء ({filtered.length.toLocaleString('ar-SA')})
-              </h3>
-              <div className="overflow-x-auto rounded-xl border border-[var(--schedule-border)] max-h-[600px] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 z-10" style={{ background: 'var(--schedule-card-bg)' }}>
-                    <tr>
-                      <th className="p-2 text-right font-black border-b border-[var(--schedule-border)]">النظام</th>
-                      <th className="p-2 text-right font-black border-b border-[var(--schedule-border)]">القسم</th>
-                      <th className="p-2 text-right font-black border-b border-[var(--schedule-border)]">اليوم</th>
-                      <th className="p-2 text-right font-black border-b border-[var(--schedule-border)]">سبب الخطأ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.slice(0, 500).map((e, i) => (
-                      <tr key={i} className="hover:bg-[var(--schedule-accent-blue)]/5">
-                        <td className="p-2 border-b border-[var(--schedule-border)]">
-                          <span
-                            className="inline-block px-2 py-1 rounded-lg text-xs font-black"
-                            style={{ background: `${e.sourceColor}20`, color: e.sourceColor }}
-                          >
-                            {SOURCE_META[e.source].label}
-                          </span>
-                        </td>
-                        <td className="p-2 font-bold border-b border-[var(--schedule-border)]">{e.department}</td>
-                        <td className="p-2 border-b border-[var(--schedule-border)]">{e.day}</td>
-                        <td className="p-2 border-b border-[var(--schedule-border)] text-xs">{e.reason}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {filtered.length > 500 && (
-                  <div className="text-center text-xs font-bold text-[var(--schedule-muted)] p-2 bg-[var(--schedule-card-bg)] border-t border-[var(--schedule-border)]">
-                    يُعرض أول 500 من أصل {filtered.length.toLocaleString('ar-SA')} — استخدم الفلاتر لتضييق النتائج
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
