@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -24,7 +24,7 @@ const ControlPanel = lazy(() => import("./pages/ControlPanel"));
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { pathname } = useLocation();
   const rule = getRuleByPath(pathname);
   const [ok, setOk] = useState(!rule?.protected);
@@ -40,24 +40,6 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
         <button className="schedule-btn schedule-btn-primary" onClick={() => {
           const v = window.prompt('أدخل كلمة المرور');
           if ((v || '') === (rule.password || '')) setOk(true);
-          else alert('كلمة المرور غير صحيحة');
-        }}>إدخال كلمة المرور</button>
-      </div>
-    </div>
-  );
-};
-
-
-const ControlPanelGate = ({ children }: { children: ReactNode }) => {
-  const [ok, setOk] = useState(false);
-  if (ok) return children;
-  return (
-    <div className="schedule-body min-h-screen flex items-center justify-center" dir="rtl">
-      <div className="schedule-card p-6 w-full max-w-md text-center">
-        <h2 className="text-xl font-black mb-4">لوحة التحكم محمية</h2>
-        <button className="schedule-btn schedule-btn-primary" onClick={() => {
-          const v = window.prompt('أدخل كلمة مرور لوحة التحكم');
-          if ((v || '') === '2021') setOk(true);
           else alert('كلمة المرور غير صحيحة');
         }}>إدخال كلمة المرور</button>
       </div>
@@ -84,7 +66,7 @@ const App = () => (
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/control-panel" element={<ControlPanelGate><ControlPanel /></ControlPanelGate>} />
+            <Route path="/control-panel" element={<ControlPanel />} />
             <Route path="/teacher" element={<ProtectedRoute><TeacherSchedule /></ProtectedRoute>} />
             <Route path="/student" element={<ProtectedRoute><StudentSchedule /></ProtectedRoute>} />
             <Route path="/audit" element={<ProtectedRoute><AuditSystems /></ProtectedRoute>} />
