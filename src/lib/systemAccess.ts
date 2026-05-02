@@ -11,6 +11,7 @@ export type SystemAccessRule = {
 };
 
 export const SYSTEMS_REGISTRY: ManagedSystem[] = [
+  { id: 'controlPanel', title: 'لوحة التحكم', path: '/control-panel' },
   { id: 'teacher', title: 'جدول الأستاذ', path: '/teacher' },
   { id: 'student', title: 'جدول الطالب', path: '/student' },
   { id: 'audit', title: 'أنظمة التدقيق', path: '/audit' },
@@ -24,7 +25,11 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
 
 const KEY = 'system-access-rules-v1';
 
-const defaultRule = (): SystemAccessRule => ({ visible: true, protected: false, password: '' });
+const defaultRule = (systemId?: string): SystemAccessRule => ({
+  visible: true,
+  protected: systemId === 'controlPanel',
+  password: systemId === 'controlPanel' ? '2021' : '',
+});
 
 export function getRules(): Record<string, SystemAccessRule> {
   try {
@@ -33,15 +38,16 @@ export function getRules(): Record<string, SystemAccessRule> {
     const out: Record<string, SystemAccessRule> = {};
     SYSTEMS_REGISTRY.forEach((s) => {
       const r = parsed?.[s.id] || {};
+      const fallback = defaultRule(s.id);
       out[s.id] = {
-        visible: typeof r.visible === 'boolean' ? r.visible : true,
-        protected: !!r.protected,
-        password: typeof r.password === 'string' ? r.password : '',
+        visible: typeof r.visible === 'boolean' ? r.visible : fallback.visible,
+        protected: typeof r.protected === 'boolean' ? r.protected : fallback.protected,
+        password: typeof r.password === 'string' ? r.password : fallback.password,
       };
     });
     return out;
   } catch {
-    return Object.fromEntries(SYSTEMS_REGISTRY.map((s) => [s.id, defaultRule()]));
+    return Object.fromEntries(SYSTEMS_REGISTRY.map((s) => [s.id, defaultRule(s.id)]));
   }
 }
 
@@ -52,5 +58,5 @@ export function setRules(rules: Record<string, SystemAccessRule>) {
 export function getRuleByPath(pathname: string): SystemAccessRule | null {
   const m = SYSTEMS_REGISTRY.find((s) => s.path === pathname);
   if (!m) return null;
-  return getRules()[m.id] || defaultRule();
+  return getRules()[m.id] || defaultRule(m.id);
 }

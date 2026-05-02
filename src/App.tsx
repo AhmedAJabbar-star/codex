@@ -66,7 +66,7 @@ const App = () => (
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/control-panel" element={<ControlPanel />} />
+            <Route path="/control-panel" element={<ProtectedRoute><ControlPanel /></ProtectedRoute>} />
             <Route path="/teacher" element={<ProtectedRoute><TeacherSchedule /></ProtectedRoute>} />
             <Route path="/student" element={<ProtectedRoute><StudentSchedule /></ProtectedRoute>} />
             <Route path="/audit" element={<ProtectedRoute><AuditSystems /></ProtectedRoute>} />
