@@ -5,7 +5,6 @@ import { SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote, type SystemA
 
 const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
-  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
