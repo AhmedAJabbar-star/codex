@@ -97,8 +97,9 @@ export function openAssignmentsPrintWindow(opts: {
   college: string;
   headers: string[];
   rows: ScheduleRow[];
+  autoPrint?: boolean;
 }) {
-  const { teacherName, semester, department, college, headers: rawHeaders, rows } = opts;
+  const { teacherName, semester, department, college, headers: rawHeaders, rows, autoPrint = true } = opts;
   const w = window.open('', '_blank');
   if (!w) return;
 
@@ -164,12 +165,14 @@ tr.odd{background:#fff}
 .stamp-box{position:relative;min-height:70px}
 .stamp-circle{display:inline-block;width:65px;height:65px;border:2px dashed #0f4c81;border-radius:50%;font-size:8px;color:#0f4c81;font-weight:800;line-height:65px;margin:2px auto;opacity:.7}
 .doc-meta{margin-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#555;padding:4px 10px;border-top:1px solid #c5d3e3}
+.screen-actions{position:fixed;left:16px;bottom:16px;z-index:10}.screen-actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 18px;cursor:pointer;box-shadow:0 10px 25px rgba(15,76,129,.25)}
 @page{size:A4 portrait;margin:5mm}
 @media print{
   body{padding:0}
   tr,td,th{page-break-inside:avoid}
   .signatures{page-break-inside:avoid}
   .pledge{page-break-inside:avoid}
+  .screen-actions{display:none!important}
 }
 </style></head><body>
 <div class="watermark">رسمي</div>
@@ -225,7 +228,8 @@ tr.odd{background:#fff}
 </div>
 
 </div></div>
-<script>window.onafterprint=()=>window.close();window.print();<\/script>
+<div class="screen-actions"><button onclick="window.print()">🖨️ طباعة / حفظ PDF</button></div>
+${autoPrint ? '<script>window.onafterprint=()=>window.close();window.print();<\\/script>' : ''}
 </body></html>`);
   w.document.close();
 }
@@ -365,6 +369,7 @@ export function exportToPDF(title: string, headers: string[], rows: ScheduleRow[
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:10mm}
 @page{size:landscape;margin:6mm}
+.actions{text-align:center;margin-bottom:12px}.actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 22px;cursor:pointer}
 h1{text-align:center;font-size:18px;color:#0f4c81;margin-bottom:4px;font-weight:900}
 h2{text-align:center;font-size:14px;color:#333;margin-bottom:8px;font-weight:700}
 .info{text-align:center;font-size:11px;color:#555;margin-bottom:12px}
@@ -375,8 +380,9 @@ tr.even{background:#f0f6ff}
 tr.odd{background:#fff}
 .footer{margin-top:15px;border-top:2px solid #0f4c81;padding-top:10px;font-size:10px;line-height:2;color:#333}
 .footer strong{color:#0f4c81}
-@media print{body{padding:0}tr,td,th{page-break-inside:avoid}}
+@media print{body{padding:0}tr,td,th{page-break-inside:avoid}.actions{display:none!important}}
 </style></head><body>
+<div class="actions"><button onclick="window.print()">🖨️ طباعة / حفظ PDF</button></div>
 <h1>${title}</h1>
 <h2>كلية الهندسة المدنية - الجامعة التكنولوجية</h2>
 <div class="info">عدد السجلات: ${rows.length} | تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</div>
@@ -387,7 +393,6 @@ tr.odd{background:#fff}
 <div><strong>تصميم :</strong> الاستاذ الدكتور وائل شوقي عبد الصاحب - معاون العميد للشؤون الادارية</div>
 <div><strong>إشراف :</strong> الأستاذ الدكتور علي مجيد خضير الدهوي - عميد كلية الهندسة المدنية</div>
 </div>
-<script>window.onafterprint=()=>window.close();window.print();<\/script>
 </body></html>`);
   w.document.close();
 }

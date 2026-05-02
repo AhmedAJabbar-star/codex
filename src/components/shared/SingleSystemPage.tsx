@@ -248,7 +248,6 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   }, [system, filters]);
 
   const buildAssignmentsContext = () => {
-    const teacherName = filters['اسم التدريسي'] || '';
     const semester = filters['الفصل الدراسي'] || filters['الكورس'] || '';
     const pickFromRows = (keys: string[]): string => {
       for (const row of filteredRows) {
@@ -259,6 +258,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       }
       return '';
     };
+    const teacherName = filters['اسم التدريسي'] || pickFromRows(['اسم التدريسي', 'التدريسي', 'اسم المدرس']) || '';
     const department =
       filters['القسم الذي تنتمي اليه'] ||
       filters['القسم'] ||
@@ -279,6 +279,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       openAssignmentsPrintWindow({
         teacherName, semester, department, college,
         headers: system.headers, rows: filteredRows,
+        autoPrint: true,
       });
       return;
     }
@@ -331,6 +332,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       openAssignmentsPrintWindow({
         teacherName, semester, department, college,
         headers: system.headers, rows: filteredRows,
+        autoPrint: false,
       });
       return;
     }

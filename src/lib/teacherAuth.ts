@@ -197,6 +197,9 @@ export async function adminDeleteUser(user_id: string) {
 export async function adminSync() {
   return call<{ added: number; total: number }>('admin-sync');
 }
+export async function adminTestConnection() {
+  return call<{ ok: true; users: number; added: number; removedDuplicates: number }>('connection-test');
+}
 export async function adminArchive(): Promise<ArchiveEntry[]> {
   const r = await call<{ archive: ArchiveEntry[] }>('admin-archive');
   return r.archive || [];

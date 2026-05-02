@@ -1,9 +1,65 @@
 // Sheet-backed auth for Individual Assignments.
 // Backend = Google Sheets (via Service Account JWT). NO Supabase DB usage.
 // Sheets used: "users" and "archive" (auto-created if missing).
-// Sessions are in-memory (resets on cold start; tokens last 7 days max).
+// Sessions are signed stateless tokens (survive cold starts; tokens last 7 days max).
 
-import { compare, hash } from "npm:bcrypt-ts@5.0.2";
+const textEncoder = new TextEncoder();
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function base64UrlToString(value: string): string {
+  const b64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const bytes = Uint8Array.from(atob(b64 + "=".repeat((4 - b64.length % 4) % 4)), (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+async function pbkdf2Base64(password: string, salt: string, iterations = 120000): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", textEncoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: textEncoder.encode(salt), iterations },
+    key,
+    256,
+  );
+  return bytesToBase64(new Uint8Array(bits));
+}
+
+async function sha256Base64(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", textEncoder.encode(value));
+  return bytesToBase64(new Uint8Array(digest));
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = bytesToBase64(crypto.getRandomValues(new Uint8Array(16)));
+  const iterations = 120000;
+  const digest = await pbkdf2Base64(password, salt, iterations);
+  return `pbkdf2:${iterations}:${salt}:${digest}`;
+}
+
+async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  if (!storedHash) return false;
+  if (storedHash.startsWith("pbkdf2:")) {
+    const [, iterationText, salt, digest] = storedHash.split(":");
+    const iterations = Number(iterationText);
+    if (!salt || !digest || !Number.isFinite(iterations)) return false;
+    return await pbkdf2Base64(password, salt, iterations) === digest;
+  }
+  if (storedHash.startsWith("sha256:")) {
+    const [, salt, digest] = storedHash.split(":");
+    if (!salt || !digest) return false;
+    return await sha256Base64(`${salt}:${password}`) === digest;
+  }
+  try {
+    const bcrypt = await import("npm:bcryptjs@2.4.3");
+    const compare = bcrypt.compare || bcrypt.default?.compare;
+    return compare ? await compare(password, storedHash) : false;
+  } catch {
+    return false;
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -215,6 +271,22 @@ async function deleteRowByIndex(title: string, rowIndex0: number) {
   });
 }
 
+async function deleteRowsByIndexes(title: string, rowIndexes0: number[]) {
+  if (rowIndexes0.length === 0) return;
+  const meta = await gapi("?fields=sheets(properties(sheetId,title))");
+  const sheet = (meta.sheets || []).find((s: any) => s.properties?.title === title);
+  if (!sheet) throw new Error(`Sheet ${title} not found`);
+  const sheetId = sheet.properties.sheetId;
+  await gapi(":batchUpdate", {
+    method: "POST",
+    body: JSON.stringify({
+      requests: rowIndexes0.sort((a, b) => b - a).map((index) => ({
+        deleteDimension: { range: { sheetId, dimension: "ROWS", startIndex: index + 1, endIndex: index + 2 } },
+      })),
+    }),
+  });
+}
+
 /* ---------------- High-level user store ---------------- */
 async function getAllUsers() {
   await ensureSheet("users", USERS_HEADERS);
@@ -239,7 +311,7 @@ async function getFallbackUsersFromAssignments(): Promise<Record<string, string>
     if (!name || map.has(name)) continue;
     map.set(name, { dept: clean(row[deptIdx] || ""), college: clean(row[colIdx] || "") });
   }
-  const defaultHash = await hash("123", 10);
+  const defaultHash = await hashPassword("123");
   const users = Array.from(map.entries()).map(([full_name, info]) => ({
     id: `fallback:${full_name}`,
     full_name,
@@ -318,7 +390,7 @@ function parseCsv(text: string): string[][] {
 async function ensureAdmin() {
   const existing = await findUserByName("aa");
   if (existing) return;
-  const pwHash = await hash("aa", 10);
+  const pwHash = await hashPassword("aa");
   const id = uuid();
   const now = new Date().toISOString();
   await appendRow("users", USERS_HEADERS, {
@@ -330,7 +402,7 @@ async function ensureAdmin() {
   await archive("admin_create", "aa", "system", id);
 }
 
-async function syncFromAssignments(performedBy: string): Promise<{added:number; total:number}> {
+async function syncFromAssignments(performedBy: string): Promise<{added:number; total:number; removedDuplicates:number}> {
   const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store" });
   if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
   const text = (await res.text()).replace(/^\uFEFF/, "");
@@ -353,9 +425,10 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
     }
   }
 
+  const removedDuplicates = await removeDuplicateUsers();
   const all = await getAllUsers();
-  const existing = new Set(all.map((u) => clean(u.full_name)));
-  const defaultHash = await hash("123", 10);
+  const existing = new Set(all.map((u) => clean(u.full_name)).filter(Boolean));
+  const defaultHash = await hashPassword("123");
   let added = 0;
   for (const [name, info] of map.entries()) {
     if (existing.has(name)) continue;
@@ -370,7 +443,7 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
     added++;
   }
   const total = all.length + added;
-  return { added, total };
+  return { added, total, removedDuplicates };
 }
 
 /* ---------------- Sessions (signed, stateless) ---------------- */
@@ -389,7 +462,7 @@ async function hmacSign(data: string): Promise<string> {
 
 async function createSession(user_id: string): Promise<string> {
   const exp = Date.now() + SESSION_TTL_MS;
-  const payload = btoa(JSON.stringify({ u: user_id, e: exp })).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const payload = b64url(JSON.stringify({ u: user_id, e: exp }));
   const sig = await hmacSign(payload);
   return `${payload}.${sig}`;
 }
@@ -403,8 +476,7 @@ async function getSessionUser(token: string | null) {
   if (expected !== sig) return null;
   let parsed: { u: string; e: number };
   try {
-    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    parsed = JSON.parse(atob(b64 + "=".repeat((4 - b64.length % 4) % 4)));
+    parsed = JSON.parse(base64UrlToString(payload));
   } catch { return null; }
   if (!parsed.e || parsed.e < Date.now()) return null;
   if (parsed.u === "manager-fixed") return managerUser();
@@ -423,7 +495,29 @@ function publicUser(u: Record<string,string>) {
   };
 }
 function teacherNamesFromUsers(all: Record<string, string>[]) {
-  return all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const u of all) {
+    const name = clean(u.full_name || "");
+    if (!name || name === "aa" || seen.has(name)) continue;
+    seen.add(name);
+    names.push(name);
+  }
+  return names;
+}
+
+async function removeDuplicateUsers(): Promise<number> {
+  const all = await getAllUsers();
+  const seen = new Set<string>();
+  const duplicateIndexes: number[] = [];
+  all.forEach((u, index) => {
+    const name = clean(u.full_name || "");
+    if (!name) return;
+    if (seen.has(name)) duplicateIndexes.push(index);
+    else seen.add(name);
+  });
+  await deleteRowsByIndexes("users", duplicateIndexes);
+  return duplicateIndexes.length;
 }
 function managerUser() {
   return {
@@ -497,14 +591,14 @@ Deno.serve(async (req) => {
       const { full_name, password } = body;
       if (!full_name || !password) return json({ error: "البيانات ناقصة" }, 400);
       if (full_name === "__manager__") {
-        if (String(password) !== "2021") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
+        if (String(password) !== "aa") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
         const mgr = managerUser();
         const token = await createSession(mgr.id);
         return json({ token, user: publicUser(mgr) });
       }
       const found = await findUserByName(full_name);
       if (!found) return json({ error: "اسم التدريسي غير موجود" }, 401);
-      const ok = await compare(password, found.user.password_hash);
+      const ok = await verifyPassword(password, found.user.password_hash);
       if (!ok) return json({ error: "كلمة المرور غير صحيحة" }, 401);
       const token = await createSession(found.user.id);
       return json({ token, user: publicUser(found.user) });
@@ -526,9 +620,9 @@ Deno.serve(async (req) => {
       if (!u) return json({ error: "الجلسة منتهية" }, 401);
       const { old_password, new_password } = body;
       if (!new_password || new_password.length < 3) return json({ error: "كلمة المرور الجديدة قصيرة جداً" }, 400);
-      const ok = await compare(old_password || "", u.password_hash);
+      const ok = await verifyPassword(old_password || "", u.password_hash);
       if (!ok) return json({ error: "كلمة المرور الحالية غير صحيحة" }, 401);
-      const newHash = await hash(new_password, 10);
+      const newHash = await hashPassword(new_password);
       const found = await findUserById(u.id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
@@ -548,6 +642,14 @@ Deno.serve(async (req) => {
       return u;
     };
 
+    if (action === "connection-test") {
+      if (!sheetsReady) return json({ error: "تعذر الاتصال بـ Google Sheets. تحقق من Google Sheet ID وملف الخدمة." }, 503);
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const r = await syncFromAssignments(a.full_name || "admin");
+      const users = teacherNamesFromUsers(await getAllUsers()).length;
+      return json({ ok: true, users, added: r.added, removedDuplicates: r.removedDuplicates });
+    }
+
     if (action === "admin-list") {
       if (!sheetsReady) return json({ error: "لوحة المدير غير متاحة حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
@@ -565,7 +667,7 @@ Deno.serve(async (req) => {
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, new_password } = body;
       const pw = new_password || "123";
-      const pwHash = await hash(pw, 10);
+      const pwHash = await hashPassword(pw);
       const found = await findUserById(user_id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
@@ -584,7 +686,7 @@ Deno.serve(async (req) => {
       const exists = await findUserByName(full_name);
       if (exists) return json({ error: "الاسم موجود مسبقاً" }, 400);
       const pw = password || "123";
-      const pwHash = await hash(pw, 10);
+      const pwHash = await hashPassword(pw);
       const id = uuid(); const now = new Date().toISOString();
       await appendRow("users", USERS_HEADERS, {
         id, full_name, department: department || "", college: college || "",

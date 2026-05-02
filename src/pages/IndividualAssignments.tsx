@@ -8,7 +8,7 @@ import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import {
   getSession, setSession, login, logout, refreshMe, changePassword,
   fetchTeacherList, backgroundSyncTeachers, adminListUsers, adminResetPassword, adminCreateUser,
-  adminDeleteUser, adminSync, adminArchive, setConnectionConfig, getConnectionConfig,
+  adminDeleteUser, adminSync, adminArchive, adminTestConnection, setConnectionConfig, getConnectionConfig,
   type TeacherUser, type AdminUser, type ArchiveEntry,
 } from '@/lib/teacherAuth';
 
@@ -29,15 +29,6 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
-  const [showConn, setShowConn] = useState(false);
-  const [conn, setConn] = useState(() => {
-    const current = getConnectionConfig();
-    return {
-      sheet_id: current?.sheet_id || '',
-      service_account_json: current?.service_account_json || '',
-      assignments_csv: current?.assignments_csv || '',
-    };
-  });
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['teacher-users-list'],
@@ -81,20 +72,6 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
       setSubmitting(false);
     }
   };
-  const saveConnection = () => {
-    if (!conn.sheet_id.trim() || !conn.service_account_json.trim()) {
-      toast.error('يرجى إدخال Google Sheet ID و Service Account JSON');
-      return;
-    }
-    setConnectionConfig({
-      sheet_id: conn.sheet_id.trim(),
-      service_account_json: conn.service_account_json.trim(),
-      assignments_csv: conn.assignments_csv.trim() || undefined,
-    });
-    toast.success('تم حفظ إعدادات الربط');
-    setShowConn(false);
-  };
-
   return (
     <Shell title="📑 التكليفات الفردية - دخول التدريسي">
       <form onSubmit={submit} className="flex flex-col gap-4">
@@ -135,16 +112,13 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
             onChange={(e) => setPassword(e.target.value)}
             placeholder="كلمة المرور"
           />
-          <p className="text-xs font-semibold text-[var(--schedule-muted)] mt-2">
-            كلمة المرور الافتراضية للجميع: <strong>123</strong> (عدا المدير)
-          </p>
         </div>
 
         <button type="submit" disabled={submitting} className="schedule-btn schedule-btn-primary w-full" style={{ minHeight: 48 }}>
           {submitting ? '⏳ جاري الدخول…' : '🔓 دخول'}
         </button>
         <div className="border rounded-xl p-3 bg-white/70 flex flex-col gap-2">
-          <label className="text-xs font-bold">🛡️ دخول المدير (باسورد فقط)</label>
+          <label className="text-xs font-bold">🛡️ دخول المدير</label>
           <input
             type="password"
             className="schedule-select w-full text-center"
@@ -154,37 +128,6 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
           />
           <button type="button" className="schedule-btn" onClick={adminLogin}>دخول المدير</button>
         </div>
-        <button type="button" className="schedule-btn w-full" style={{ minHeight: 44 }} onClick={() => setShowConn((v) => !v)}>
-          ⚙️ إعداد ربط Google Sheet
-        </button>
-        {showConn && (
-          <div className="border rounded-xl p-3 bg-white/70 flex flex-col gap-2">
-            <label className="text-xs font-bold">Google Sheet ID</label>
-            <input className="schedule-select w-full text-left" dir="ltr" value={conn.sheet_id}
-              onChange={(e) => setConn((c) => ({ ...c, sheet_id: e.target.value }))} />
-            <label className="text-xs font-bold">Google Service Account JSON</label>
-            <textarea className="schedule-select w-full text-left" dir="ltr" rows={5} value={conn.service_account_json}
-              onChange={(e) => setConn((c) => ({ ...c, service_account_json: e.target.value }))} />
-            <label className="text-xs font-bold">Assignments CSV URL (اختياري)</label>
-            <input className="schedule-select w-full text-left" dir="ltr" value={conn.assignments_csv}
-              onChange={(e) => setConn((c) => ({ ...c, assignments_csv: e.target.value }))} />
-            <button type="button" className="schedule-btn schedule-btn-primary" onClick={saveConnection}>💾 حفظ إعدادات الربط</button>
-          </div>
-        )}
-
-        <button
-          type="button"
-          className="schedule-btn w-full"
-          style={{ minHeight: 44 }}
-          onClick={() => {
-            setName('aa');
-            setQuery('aa');
-            setOpen(false);
-            toast.message('تم اختيار حساب المدير الافتراضي (aa)');
-          }}
-        >
-          🛡️ اختيار حساب المدير (aa)
-        </button>
 
         <p className="text-xs font-semibold text-[var(--schedule-muted)] text-center">
           إذا بقيت القائمة فارغة، سيجري النظام جلب الأسماء مباشرة من ورقة التكليفات تلقائياً.
@@ -250,6 +193,7 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
     useQuery({ queryKey: ['admin-archive'], queryFn: adminArchive });
 
   const [tab, setTab] = useState<'users' | 'archive' | 'add'>('users');
+  const [testingConnection, setTestingConnection] = useState(false);
   const [conn, setConn] = useState(() => {
     const current = getConnectionConfig();
     return {
@@ -308,7 +252,7 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
   const saveConnection = () => {
     if (!conn.sheet_id.trim() || !conn.service_account_json.trim()) {
       toast.error('يرجى إدخال Google Sheet ID و Service Account JSON');
-      return;
+      return false;
     }
     setConnectionConfig({
       sheet_id: conn.sheet_id.trim(),
@@ -316,6 +260,22 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
       assignments_csv: conn.assignments_csv.trim() || undefined,
     });
     toast.success('تم حفظ إعدادات الربط');
+    return true;
+  };
+  const handleTestConnection = async () => {
+    if (!saveConnection()) return;
+    setTestingConnection(true);
+    try {
+      const r = await adminTestConnection();
+      toast.success(`الربط يعمل. المستخدمون: ${r.users}، أضيف: ${r.added}، حُذف المكرر: ${r.removedDuplicates}`);
+      refetchUsers();
+      refetchArchive();
+      qc.invalidateQueries({ queryKey: ['teacher-users-list'] });
+    } catch (e) {
+      toast.error((e as Error).message || 'تعذر اختبار الربط');
+    } finally {
+      setTestingConnection(false);
+    }
   };
 
   return (
@@ -330,6 +290,9 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
               </div>
               <div className="flex flex-wrap gap-2">
                 <button onClick={saveConnection} className="schedule-btn">⚙️ حفظ إعدادات الربط</button>
+                <button onClick={handleTestConnection} disabled={testingConnection} className="schedule-btn schedule-btn-secondary">
+                  {testingConnection ? '⏳ جاري الفحص…' : '✅ اختبار الربط'}
+                </button>
                 <button onClick={handleSync} className="schedule-btn schedule-btn-primary">🔄 مزامنة من الشيت</button>
                 <button onClick={onChangePw} className="schedule-btn">🔐 تغيير كلمة مروري</button>
                 <button onClick={onLogout} className="schedule-btn">🚪 خروج</button>
