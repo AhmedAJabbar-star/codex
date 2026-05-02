@@ -470,7 +470,13 @@ const TeacherView = ({ user, onLogout, onChangePw }: { user: TeacherUser; onLogo
 
   const systemsOverride = useMemo<SystemConfig[] | undefined>(() => {
     if (!baseSystem || !rows) return undefined;
-    const myRows = rows.filter((r) => (r['اسم التدريسي'] || '').trim() === user.full_name.trim());
+    const normalizedUserName = user.full_name.trim();
+    const myRows = rows.filter((r) => {
+      const primary = (r['اسم التدريسي'] || '').trim();
+      const firstSemesterName = (r['U'] || r['الاسم للفصل الاول'] || '').trim();
+      const secondSemesterName = (r['V'] || r['الاسم للفصل الثاني'] || r['الاسم للفصل الدراسي الثاني'] || '').trim();
+      return [primary, firstSemesterName, secondSemesterName].includes(normalizedUserName);
+    });
     return [{
       ...baseSystem,
       title: `تكليفاتي - ${user.full_name}`,
