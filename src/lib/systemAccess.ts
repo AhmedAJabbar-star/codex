@@ -29,6 +29,14 @@ const KEY = 'system-access-rules-v1';
 export const SYSTEM_ACCESS_RULES_UPDATED_EVENT = 'system-access-rules-updated';
 const GLOBAL_RULES_ID = 'global';
 
+let remoteRulesStoreUnavailable = false;
+
+const isRemoteRulesTableMissing = (error: unknown) => {
+  const e = error as { code?: string; message?: string; details?: string; status?: number };
+  const msg = `${e?.message || ''} ${e?.details || ''}`;
+  return e?.status === 404 || e?.code === 'PGRST205' || /system_access_rules/i.test(msg) && /not\s+found|does not exist|could not find/i.test(msg);
+};
+
 type RawRules = Record<string, Partial<SystemAccessRule>>;
 
 const defaultRule = (systemId?: string): SystemAccessRule => ({
@@ -65,13 +73,19 @@ export function getRules(): Record<string, SystemAccessRule> {
 }
 
 export async function syncRulesFromRemote(): Promise<Record<string, SystemAccessRule>> {
+  if (remoteRulesStoreUnavailable) return getRules();
+
   const { data, error } = await supabase
     .from('system_access_rules')
     .select('rules')
     .eq('id', GLOBAL_RULES_ID)
     .maybeSingle();
 
-  if (error || !data?.rules) return getRules();
+  if (error) {
+    if (isRemoteRulesTableMissing(error)) remoteRulesStoreUnavailable = true;
+    return getRules();
+  }
+  if (!data?.rules) return getRules();
 
   const normalized = normalizeRules(data.rules as RawRules);
   localStorage.setItem(KEY, JSON.stringify(normalized));
