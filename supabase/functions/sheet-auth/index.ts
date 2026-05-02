@@ -499,19 +499,18 @@ Deno.serve(async (req) => {
       if (full_name === "__manager__") {
         if (String(password) !== "2021") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
         const mgr = managerUser();
-        const token = createSession(mgr.id);
+        const token = await createSession(mgr.id);
         return json({ token, user: publicUser(mgr) });
       }
       const found = await findUserByName(full_name);
       if (!found) return json({ error: "اسم التدريسي غير موجود" }, 401);
       const ok = await compare(password, found.user.password_hash);
       if (!ok) return json({ error: "كلمة المرور غير صحيحة" }, 401);
-      const token = createSession(found.user.id);
+      const token = await createSession(found.user.id);
       return json({ token, user: publicUser(found.user) });
     }
 
     if (action === "logout") {
-      if (body.token) SESSIONS.delete(body.token);
       return json({ ok: true });
     }
 
