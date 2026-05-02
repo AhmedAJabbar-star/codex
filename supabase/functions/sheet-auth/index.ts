@@ -3,7 +3,7 @@
 // Sheets used: "users" and "archive" (auto-created if missing).
 // Sessions are in-memory (resets on cold start; tokens last 7 days max).
 
-import { compare, hash } from "jsr:@wok/dbcrypt@v0.4.1";
+import { compare, hash } from "npm:bcrypt-ts@5.0.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -316,12 +316,12 @@ function parseCsv(text: string): string[][] {
 async function ensureAdmin() {
   const existing = await findUserByName("aa");
   if (existing) return;
-  const hash = await hash("aa", 10);
+  const pwHash = await hash("aa", 10);
   const id = uuid();
   const now = new Date().toISOString();
   await appendRow("users", USERS_HEADERS, {
     id, full_name: "aa", department: "", college: "",
-    role: "admin", password_hash: hash,
+    role: "admin", password_hash: pwHash,
     must_change_password: "false", is_manual: "true",
     created_at: now, updated_at: now,
   });
@@ -539,11 +539,11 @@ Deno.serve(async (req) => {
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, new_password } = body;
       const pw = new_password || "123";
-      const hash = await hash(pw, 10);
+      const pwHash = await hash(pw, 10);
       const found = await findUserById(user_id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
-        ...found.user, password_hash: hash, must_change_password: "true",
+        ...found.user, password_hash: pwHash, must_change_password: "true",
         updated_at: new Date().toISOString(),
       });
       await archive("admin_reset", found.user.full_name, a.full_name, user_id);
@@ -558,12 +558,12 @@ Deno.serve(async (req) => {
       const exists = await findUserByName(full_name);
       if (exists) return json({ error: "الاسم موجود مسبقاً" }, 400);
       const pw = password || "123";
-      const hash = await hash(pw, 10);
+      const pwHash = await hash(pw, 10);
       const id = uuid(); const now = new Date().toISOString();
       await appendRow("users", USERS_HEADERS, {
         id, full_name, department: department || "", college: college || "",
         role: role === "admin" ? "admin" : "user",
-        password_hash: hash, must_change_password: "true", is_manual: "true",
+        password_hash: pwHash, must_change_password: "true", is_manual: "true",
         created_at: now, updated_at: now,
       });
       await archive("admin_create", full_name, a.full_name, id);
