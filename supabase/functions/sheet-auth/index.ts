@@ -373,22 +373,42 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
   return { added, total };
 }
 
-/* ---------------- Sessions (in-memory) ---------------- */
-type Sess = { user_id: string; expires_at: number };
-const SESSIONS = new Map<string, Sess>();
+/* ---------------- Sessions (signed, stateless) ---------------- */
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SESSION_SECRET = (Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "lovable-fallback-secret") + "::session-v1";
 
-function createSession(user_id: string): string {
-  const token = uuid();
-  SESSIONS.set(token, { user_id, expires_at: Date.now() + SESSION_TTL_MS });
-  return token;
+async function hmacSign(data: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(SESSION_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
+
+async function createSession(user_id: string): Promise<string> {
+  const exp = Date.now() + SESSION_TTL_MS;
+  const payload = btoa(JSON.stringify({ u: user_id, e: exp })).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const sig = await hmacSign(payload);
+  return `${payload}.${sig}`;
+}
+
 async function getSessionUser(token: string | null) {
   if (!token) return null;
-  const s = SESSIONS.get(token);
-  if (!s || s.expires_at < Date.now()) { SESSIONS.delete(token!); return null; }
-  if (s.user_id === "manager-fixed") return managerUser();
-  const found = await findUserById(s.user_id);
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const [payload, sig] = parts;
+  const expected = await hmacSign(payload);
+  if (expected !== sig) return null;
+  let parsed: { u: string; e: number };
+  try {
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    parsed = JSON.parse(atob(b64 + "=".repeat((4 - b64.length % 4) % 4)));
+  } catch { return null; }
+  if (!parsed.e || parsed.e < Date.now()) return null;
+  if (parsed.u === "manager-fixed") return managerUser();
+  const found = await findUserById(parsed.u);
   return found ? found.user : null;
 }
 
@@ -479,19 +499,18 @@ Deno.serve(async (req) => {
       if (full_name === "__manager__") {
         if (String(password) !== "2021") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
         const mgr = managerUser();
-        const token = createSession(mgr.id);
+        const token = await createSession(mgr.id);
         return json({ token, user: publicUser(mgr) });
       }
       const found = await findUserByName(full_name);
       if (!found) return json({ error: "اسم التدريسي غير موجود" }, 401);
       const ok = await compare(password, found.user.password_hash);
       if (!ok) return json({ error: "كلمة المرور غير صحيحة" }, 401);
-      const token = createSession(found.user.id);
+      const token = await createSession(found.user.id);
       return json({ token, user: publicUser(found.user) });
     }
 
     if (action === "logout") {
-      if (body.token) SESSIONS.delete(body.token);
       return json({ ok: true });
     }
 
