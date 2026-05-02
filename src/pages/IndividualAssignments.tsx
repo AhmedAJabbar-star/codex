@@ -8,7 +8,7 @@ import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import {
   getSession, setSession, login, logout, refreshMe, changePassword,
   fetchTeacherList, backgroundSyncTeachers, adminListUsers, adminResetPassword, adminCreateUser,
-  adminDeleteUser, adminSync, adminArchive, adminTestConnection,
+  adminDeleteUser, adminSync, adminArchive, adminTestConnection, setConnectionConfig, getConnectionConfig,
   type TeacherUser, type AdminUser, type ArchiveEntry,
 } from '@/lib/teacherAuth';
 
@@ -194,6 +194,14 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
 
   const [tab, setTab] = useState<'users' | 'archive' | 'add'>('users');
   const [testingConnection, setTestingConnection] = useState(false);
+  const [conn, setConn] = useState(() => {
+    const current = getConnectionConfig();
+    return {
+      sheet_id: current?.sheet_id || '',
+      service_account_json: current?.service_account_json || '',
+      assignments_csv: current?.assignments_csv || '',
+    };
+  });
   const [search, setSearch] = useState('');
   const [newU, setNewU] = useState({ full_name: '', department: '', college: '', role: 'user' as 'user' | 'admin', password: '' });
 
