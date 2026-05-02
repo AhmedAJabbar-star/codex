@@ -3,7 +3,7 @@
 // Sheets used: "users" and "archive" (auto-created if missing).
 // Sessions are in-memory (resets on cold start; tokens last 7 days max).
 
-import { compare, hash } from "jsr:@wok/dbcrypt@v0.4.1";
+import { compare, hash } from "npm:bcrypt-ts@5.0.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
