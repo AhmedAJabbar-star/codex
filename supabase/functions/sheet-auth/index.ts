@@ -34,6 +34,7 @@ function uuid() { return crypto.randomUUID(); }
 let cachedToken: { token: string; exp: number } | null = null;
 let fallbackUsersCache: { users: Record<string, string>[]; exp: number } | null = null;
 let runtimeConnection: { sheetId: string; saJson: string; assignmentsCsv: string } | null = null;
+let bootstrapState: { done: boolean; ready: boolean; lastTry: number } = { done: false, ready: false, lastTry: 0 };
 function getConnection() {
   return runtimeConnection || { sheetId: DEFAULT_SHEET_ID, saJson: DEFAULT_SA_JSON, assignmentsCsv: DEFAULT_ASSIGNMENTS_CSV };
 }
