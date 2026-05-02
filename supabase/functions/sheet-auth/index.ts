@@ -1,7 +1,7 @@
 // Sheet-backed auth for Individual Assignments.
 // Backend = Google Sheets (via Service Account JWT). NO Supabase DB usage.
 // Sheets used: "users" and "archive" (auto-created if missing).
-// Sessions are in-memory (resets on cold start; tokens last 7 days max).
+// Sessions are signed stateless tokens (survive cold starts; tokens last 7 days max).
 
 const textEncoder = new TextEncoder();
 
@@ -9,13 +9,6 @@ function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
-}
-
-function base64ToBytes(value: string): Uint8Array {
-  const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
 }
 
 async function sha256Base64(value: string): Promise<string> {
@@ -37,8 +30,9 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
     return await sha256Base64(`${salt}:${password}`) === digest;
   }
   try {
-    const bcrypt = await import("npm:bcrypt-ts@5.0.2");
-    return await bcrypt.compare(password, storedHash);
+    const bcrypt = await import("npm:bcryptjs@2.4.3");
+    const compare = bcrypt.compare || bcrypt.default?.compare;
+    return compare ? await compare(password, storedHash) : false;
   } catch {
     return false;
   }
