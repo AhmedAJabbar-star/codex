@@ -83,7 +83,7 @@ export async function setRules(rules: Record<string, SystemAccessRule>) {
   localStorage.setItem(KEY, JSON.stringify(rules));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
 
-  await supabase.from('system_access_rules').upsert(
+  const { error } = await supabase.from('system_access_rules').upsert(
     {
       id: GLOBAL_RULES_ID,
       rules,
@@ -91,10 +91,21 @@ export async function setRules(rules: Record<string, SystemAccessRule>) {
     },
     { onConflict: 'id' },
   );
+
+  if (error) {
+    throw new Error(`تعذر حفظ إعدادات الوصول على الخادم: ${error.message}`);
+  }
 }
 
+const normalizePath = (pathname: string) => {
+  if (!pathname) return '/';
+  const cleaned = pathname.replace(/\/+$/, '');
+  return cleaned || '/';
+};
+
 export function getRuleByPath(pathname: string): SystemAccessRule | null {
-  const m = SYSTEMS_REGISTRY.find((s) => s.path === pathname);
+  const normalizedPath = normalizePath(pathname);
+  const m = SYSTEMS_REGISTRY.find((s) => normalizePath(s.path) === normalizedPath);
   if (!m) return null;
   return getRules()[m.id] || defaultRule(m.id);
 }

@@ -12,9 +12,14 @@ import {
   type TeacherUser, type AdminUser, type ArchiveEntry,
 } from '@/lib/teacherAuth';
 
-const Shell = ({ children, title }: { children: React.ReactNode; title?: string }) => (
+const Shell = ({ children, title, showHomeButton = false }: { children: React.ReactNode; title?: string; showHomeButton?: boolean }) => (
   <div className="schedule-body min-h-screen flex items-center justify-center px-4 py-8" dir="rtl">
     <div className="schedule-card w-full" style={{ maxWidth: 520, padding: 32 }}>
+      {showHomeButton && (
+        <div className="mb-4 flex justify-start">
+          <a href="/" className="schedule-btn">🏠 الرئيسية</a>
+        </div>
+      )}
       {title && <h2 className="text-xl font-black text-center mb-5 text-[var(--schedule-text)]">{title}</h2>}
       {children}
     </div>
@@ -73,7 +78,7 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
     }
   };
   return (
-    <Shell title="📑 التكليفات الفردية - دخول التدريسي">
+    <Shell title="📑 التكليفات الفردية - دخول التدريسي" showHomeButton>
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="relative">
           <label className="block text-sm font-extrabold mb-2 text-[var(--schedule-text)]">اسم التدريسي</label>
