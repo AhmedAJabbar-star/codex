@@ -369,7 +369,7 @@ async function ensureAdmin() {
   await archive("admin_create", "aa", "system", id);
 }
 
-async function syncFromAssignments(performedBy: string): Promise<{added:number; total:number}> {
+async function syncFromAssignments(performedBy: string): Promise<{added:number; total:number; removedDuplicates:number}> {
   const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store" });
   if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
   const text = (await res.text()).replace(/^\uFEFF/, "");
@@ -392,8 +392,9 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
     }
   }
 
+  const removedDuplicates = await removeDuplicateUsers();
   const all = await getAllUsers();
-  const existing = new Set(all.map((u) => clean(u.full_name)));
+  const existing = new Set(all.map((u) => clean(u.full_name)).filter(Boolean));
   const defaultHash = await hashPassword("123");
   let added = 0;
   for (const [name, info] of map.entries()) {
@@ -409,7 +410,7 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
     added++;
   }
   const total = all.length + added;
-  return { added, total };
+  return { added, total, removedDuplicates };
 }
 
 /* ---------------- Sessions (signed, stateless) ---------------- */
@@ -462,7 +463,31 @@ function publicUser(u: Record<string,string>) {
   };
 }
 function teacherNamesFromUsers(all: Record<string, string>[]) {
-  return all.map((u) => u.full_name).filter((n) => n && n !== "aa");
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const u of all) {
+    const name = clean(u.full_name || "");
+    if (!name || name === "aa" || seen.has(name)) continue;
+    seen.add(name);
+    names.push(name);
+  }
+  return names;
+}
+
+async function removeDuplicateUsers(): Promise<number> {
+  const all = await getAllUsers();
+  const seen = new Set<string>();
+  const duplicateIndexes: number[] = [];
+  all.forEach((u, index) => {
+    const name = clean(u.full_name || "");
+    if (!name) return;
+    if (seen.has(name)) duplicateIndexes.push(index);
+    else seen.add(name);
+  });
+  for (const index of duplicateIndexes.sort((a, b) => b - a)) {
+    await deleteRowByIndex("users", index);
+  }
+  return duplicateIndexes.length;
 }
 function managerUser() {
   return {
