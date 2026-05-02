@@ -265,6 +265,22 @@ async function deleteRowByIndex(title: string, rowIndex0: number) {
   });
 }
 
+async function deleteRowsByIndexes(title: string, rowIndexes0: number[]) {
+  if (rowIndexes0.length === 0) return;
+  const meta = await gapi("?fields=sheets(properties(sheetId,title))");
+  const sheet = (meta.sheets || []).find((s: any) => s.properties?.title === title);
+  if (!sheet) throw new Error(`Sheet ${title} not found`);
+  const sheetId = sheet.properties.sheetId;
+  await gapi(":batchUpdate", {
+    method: "POST",
+    body: JSON.stringify({
+      requests: rowIndexes0.sort((a, b) => b - a).map((index) => ({
+        deleteDimension: { range: { sheetId, dimension: "ROWS", startIndex: index + 1, endIndex: index + 2 } },
+      })),
+    }),
+  });
+}
+
 /* ---------------- High-level user store ---------------- */
 async function getAllUsers() {
   await ensureSheet("users", USERS_HEADERS);
@@ -495,9 +511,7 @@ async function removeDuplicateUsers(): Promise<number> {
     if (seen.has(name)) duplicateIndexes.push(index);
     else seen.add(name);
   });
-  for (const index of duplicateIndexes.sort((a, b) => b - a)) {
-    await deleteRowByIndex("users", index);
-  }
+  await deleteRowsByIndexes("users", duplicateIndexes);
   return duplicateIndexes.length;
 }
 function managerUser() {
