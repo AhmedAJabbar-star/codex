@@ -316,12 +316,12 @@ function parseCsv(text: string): string[][] {
 async function ensureAdmin() {
   const existing = await findUserByName("aa");
   if (existing) return;
-  const hash = await hash("aa", 10);
+  const pwHash = await hash("aa", 10);
   const id = uuid();
   const now = new Date().toISOString();
   await appendRow("users", USERS_HEADERS, {
     id, full_name: "aa", department: "", college: "",
-    role: "admin", password_hash: hash,
+    role: "admin", password_hash: pwHash,
     must_change_password: "false", is_manual: "true",
     created_at: now, updated_at: now,
   });
