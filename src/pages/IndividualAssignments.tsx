@@ -193,6 +193,7 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
     useQuery({ queryKey: ['admin-archive'], queryFn: adminArchive });
 
   const [tab, setTab] = useState<'users' | 'archive' | 'add'>('users');
+  const [testingConnection, setTestingConnection] = useState(false);
   const [conn, setConn] = useState(() => {
     const current = getConnectionConfig();
     return {
@@ -260,6 +261,21 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
     });
     toast.success('تم حفظ إعدادات الربط');
   };
+  const handleTestConnection = async () => {
+    saveConnection();
+    setTestingConnection(true);
+    try {
+      const r = await adminTestConnection();
+      toast.success(`الربط يعمل. المستخدمون: ${r.users}، أضيف: ${r.added}، حُذف المكرر: ${r.removedDuplicates}`);
+      refetchUsers();
+      refetchArchive();
+      qc.invalidateQueries({ queryKey: ['teacher-users-list'] });
+    } catch (e) {
+      toast.error((e as Error).message || 'تعذر اختبار الربط');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   return (
     <div className="schedule-body" dir="rtl">
@@ -273,6 +289,9 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
               </div>
               <div className="flex flex-wrap gap-2">
                 <button onClick={saveConnection} className="schedule-btn">⚙️ حفظ إعدادات الربط</button>
+                <button onClick={handleTestConnection} disabled={testingConnection} className="schedule-btn schedule-btn-secondary">
+                  {testingConnection ? '⏳ جاري الفحص…' : '✅ اختبار الربط'}
+                </button>
                 <button onClick={handleSync} className="schedule-btn schedule-btn-primary">🔄 مزامنة من الشيت</button>
                 <button onClick={onChangePw} className="schedule-btn">🔐 تغيير كلمة مروري</button>
                 <button onClick={onLogout} className="schedule-btn">🚪 خروج</button>
