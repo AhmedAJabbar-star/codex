@@ -93,8 +93,15 @@ export async function setRules(rules: Record<string, SystemAccessRule>) {
   );
 }
 
+const normalizePath = (pathname: string) => {
+  if (!pathname) return '/';
+  const cleaned = pathname.replace(/\/+$/, '');
+  return cleaned || '/';
+};
+
 export function getRuleByPath(pathname: string): SystemAccessRule | null {
-  const m = SYSTEMS_REGISTRY.find((s) => s.path === pathname);
+  const normalizedPath = normalizePath(pathname);
+  const m = SYSTEMS_REGISTRY.find((s) => normalizePath(s.path) === normalizedPath);
   if (!m) return null;
   return getRules()[m.id] || defaultRule(m.id);
 }
