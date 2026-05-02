@@ -539,11 +539,11 @@ Deno.serve(async (req) => {
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, new_password } = body;
       const pw = new_password || "123";
-      const hash = await hash(pw, 10);
+      const pwHash = await hash(pw, 10);
       const found = await findUserById(user_id);
       if (!found) return json({ error: "المستخدم غير موجود" }, 404);
       await updateRowByIndex("users", USERS_HEADERS, found.index, {
-        ...found.user, password_hash: hash, must_change_password: "true",
+        ...found.user, password_hash: pwHash, must_change_password: "true",
         updated_at: new Date().toISOString(),
       });
       await archive("admin_reset", found.user.full_name, a.full_name, user_id);
