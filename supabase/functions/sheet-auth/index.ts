@@ -48,6 +48,7 @@ function setConnectionFromBody(body: any) {
   runtimeConnection = { sheetId, saJson, assignmentsCsv };
   cachedToken = null;
   fallbackUsersCache = null;
+  bootstrapState = { done: false, ready: false, lastTry: 0 };
 }
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
