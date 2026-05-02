@@ -258,12 +258,19 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       }
       return '';
     };
-    const teacherName = filters['اسم التدريسي'] || pickFromRows(['اسم التدريسي', 'التدريسي', 'اسم المدرس']) || '';
-    const department =
-      filters['القسم الذي تنتمي اليه'] ||
-      filters['القسم'] ||
-      pickFromRows(['القسم الذي تنتمي اليه', 'القسم']) ||
+    const semesterValue = (semester || '').trim();
+    const teacherName =
+      filters['اسم التدريسي'] ||
+      (semesterValue === 'الاول'
+        ? pickFromRows(['الاسم للفصل الاول', 'U', 'اسم التدريسي', 'التدريسي', 'اسم المدرس'])
+        : semesterValue === 'الثاني'
+          ? pickFromRows(['الاسم للفصل الدراسي الثاني', 'الاسم للفصل الثاني', 'V', 'اسم التدريسي', 'التدريسي', 'اسم المدرس'])
+          : pickFromRows(['اسم التدريسي', 'التدريسي', 'اسم المدرس'])) ||
       '';
+    const department =
+      semesterValue === 'الثاني'
+        ? (filters['القسم للفصل الدراسي الثاني'] || filters['T'] || pickFromRows(['القسم للفصل الدراسي الثاني', 'T', 'القسم الذي تنتمي اليه', 'القسم']) || '')
+        : (filters['القسم الذي تنتمي اليه'] || filters['القسم'] || filters['P'] || pickFromRows(['القسم الذي تنتمي اليه', 'القسم', 'P']) || '');
     const college =
       filters['الكلية التي تنتمي اليها'] ||
       filters['الكلية'] ||

@@ -1,14 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
+import { getRuleByPath } from "@/lib/systemAccess";
 
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
@@ -19,8 +20,32 @@ const Assignments = lazy(() => import("./pages/Assignments"));
 const Charts = lazy(() => import("./pages/Charts"));
 const ErrorsSummary = lazy(() => import("./pages/ErrorsSummary"));
 const IndividualAssignments = lazy(() => import("./pages/IndividualAssignments"));
+const ControlPanel = lazy(() => import("./pages/ControlPanel"));
 
 const queryClient = new QueryClient();
+
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const { pathname } = useLocation();
+  const rule = getRuleByPath(pathname);
+  const [ok, setOk] = useState(!rule?.protected);
+
+  if (!rule) return children;
+  if (rule.visible === false) return <Navigate to="/" replace />;
+  if (!rule.protected || ok) return children;
+
+  return (
+    <div className="schedule-body min-h-screen flex items-center justify-center" dir="rtl">
+      <div className="schedule-card p-6 w-full max-w-md text-center">
+        <h2 className="text-xl font-black mb-4">النظام محمي بكلمة مرور</h2>
+        <button className="schedule-btn schedule-btn-primary" onClick={() => {
+          const v = window.prompt('أدخل كلمة المرور');
+          if ((v || '') === (rule.password || '')) setOk(true);
+          else alert('كلمة المرور غير صحيحة');
+        }}>إدخال كلمة المرور</button>
+      </div>
+    </div>
+  );
+};
 
 const Loading = () => (
   <div className="schedule-body flex items-center justify-center min-h-screen" dir="rtl">
@@ -41,15 +66,16 @@ const App = () => (
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/teacher" element={<TeacherSchedule />} />
-            <Route path="/student" element={<StudentSchedule />} />
-            <Route path="/audit" element={<AuditSystems />} />
-            <Route path="/tracking" element={<Tracking />} />
-            <Route path="/empty-rooms" element={<EmptyRooms />} />
-            <Route path="/assignments" element={<Assignments />} />
-            <Route path="/charts" element={<Charts />} />
-            <Route path="/errors" element={<ErrorsSummary />} />
-            <Route path="/individual-assignments" element={<IndividualAssignments />} />
+            <Route path="/control-panel" element={<ControlPanel />} />
+            <Route path="/teacher" element={<ProtectedRoute><TeacherSchedule /></ProtectedRoute>} />
+            <Route path="/student" element={<ProtectedRoute><StudentSchedule /></ProtectedRoute>} />
+            <Route path="/audit" element={<ProtectedRoute><AuditSystems /></ProtectedRoute>} />
+            <Route path="/tracking" element={<ProtectedRoute><Tracking /></ProtectedRoute>} />
+            <Route path="/empty-rooms" element={<ProtectedRoute><EmptyRooms /></ProtectedRoute>} />
+            <Route path="/assignments" element={<ProtectedRoute><Assignments /></ProtectedRoute>} />
+            <Route path="/charts" element={<ProtectedRoute><Charts /></ProtectedRoute>} />
+            <Route path="/errors" element={<ProtectedRoute><ErrorsSummary /></ProtectedRoute>} />
+            <Route path="/individual-assignments" element={<ProtectedRoute><IndividualAssignments /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
