@@ -80,6 +80,7 @@ const LoginScreen = ({ onLoggedIn }: { onLoggedIn: (u: TeacherUser) => void }) =
     } finally {
       setSubmitting(false);
     }
+  };
   const saveConnection = () => {
     if (!conn.sheet_id.trim() || !conn.service_account_json.trim()) {
       toast.error('يرجى إدخال Google Sheet ID و Service Account JSON');
