@@ -78,6 +78,18 @@ function normalizeAssignmentRow(row: ScheduleRow): ScheduleRow {
   return normalized;
 }
 
+
+function toExcelColumn(index: number): string {
+  let n = index + 1;
+  let out = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    out = String.fromCharCode(65 + rem) + out;
+    n = Math.floor((n - 1) / 26);
+  }
+  return out;
+}
+
 function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
   return rawRows
     .filter((cells) => cells.some((cell) => compactText(cell).length > 0))
@@ -85,7 +97,9 @@ function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
       const row: ScheduleRow = {};
 
       headers.forEach((header, index) => {
-        row[header] = cells[index] ?? '';
+        const value = cells[index] ?? '';
+        row[header] = value;
+        row[toExcelColumn(index)] = value;
       });
 
       return normalizeAssignmentRow(row);
