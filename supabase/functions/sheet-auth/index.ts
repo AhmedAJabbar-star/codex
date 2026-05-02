@@ -555,7 +555,7 @@ Deno.serve(async (req) => {
       const { full_name, password } = body;
       if (!full_name || !password) return json({ error: "البيانات ناقصة" }, 400);
       if (full_name === "__manager__") {
-        if (String(password) !== "2021") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
+        if (String(password) !== "aa") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
         const mgr = managerUser();
         const token = await createSession(mgr.id);
         return json({ token, user: publicUser(mgr) });
@@ -605,6 +605,14 @@ Deno.serve(async (req) => {
       if (!u || u.role !== "admin") return null;
       return u;
     };
+
+    if (action === "connection-test") {
+      if (!sheetsReady) return json({ error: "تعذر الاتصال بـ Google Sheets. تحقق من Google Sheet ID وملف الخدمة." }, 503);
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const r = await syncFromAssignments(a.full_name || "admin");
+      const users = teacherNamesFromUsers(await getAllUsers()).length;
+      return json({ ok: true, users, added: r.added, removedDuplicates: r.removedDuplicates });
+    }
 
     if (action === "admin-list") {
       if (!sheetsReady) return json({ error: "لوحة المدير غير متاحة حالياً بسبب مشكلة ربط Google Sheets." }, 503);
