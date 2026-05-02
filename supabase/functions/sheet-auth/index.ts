@@ -426,15 +426,20 @@ Deno.serve(async (req) => {
     setConnectionFromBody(body);
     const { action } = body as { action: string };
 
-    // Try to initialize sheets/admin, but do not block login/list if Sheets auth is down.
-    let sheetsReady = true;
-    try {
-      await ensureSheet("users", USERS_HEADERS);
-      await ensureSheet("archive", ARCHIVE_HEADERS);
-      await ensureAdmin();
-    } catch (e) {
-      sheetsReady = false;
-      console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
+    // Try to initialize sheets/admin once per cold start to avoid Sheets API quota burn.
+    let sheetsReady = bootstrapState.ready;
+    if (!bootstrapState.done || (Date.now() - bootstrapState.lastTry) > 60_000) {
+      try {
+        await ensureSheet("users", USERS_HEADERS);
+        await ensureSheet("archive", ARCHIVE_HEADERS);
+        await ensureAdmin();
+        bootstrapState = { done: true, ready: true, lastTry: Date.now() };
+        sheetsReady = true;
+      } catch (e) {
+        bootstrapState = { done: true, ready: false, lastTry: Date.now() };
+        sheetsReady = false;
+        console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
+      }
     }
 
     // NOTE: Keep this block as the single source of truth for teacher-name loading
