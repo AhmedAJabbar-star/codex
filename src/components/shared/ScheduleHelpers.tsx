@@ -97,8 +97,9 @@ export function openAssignmentsPrintWindow(opts: {
   college: string;
   headers: string[];
   rows: ScheduleRow[];
+  autoPrint?: boolean;
 }) {
-  const { teacherName, semester, department, college, headers: rawHeaders, rows } = opts;
+  const { teacherName, semester, department, college, headers: rawHeaders, rows, autoPrint = true } = opts;
   const w = window.open('', '_blank');
   if (!w) return;
 
@@ -225,7 +226,8 @@ tr.odd{background:#fff}
 </div>
 
 </div></div>
-<script>window.onafterprint=()=>window.close();window.print();<\/script>
+<div class="screen-actions"><button onclick="window.print()">🖨️ طباعة / حفظ PDF</button></div>
+${autoPrint ? '<script>window.onafterprint=()=>window.close();window.print();<\\/script>' : ''}
 </body></html>`);
   w.document.close();
 }
