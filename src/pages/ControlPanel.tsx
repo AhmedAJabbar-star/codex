@@ -5,8 +5,6 @@ import { SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote, type SystemA
 
 const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
-  const [isSaving, setIsSaving] = useState(false);
-  const saving = isSaving;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,14 +18,14 @@ const ControlPanel = () => {
   };
 
   const save = async () => {
-    setIsSaving(true);
+    setSaving(true);
     try {
       await setRules(rules);
       toast.success('تم حفظ إعدادات لوحة التحكم بنجاح وتطبيقها على جميع المستخدمين');
     } catch (error) {
       toast.error((error as Error).message || 'فشل حفظ الإعدادات على الخادم');
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 

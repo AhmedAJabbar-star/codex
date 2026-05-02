@@ -97,10 +97,6 @@ export async function setRules(rules: Record<string, SystemAccessRule>) {
   localStorage.setItem(KEY, JSON.stringify(rules));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
 
-  if (remoteRulesStoreUnavailable) {
-    return;
-  }
-
   const { error } = await supabase.from('system_access_rules').upsert(
     {
       id: GLOBAL_RULES_ID,
@@ -111,10 +107,6 @@ export async function setRules(rules: Record<string, SystemAccessRule>) {
   );
 
   if (error) {
-    if (isRemoteRulesTableMissing(error)) {
-      remoteRulesStoreUnavailable = true;
-      throw new Error('جدول إعدادات الوصول غير موجود على الخادم. تم حفظ الإعدادات محليًا فقط حتى يتم نشر Migration قاعدة البيانات.');
-    }
     throw new Error(`تعذر حفظ إعدادات الوصول على الخادم: ${error.message}`);
   }
 }
