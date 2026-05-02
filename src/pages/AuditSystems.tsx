@@ -4,7 +4,7 @@ import SingleSystemPage from '@/components/shared/SingleSystemPage';
 import { useLiveSystems } from '@/hooks/useLiveSchedule';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 
-const AUDIT_PASSWORD = 'ahmed1';
+const AUDIT_PASSWORD = '2021';
 
 const AuditSystemsPage = () => {
   const [authenticated, setAuthenticated] = useState(false);
