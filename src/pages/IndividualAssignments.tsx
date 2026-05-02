@@ -252,7 +252,7 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
   const saveConnection = () => {
     if (!conn.sheet_id.trim() || !conn.service_account_json.trim()) {
       toast.error('يرجى إدخال Google Sheet ID و Service Account JSON');
-      return;
+      return false;
     }
     setConnectionConfig({
       sheet_id: conn.sheet_id.trim(),
@@ -260,9 +260,10 @@ const AdminPanel = ({ admin, onLogout, onChangePw }: { admin: TeacherUser; onLog
       assignments_csv: conn.assignments_csv.trim() || undefined,
     });
     toast.success('تم حفظ إعدادات الربط');
+    return true;
   };
   const handleTestConnection = async () => {
-    saveConnection();
+    if (!saveConnection()) return;
     setTestingConnection(true);
     try {
       const r = await adminTestConnection();
