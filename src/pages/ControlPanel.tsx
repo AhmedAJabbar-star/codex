@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote, type SystemAccessRule } from '@/lib/systemAccess';
 
 const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
+  const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     void syncRulesFromRemote().then((remoteRules) => setLocalRules(remoteRules));
@@ -16,15 +19,25 @@ const ControlPanel = () => {
   };
 
   const save = async () => {
-    await setRules(rules);
-    toast.success('تم حفظ إعدادات لوحة التحكم بنجاح');
+    setIsSaving(true);
+    try {
+      await setRules(rules);
+      toast.success('تم حفظ إعدادات لوحة التحكم بنجاح وتطبيقها على جميع المستخدمين');
+    } catch (error) {
+      toast.error((error as Error).message || 'فشل حفظ الإعدادات على الخادم');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="schedule-body" dir="rtl">
       <div className="relative z-[1] w-full max-w-5xl mx-auto my-6 px-4">
         <div className="schedule-card p-6">
-          <h1 className="text-2xl font-black mb-2">لوحة التحكم</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+            <h1 className="text-2xl font-black">لوحة التحكم</h1>
+            <button className="schedule-btn" onClick={() => navigate('/')}>🏠 الرئيسية</button>
+          </div>
           <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">إظهار/إخفاء الأنظمة والتحكم بكلمة المرور لكل نظام.</p>
           <div className="space-y-4">
             {systems.map((s) => {
@@ -55,7 +68,7 @@ const ControlPanel = () => {
             })}
           </div>
           <div className="mt-5">
-            <button className="schedule-btn schedule-btn-primary" onClick={save}>💾 حفظ الإعدادات</button>
+            <button className="schedule-btn schedule-btn-primary" onClick={save} disabled={isSaving}>{isSaving ? '⏳ جاري الحفظ...' : '💾 حفظ الإعدادات'}</button>
           </div>
         </div>
       </div>

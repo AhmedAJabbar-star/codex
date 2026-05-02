@@ -29,6 +29,14 @@ const KEY = 'system-access-rules-v1';
 export const SYSTEM_ACCESS_RULES_UPDATED_EVENT = 'system-access-rules-updated';
 const GLOBAL_RULES_ID = 'global';
 
+let remoteRulesStoreUnavailable = false;
+
+const isRemoteRulesTableMissing = (error: unknown) => {
+  const e = error as { code?: string; message?: string; details?: string; status?: number };
+  const msg = `${e?.message || ''} ${e?.details || ''}`;
+  return e?.status === 404 || e?.code === 'PGRST205' || /system_access_rules/i.test(msg) && /not\s+found|does not exist|could not find/i.test(msg);
+};
+
 type RawRules = Record<string, Partial<SystemAccessRule>>;
 
 const defaultRule = (systemId?: string): SystemAccessRule => ({
@@ -65,13 +73,19 @@ export function getRules(): Record<string, SystemAccessRule> {
 }
 
 export async function syncRulesFromRemote(): Promise<Record<string, SystemAccessRule>> {
+  if (remoteRulesStoreUnavailable) return getRules();
+
   const { data, error } = await supabase
     .from('system_access_rules')
     .select('rules')
     .eq('id', GLOBAL_RULES_ID)
     .maybeSingle();
 
-  if (error || !data?.rules) return getRules();
+  if (error) {
+    if (isRemoteRulesTableMissing(error)) remoteRulesStoreUnavailable = true;
+    return getRules();
+  }
+  if (!data?.rules) return getRules();
 
   const normalized = normalizeRules(data.rules as RawRules);
   localStorage.setItem(KEY, JSON.stringify(normalized));
@@ -83,7 +97,11 @@ export async function setRules(rules: Record<string, SystemAccessRule>) {
   localStorage.setItem(KEY, JSON.stringify(rules));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
 
-  await supabase.from('system_access_rules').upsert(
+  if (remoteRulesStoreUnavailable) {
+    return;
+  }
+
+  const { error } = await supabase.from('system_access_rules').upsert(
     {
       id: GLOBAL_RULES_ID,
       rules,
@@ -91,10 +109,25 @@ export async function setRules(rules: Record<string, SystemAccessRule>) {
     },
     { onConflict: 'id' },
   );
+
+  if (error) {
+    if (isRemoteRulesTableMissing(error)) {
+      remoteRulesStoreUnavailable = true;
+      throw new Error('جدول إعدادات الوصول غير موجود على الخادم. تم حفظ الإعدادات محليًا فقط حتى يتم نشر Migration قاعدة البيانات.');
+    }
+    throw new Error(`تعذر حفظ إعدادات الوصول على الخادم: ${error.message}`);
+  }
 }
 
+const normalizePath = (pathname: string) => {
+  if (!pathname) return '/';
+  const cleaned = pathname.replace(/\/+$/, '');
+  return cleaned || '/';
+};
+
 export function getRuleByPath(pathname: string): SystemAccessRule | null {
-  const m = SYSTEMS_REGISTRY.find((s) => s.path === pathname);
+  const normalizedPath = normalizePath(pathname);
+  const m = SYSTEMS_REGISTRY.find((s) => normalizePath(s.path) === normalizedPath);
   if (!m) return null;
   return getRules()[m.id] || defaultRule(m.id);
 }
