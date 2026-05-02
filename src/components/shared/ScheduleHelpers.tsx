@@ -165,12 +165,14 @@ tr.odd{background:#fff}
 .stamp-box{position:relative;min-height:70px}
 .stamp-circle{display:inline-block;width:65px;height:65px;border:2px dashed #0f4c81;border-radius:50%;font-size:8px;color:#0f4c81;font-weight:800;line-height:65px;margin:2px auto;opacity:.7}
 .doc-meta{margin-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#555;padding:4px 10px;border-top:1px solid #c5d3e3}
+.screen-actions{position:fixed;left:16px;bottom:16px;z-index:10}.screen-actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 18px;cursor:pointer;box-shadow:0 10px 25px rgba(15,76,129,.25)}
 @page{size:A4 portrait;margin:5mm}
 @media print{
   body{padding:0}
   tr,td,th{page-break-inside:avoid}
   .signatures{page-break-inside:avoid}
   .pledge{page-break-inside:avoid}
+  .screen-actions{display:none!important}
 }
 </style></head><body>
 <div class="watermark">رسمي</div>
