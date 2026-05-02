@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote } from '@/lib/systemAccess';
 
 interface Cmd {
   id: string;
@@ -20,15 +21,16 @@ const CommandPalette = () => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [rules, setRules] = useState(() => getRules());
 
-  const commands: Cmd[] = useMemo(
-    () => [
+  const commands: Cmd[] = useMemo(() => {
+    const allCommands: Cmd[] = [
       { id: 'home', label: 'الرئيسية', icon: '🏠', action: () => navigate('/'), keywords: 'home dashboard رئيسية' },
       { id: 'teacher', label: 'جدول الأستاذ', icon: '👨‍🏫', action: () => navigate('/teacher'), keywords: 'teacher استاذ' },
       { id: 'student', label: 'جدول الطالب', icon: '🎓', action: () => navigate('/student'), keywords: 'student طالب' },
       { id: 'audit', label: 'أنظمة التدقيق', icon: '📋', action: () => navigate('/audit'), keywords: 'audit تدقيق' },
       { id: 'tracking', label: 'متابعة سير التدريسات', icon: '📍', action: () => navigate('/tracking'), keywords: 'tracking متابعة' },
-      { id: 'rooms', label: 'القاعات الشاغرة', icon: '🏛️', action: () => navigate('/empty-rooms'), keywords: 'rooms قاعات empty' },
+      { id: 'emptyRooms', label: 'القاعات الشاغرة', icon: '🏛️', action: () => navigate('/empty-rooms'), keywords: 'rooms قاعات empty' },
       { id: 'assignments', label: 'تكليفات التدريسي', icon: '📑', action: () => navigate('/assignments'), keywords: 'assignments تكليفات' },
       { id: 'errors', label: 'ملخص الأخطاء', icon: '⚠️', action: () => navigate('/errors'), keywords: 'errors اخطاء summary' },
       { id: 'charts', label: 'الإحصائيات', icon: '📈', action: () => navigate('/charts'), keywords: 'charts احصائيات' },
@@ -43,9 +45,25 @@ const CommandPalette = () => {
         },
         keywords: 'refresh تحديث',
       },
-    ],
-    [navigate, queryClient],
-  );
+    ];
+
+    return allCommands.filter((command) => {
+      const rule = rules[command.id];
+      return !rule || rule.visible !== false;
+    });
+  }, [navigate, queryClient, rules]);
+
+  useEffect(() => {
+    void syncRulesFromRemote().then(setRules).catch(() => setRules(getRules()));
+
+    const refreshRules = () => setRules(getRules());
+    window.addEventListener('storage', refreshRules);
+    window.addEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    return () => {
+      window.removeEventListener('storage', refreshRules);
+      window.removeEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

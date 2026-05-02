@@ -26,6 +26,7 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
 ];
 
 const KEY = 'system-access-rules-v1';
+export const SYSTEM_ACCESS_RULES_UPDATED_EVENT = 'system-access-rules-updated';
 const GLOBAL_RULES_ID = 'global';
 
 type RawRules = Record<string, Partial<SystemAccessRule>>;
@@ -51,6 +52,10 @@ const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule>
 };
 
 export function getRules(): Record<string, SystemAccessRule> {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return normalizeRules();
+  }
+
   try {
     const raw = localStorage.getItem(KEY);
     return normalizeRules(raw ? JSON.parse(raw) : {});
@@ -69,12 +74,18 @@ export async function syncRulesFromRemote(): Promise<Record<string, SystemAccess
   if (error || !data?.rules) return getRules();
 
   const normalized = normalizeRules(data.rules as RawRules);
-  localStorage.setItem(KEY, JSON.stringify(normalized));
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.setItem(KEY, JSON.stringify(normalized));
+    window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
+  }
   return normalized;
 }
 
 export async function setRules(rules: Record<string, SystemAccessRule>) {
-  localStorage.setItem(KEY, JSON.stringify(rules));
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.setItem(KEY, JSON.stringify(rules));
+    window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
+  }
 
   await supabase.from('system_access_rules').upsert(
     {
