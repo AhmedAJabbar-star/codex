@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
+
 export type ManagedSystem = {
   id: string;
   title: string;
@@ -24,6 +26,9 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
 ];
 
 const KEY = 'system-access-rules-v1';
+const GLOBAL_RULES_ID = 'global';
+
+type RawRules = Record<string, Partial<SystemAccessRule>>;
 
 const defaultRule = (systemId?: string): SystemAccessRule => ({
   visible: true,
@@ -31,28 +36,54 @@ const defaultRule = (systemId?: string): SystemAccessRule => ({
   password: systemId === 'controlPanel' ? '2021' : '',
 });
 
+const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule> => {
+  const out: Record<string, SystemAccessRule> = {};
+  SYSTEMS_REGISTRY.forEach((s) => {
+    const r = parsed?.[s.id] || {};
+    const fallback = defaultRule(s.id);
+    out[s.id] = {
+      visible: typeof r.visible === 'boolean' ? r.visible : fallback.visible,
+      protected: typeof r.protected === 'boolean' ? r.protected : fallback.protected,
+      password: typeof r.password === 'string' ? r.password : fallback.password,
+    };
+  });
+  return out;
+};
+
 export function getRules(): Record<string, SystemAccessRule> {
   try {
     const raw = localStorage.getItem(KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    const out: Record<string, SystemAccessRule> = {};
-    SYSTEMS_REGISTRY.forEach((s) => {
-      const r = parsed?.[s.id] || {};
-      const fallback = defaultRule(s.id);
-      out[s.id] = {
-        visible: typeof r.visible === 'boolean' ? r.visible : fallback.visible,
-        protected: typeof r.protected === 'boolean' ? r.protected : fallback.protected,
-        password: typeof r.password === 'string' ? r.password : fallback.password,
-      };
-    });
-    return out;
+    return normalizeRules(raw ? JSON.parse(raw) : {});
   } catch {
-    return Object.fromEntries(SYSTEMS_REGISTRY.map((s) => [s.id, defaultRule(s.id)]));
+    return normalizeRules();
   }
 }
 
-export function setRules(rules: Record<string, SystemAccessRule>) {
+export async function syncRulesFromRemote(): Promise<Record<string, SystemAccessRule>> {
+  const { data, error } = await supabase
+    .from('system_access_rules')
+    .select('rules')
+    .eq('id', GLOBAL_RULES_ID)
+    .maybeSingle();
+
+  if (error || !data?.rules) return getRules();
+
+  const normalized = normalizeRules(data.rules as RawRules);
+  localStorage.setItem(KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+export async function setRules(rules: Record<string, SystemAccessRule>) {
   localStorage.setItem(KEY, JSON.stringify(rules));
+
+  await supabase.from('system_access_rules').upsert(
+    {
+      id: GLOBAL_RULES_ID,
+      rules,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' },
+  );
 }
 
 export function getRuleByPath(pathname: string): SystemAccessRule | null {

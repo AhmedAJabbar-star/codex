@@ -3,13 +3,13 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
-import { getRuleByPath } from "@/lib/systemAccess";
+import { getRuleByPath, syncRulesFromRemote } from "@/lib/systemAccess";
 
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
@@ -56,12 +56,25 @@ const Loading = () => (
   </div>
 );
 
+
+const AccessRulesBootstrap = ({ children }: { children: ReactNode }) => {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    void syncRulesFromRemote().finally(() => setReady(true));
+  }, []);
+
+  if (!ready) return <Loading />;
+  return children;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AccessRulesBootstrap>
         <CommandPalette />
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -80,6 +93,7 @@ const App = () => (
           </Routes>
         </Suspense>
         <StatusBar />
+        </AccessRulesBootstrap>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

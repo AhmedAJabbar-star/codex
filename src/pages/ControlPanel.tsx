@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { SYSTEMS_REGISTRY, getRules, setRules, type SystemAccessRule } from '@/lib/systemAccess';
+import { SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote, type SystemAccessRule } from '@/lib/systemAccess';
 
 const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
+
+  useEffect(() => {
+    void syncRulesFromRemote().then((remoteRules) => setLocalRules(remoteRules));
+  }, []);
 
   const systems = useMemo(() => SYSTEMS_REGISTRY.filter((s) => s.id !== 'controlPanel'), []);
 
@@ -11,8 +15,8 @@ const ControlPanel = () => {
     setLocalRules((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   };
 
-  const save = () => {
-    setRules(rules);
+  const save = async () => {
+    await setRules(rules);
     toast.success('تم حفظ إعدادات لوحة التحكم بنجاح');
   };
 
