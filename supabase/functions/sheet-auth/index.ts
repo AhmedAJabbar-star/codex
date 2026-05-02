@@ -558,12 +558,12 @@ Deno.serve(async (req) => {
       const exists = await findUserByName(full_name);
       if (exists) return json({ error: "الاسم موجود مسبقاً" }, 400);
       const pw = password || "123";
-      const hash = await hash(pw, 10);
+      const pwHash = await hash(pw, 10);
       const id = uuid(); const now = new Date().toISOString();
       await appendRow("users", USERS_HEADERS, {
         id, full_name, department: department || "", college: college || "",
         role: role === "admin" ? "admin" : "user",
-        password_hash: hash, must_change_password: "true", is_manual: "true",
+        password_hash: pwHash, must_change_password: "true", is_manual: "true",
         created_at: now, updated_at: now,
       });
       await archive("admin_create", full_name, a.full_name, id);
