@@ -5,7 +5,8 @@ import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
-import { getRules } from '@/lib/systemAccess';
+import { useEffect, useState } from 'react';
+import { getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote } from '@/lib/systemAccess';
 
 const systemCards = [
   {
@@ -101,7 +102,7 @@ const systemCards = [
 ];
 
 const Dashboard = () => {
-  const rules = getRules();
+  const [rules, setRules] = useState(() => getRules());
   const navigate = useNavigate();
   const { data: liveData } = useLiveScheduleData();
   const { data: assignmentsRows } = useQuery({
@@ -242,3 +243,14 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+  useEffect(() => {
+    void syncRulesFromRemote().then(setRules);
+
+    const refreshRules = () => setRules(getRules());
+    window.addEventListener('storage', refreshRules);
+    window.addEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    return () => {
+      window.removeEventListener('storage', refreshRules);
+      window.removeEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    };
+  }, []);
