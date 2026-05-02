@@ -117,6 +117,18 @@ const Dashboard = () => {
     retry: 1,
   });
 
+  useEffect(() => {
+    void syncRulesFromRemote().then(setRules);
+
+    const refreshRules = () => setRules(getRules());
+    window.addEventListener('storage', refreshRules);
+    window.addEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    return () => {
+      window.removeEventListener('storage', refreshRules);
+      window.removeEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    };
+  }, []);
+
   const getSystemRowCount = (id: string): number => {
     const liveMap: Record<string, number | undefined> = {
       teacher: liveData?.teacher.length,
