@@ -26,6 +26,7 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
 ];
 
 const KEY = 'system-access-rules-v1';
+export const SYSTEM_ACCESS_RULES_UPDATED_EVENT = 'system-access-rules-updated';
 const GLOBAL_RULES_ID = 'global';
 
 type RawRules = Record<string, Partial<SystemAccessRule>>;
@@ -70,11 +71,13 @@ export async function syncRulesFromRemote(): Promise<Record<string, SystemAccess
 
   const normalized = normalizeRules(data.rules as RawRules);
   localStorage.setItem(KEY, JSON.stringify(normalized));
+  window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
   return normalized;
 }
 
 export async function setRules(rules: Record<string, SystemAccessRule>) {
   localStorage.setItem(KEY, JSON.stringify(rules));
+  window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
 
   await supabase.from('system_access_rules').upsert(
     {
