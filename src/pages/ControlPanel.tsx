@@ -18,8 +18,15 @@ const ControlPanel = () => {
   };
 
   const save = async () => {
-    await setRules(rules);
-    toast.success('تم حفظ إعدادات لوحة التحكم بنجاح');
+    setSaving(true);
+    try {
+      await setRules(rules);
+      toast.success('تم حفظ إعدادات لوحة التحكم بنجاح وتطبيقها على جميع المستخدمين');
+    } catch (error) {
+      toast.error((error as Error).message || 'فشل حفظ الإعدادات على الخادم');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -60,7 +67,7 @@ const ControlPanel = () => {
             })}
           </div>
           <div className="mt-5">
-            <button className="schedule-btn schedule-btn-primary" onClick={save}>💾 حفظ الإعدادات</button>
+            <button className="schedule-btn schedule-btn-primary" onClick={save} disabled={saving}>{saving ? '⏳ جاري الحفظ...' : '💾 حفظ الإعدادات'}</button>
           </div>
         </div>
       </div>
