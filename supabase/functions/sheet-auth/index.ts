@@ -11,6 +11,16 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+async function pbkdf2Base64(password: string, salt: string, iterations = 120000): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", textEncoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: textEncoder.encode(salt), iterations },
+    key,
+    256,
+  );
+  return bytesToBase64(new Uint8Array(bits));
+}
+
 async function sha256Base64(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", textEncoder.encode(value));
   return bytesToBase64(new Uint8Array(digest));
@@ -18,12 +28,19 @@ async function sha256Base64(value: string): Promise<string> {
 
 async function hashPassword(password: string): Promise<string> {
   const salt = bytesToBase64(crypto.getRandomValues(new Uint8Array(16)));
-  const digest = await sha256Base64(`${salt}:${password}`);
-  return `sha256:${salt}:${digest}`;
+  const iterations = 120000;
+  const digest = await pbkdf2Base64(password, salt, iterations);
+  return `pbkdf2:${iterations}:${salt}:${digest}`;
 }
 
 async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
   if (!storedHash) return false;
+  if (storedHash.startsWith("pbkdf2:")) {
+    const [, iterationText, salt, digest] = storedHash.split(":");
+    const iterations = Number(iterationText);
+    if (!salt || !digest || !Number.isFinite(iterations)) return false;
+    return await pbkdf2Base64(password, salt, iterations) === digest;
+  }
   if (storedHash.startsWith("sha256:")) {
     const [, salt, digest] = storedHash.split(":");
     if (!salt || !digest) return false;
