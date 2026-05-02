@@ -52,6 +52,10 @@ const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule>
 };
 
 export function getRules(): Record<string, SystemAccessRule> {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return normalizeRules();
+  }
+
   try {
     const raw = localStorage.getItem(KEY);
     return normalizeRules(raw ? JSON.parse(raw) : {});
