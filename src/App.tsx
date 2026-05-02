@@ -47,24 +47,6 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   );
 };
 
-
-const ControlPanelGate = ({ children }: { children: JSX.Element }) => {
-  const [ok, setOk] = useState(false);
-  if (ok) return children;
-  return (
-    <div className="schedule-body min-h-screen flex items-center justify-center" dir="rtl">
-      <div className="schedule-card p-6 w-full max-w-md text-center">
-        <h2 className="text-xl font-black mb-4">لوحة التحكم محمية</h2>
-        <button className="schedule-btn schedule-btn-primary" onClick={() => {
-          const v = window.prompt('أدخل كلمة مرور لوحة التحكم');
-          if ((v || '') === '2021') setOk(true);
-          else alert('كلمة المرور غير صحيحة');
-        }}>إدخال كلمة المرور</button>
-      </div>
-    </div>
-  );
-};
-
 const Loading = () => (
   <div className="schedule-body flex items-center justify-center min-h-screen" dir="rtl">
     <div className="text-center">
@@ -84,7 +66,7 @@ const App = () => (
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/control-panel" element={<ControlPanelGate><ControlPanel /></ControlPanelGate>} />
+            <Route path="/control-panel" element={<ControlPanel />} />
             <Route path="/teacher" element={<ProtectedRoute><TeacherSchedule /></ProtectedRoute>} />
             <Route path="/student" element={<ProtectedRoute><StudentSchedule /></ProtectedRoute>} />
             <Route path="/audit" element={<ProtectedRoute><AuditSystems /></ProtectedRoute>} />
