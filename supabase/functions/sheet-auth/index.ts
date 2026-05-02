@@ -14,7 +14,7 @@ const corsHeaders = {
 const DEFAULT_SHEET_ID = Deno.env.get("GOOGLE_SHEET_ID") || "1vAuWBa1ERY0EYL2T-MMTO7MYM0yP7dGJP64dBCRMSzQ";
 const DEFAULT_SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "";
 const DEFAULT_ASSIGNMENTS_CSV =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1416068353&single=true&output=csv";
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1147039908&single=true&output=csv";
 
 const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at"];
 const ARCHIVE_HEADERS = ["id","timestamp","user_id","full_name","action","performed_by"];
@@ -34,6 +34,7 @@ function uuid() { return crypto.randomUUID(); }
 let cachedToken: { token: string; exp: number } | null = null;
 let fallbackUsersCache: { users: Record<string, string>[]; exp: number } | null = null;
 let runtimeConnection: { sheetId: string; saJson: string; assignmentsCsv: string } | null = null;
+let bootstrapState: { done: boolean; ready: boolean; lastTry: number } = { done: false, ready: false, lastTry: 0 };
 function getConnection() {
   return runtimeConnection || { sheetId: DEFAULT_SHEET_ID, saJson: DEFAULT_SA_JSON, assignmentsCsv: DEFAULT_ASSIGNMENTS_CSV };
 }
@@ -47,6 +48,7 @@ function setConnectionFromBody(body: any) {
   runtimeConnection = { sheetId, saJson, assignmentsCsv };
   cachedToken = null;
   fallbackUsersCache = null;
+  bootstrapState = { done: false, ready: false, lastTry: 0 };
 }
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
@@ -426,15 +428,20 @@ Deno.serve(async (req) => {
     setConnectionFromBody(body);
     const { action } = body as { action: string };
 
-    // Try to initialize sheets/admin, but do not block login/list if Sheets auth is down.
-    let sheetsReady = true;
-    try {
-      await ensureSheet("users", USERS_HEADERS);
-      await ensureSheet("archive", ARCHIVE_HEADERS);
-      await ensureAdmin();
-    } catch (e) {
-      sheetsReady = false;
-      console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
+    // Try to initialize sheets/admin once per cold start to avoid Sheets API quota burn.
+    let sheetsReady = bootstrapState.ready;
+    if (!bootstrapState.done || (Date.now() - bootstrapState.lastTry) > 60_000) {
+      try {
+        await ensureSheet("users", USERS_HEADERS);
+        await ensureSheet("archive", ARCHIVE_HEADERS);
+        await ensureAdmin();
+        bootstrapState = { done: true, ready: true, lastTry: Date.now() };
+        sheetsReady = true;
+      } catch (e) {
+        bootstrapState = { done: true, ready: false, lastTry: Date.now() };
+        sheetsReady = false;
+        console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
+      }
     }
 
     // NOTE: Keep this block as the single source of truth for teacher-name loading
