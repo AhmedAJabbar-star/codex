@@ -11,6 +11,12 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function base64UrlToString(value: string): string {
+  const b64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const bytes = Uint8Array.from(atob(b64 + "=".repeat((4 - b64.length % 4) % 4)), (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
 async function pbkdf2Base64(password: string, salt: string, iterations = 120000): Promise<string> {
   const key = await crypto.subtle.importKey("raw", textEncoder.encode(password), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
@@ -456,7 +462,7 @@ async function hmacSign(data: string): Promise<string> {
 
 async function createSession(user_id: string): Promise<string> {
   const exp = Date.now() + SESSION_TTL_MS;
-  const payload = btoa(JSON.stringify({ u: user_id, e: exp })).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const payload = b64url(JSON.stringify({ u: user_id, e: exp }));
   const sig = await hmacSign(payload);
   return `${payload}.${sig}`;
 }
@@ -470,8 +476,7 @@ async function getSessionUser(token: string | null) {
   if (expected !== sig) return null;
   let parsed: { u: string; e: number };
   try {
-    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    parsed = JSON.parse(atob(b64 + "=".repeat((4 - b64.length % 4) % 4)));
+    parsed = JSON.parse(base64UrlToString(payload));
   } catch { return null; }
   if (!parsed.e || parsed.e < Date.now()) return null;
   if (parsed.u === "manager-fixed") return managerUser();
