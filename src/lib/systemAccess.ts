@@ -74,18 +74,14 @@ export async function syncRulesFromRemote(): Promise<Record<string, SystemAccess
   if (error || !data?.rules) return getRules();
 
   const normalized = normalizeRules(data.rules as RawRules);
-  if (typeof window !== 'undefined' && window.localStorage) {
-    localStorage.setItem(KEY, JSON.stringify(normalized));
-    window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
-  }
+  localStorage.setItem(KEY, JSON.stringify(normalized));
+  window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
   return normalized;
 }
 
 export async function setRules(rules: Record<string, SystemAccessRule>) {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    localStorage.setItem(KEY, JSON.stringify(rules));
-    window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
-  }
+  localStorage.setItem(KEY, JSON.stringify(rules));
+  window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
 
   await supabase.from('system_access_rules').upsert(
     {

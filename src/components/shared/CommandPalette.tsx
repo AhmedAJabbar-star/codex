@@ -54,7 +54,7 @@ const CommandPalette = () => {
   }, [navigate, queryClient, rules]);
 
   useEffect(() => {
-    void syncRulesFromRemote().then(setRules).catch(() => setRules(getRules()));
+    void syncRulesFromRemote().then(setRules);
 
     const refreshRules = () => setRules(getRules());
     window.addEventListener('storage', refreshRules);

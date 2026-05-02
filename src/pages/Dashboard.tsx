@@ -118,7 +118,7 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    void syncRulesFromRemote().then(setRules).catch(() => setRules(getRules()));
+    void syncRulesFromRemote().then(setRules);
 
     const refreshRules = () => setRules(getRules());
     window.addEventListener('storage', refreshRules);
@@ -255,3 +255,14 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+  useEffect(() => {
+    void syncRulesFromRemote().then(setRules);
+
+    const refreshRules = () => setRules(getRules());
+    window.addEventListener('storage', refreshRules);
+    window.addEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    return () => {
+      window.removeEventListener('storage', refreshRules);
+      window.removeEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    };
+  }, []);
