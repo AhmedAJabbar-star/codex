@@ -5,6 +5,7 @@ import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
+import { getRules } from '@/lib/systemAccess';
 
 const systemCards = [
   {
@@ -88,9 +89,19 @@ const systemCards = [
     color: '#0891b2',
     gradient: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
   },
+  {
+    id: 'controlPanel',
+    title: 'لوحة التحكم',
+    icon: '🛠️',
+    description: 'إدارة إظهار الأنظمة والتحكم بالحماية بكلمة مرور',
+    path: '/control-panel',
+    color: '#334155',
+    gradient: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)',
+  }
 ];
 
 const Dashboard = () => {
+  const rules = getRules();
   const navigate = useNavigate();
   const { data: liveData } = useLiveScheduleData();
   const { data: assignmentsRows } = useQuery({
@@ -143,6 +154,8 @@ const Dashboard = () => {
     return sys?.rows.length || 0;
   };
 
+  const visibleCards = systemCards.filter((c) => c.id === 'controlPanel' || rules[c.id]?.visible !== false);
+
   return (
     <div className="schedule-body" dir="rtl">
       <div className="relative z-[1] w-full max-w-6xl mx-auto my-4 px-3 sm:px-5 pb-7">
@@ -171,7 +184,7 @@ const Dashboard = () => {
 
           {/* System Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6">
-            {systemCards.map(card => {
+            {visibleCards.map(card => {
               const count = getSystemRowCount(card.id);
               return (
                 <button
