@@ -218,7 +218,7 @@ tr.odd{background:#fff}
   </div>
   <div class="sig-box">
     <div class="sig-label">رئيس القسم</div>
-    <div class="sig-name"></div>
+    <div class="sig-name">${headOfDepartment || ''}</div>
     <div class="sig-sub">التوقيع : ............................</div>
   </div>
 </div>
