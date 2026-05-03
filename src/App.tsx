@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,7 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
-import { getRuleByPath, syncRulesFromRemote } from "@/lib/systemAccess";
+import { getRuleByPath, syncRulesFromRemote, SYSTEM_ACCESS_RULES_UPDATED_EVENT } from "@/lib/systemAccess";
 
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
@@ -24,27 +24,80 @@ const ControlPanel = lazy(() => import("./pages/ControlPanel"));
 
 const queryClient = new QueryClient();
 
+const PROTECTED_OK_PREFIX = 'protected-ok:';
+const sessionOk = (path: string) => {
+  try { return sessionStorage.getItem(PROTECTED_OK_PREFIX + path) === '1'; } catch { return false; }
+};
+const markSessionOk = (path: string) => {
+  try { sessionStorage.setItem(PROTECTED_OK_PREFIX + path, '1'); } catch { /* ignore */ }
+};
+
+const PasswordGate = ({ pathname, expected, onSuccess }: { pathname: string; expected: string; onSuccess: () => void }) => {
+  const [pw, setPw] = useState('');
+  const [err, setErr] = useState('');
+  const navigate = useNavigate();
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((pw || '') === (expected || '')) {
+      markSessionOk(pathname);
+      onSuccess();
+    } else {
+      setErr('كلمة المرور غير صحيحة');
+    }
+  };
+  return (
+    <div className="schedule-body min-h-screen flex items-center justify-center px-4" dir="rtl">
+      <form onSubmit={submit} className="schedule-card p-8 w-full max-w-md text-center">
+        <div className="text-5xl mb-3">🔐</div>
+        <h2 className="text-2xl font-black mb-1 text-[var(--schedule-text)]">النظام محمي</h2>
+        <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">يرجى إدخال كلمة المرور للوصول إلى هذا النظام</p>
+        <input
+          type="password"
+          autoFocus
+          value={pw}
+          onChange={(e) => { setPw(e.target.value); setErr(''); }}
+          placeholder="كلمة المرور"
+          className="schedule-select w-full text-center mb-3"
+          style={{ minHeight: 50, letterSpacing: 4, fontSize: 18 }}
+        />
+        {err && <div className="text-sm font-bold text-red-600 mb-3">{err}</div>}
+        <div className="flex gap-2">
+          <button type="button" className="schedule-btn flex-1" onClick={() => navigate('/')} style={{ minHeight: 46 }}>
+            🏠 الرئيسية
+          </button>
+          <button type="submit" className="schedule-btn schedule-btn-primary flex-1" style={{ minHeight: 46 }}>
+            🔓 دخول
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { pathname } = useLocation();
-  const rule = getRuleByPath(pathname);
-  const [ok, setOk] = useState(!rule?.protected);
+  const [rule, setRule] = useState(() => getRuleByPath(pathname));
+  const [ok, setOk] = useState(() => sessionOk(pathname) || !rule?.protected);
+
+  useEffect(() => {
+    const refresh = () => {
+      const next = getRuleByPath(pathname);
+      setRule(next);
+      if (sessionOk(pathname) || !next?.protected) setOk(true);
+    };
+    window.addEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, [pathname]);
 
   if (!rule) return children;
   if (rule.visible === false) return <Navigate to="/" replace />;
   if (!rule.protected || ok) return children;
 
-  return (
-    <div className="schedule-body min-h-screen flex items-center justify-center" dir="rtl">
-      <div className="schedule-card p-6 w-full max-w-md text-center">
-        <h2 className="text-xl font-black mb-4">النظام محمي بكلمة مرور</h2>
-        <button className="schedule-btn schedule-btn-primary" onClick={() => {
-          const v = window.prompt('أدخل كلمة المرور');
-          if ((v || '') === (rule.password || '')) setOk(true);
-          else alert('كلمة المرور غير صحيحة');
-        }}>إدخال كلمة المرور</button>
-      </div>
-    </div>
-  );
+  return <PasswordGate pathname={pathname} expected={rule.password || ''} onSuccess={() => setOk(true)} />;
 };
 
 const Loading = () => (

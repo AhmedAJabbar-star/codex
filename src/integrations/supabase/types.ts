@@ -49,6 +49,24 @@ export type Database = {
           },
         ]
       }
+      system_access_rules: {
+        Row: {
+          id: string
+          rules: Json
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          rules?: Json
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          rules?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       teacher_sessions: {
         Row: {
           created_at: string
