@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +10,17 @@ import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
 import { getRuleByPath, syncRulesFromRemote, SYSTEM_ACCESS_RULES_UPDATED_EVENT } from "@/lib/systemAccess";
+
+const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
+const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
+const AuditSystems = lazy(() => import("./pages/AuditSystems"));
+const Tracking = lazy(() => import("./pages/Tracking"));
+const EmptyRooms = lazy(() => import("./pages/EmptyRooms"));
+const Assignments = lazy(() => import("./pages/Assignments"));
+const Charts = lazy(() => import("./pages/Charts"));
+const ErrorsSummary = lazy(() => import("./pages/ErrorsSummary"));
+const IndividualAssignments = lazy(() => import("./pages/IndividualAssignments"));
+const ControlPanel = lazy(() => import("./pages/ControlPanel"));
 
 const queryClient = new QueryClient();
 
