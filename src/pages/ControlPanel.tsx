@@ -19,9 +19,11 @@ const ControlPanel = () => {
   };
 
   const save = async () => {
+    const password = window.prompt('أدخل كلمة مرور لوحة التحكم لتأكيد الحفظ:');
+    if (password === null) return;
     setSaving(true);
     try {
-      await setRules(rules);
+      await setRules(rules, password);
       toast.success('تم حفظ إعدادات لوحة التحكم بنجاح وتطبيقها على جميع المستخدمين');
     } catch (error) {
       toast.error((error as Error).message || 'فشل حفظ الإعدادات على الخادم');
