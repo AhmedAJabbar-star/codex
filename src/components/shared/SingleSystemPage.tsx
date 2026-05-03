@@ -334,12 +334,13 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     exportToExcel(system.appTitle, system.headers, filteredRows);
   };
 
-  const handlePDF = () => {
+  const handlePDF = async () => {
     if (!checkRequiredFilters()) return;
     if (activeSystem === 'assignments') {
       const { teacherName, semester, department, college } = buildAssignmentsContext();
+      const headOfDepartment = await fetchDepartmentHead(department, semester);
       openAssignmentsPrintWindow({
-        teacherName, semester, department, college,
+        teacherName, semester, department, college, headOfDepartment,
         headers: system.headers, rows: filteredRows,
         autoPrint: false,
       });
