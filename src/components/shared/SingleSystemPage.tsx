@@ -8,6 +8,7 @@ import {
   openAssignmentsPrintWindow,
   FOOTER_HTML, universityLogo
 } from './ScheduleHelpers';
+import { fetchDepartmentHead } from '@/lib/departmentHeads';
 import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
 
