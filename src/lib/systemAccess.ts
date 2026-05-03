@@ -93,22 +93,26 @@ export async function syncRulesFromRemote(): Promise<Record<string, SystemAccess
   return normalized;
 }
 
-export async function setRules(rules: Record<string, SystemAccessRule>) {
+export async function setRules(rules: Record<string, SystemAccessRule>, password: string) {
+  const { data, error } = await supabase.functions.invoke('system-rules', {
+    body: { password, rules },
+  });
+  if (error) {
+    const ctx: any = (error as any).context;
+    let msg = error.message;
+    if (ctx?.body) {
+      try {
+        const txt = typeof ctx.body === 'string' ? ctx.body : await new Response(ctx.body).text();
+        const j = JSON.parse(txt);
+        if (j?.error) msg = j.error;
+      } catch { /* ignore */ }
+    }
+    throw new Error(msg || 'تعذر حفظ الإعدادات على الخادم');
+  }
+  if ((data as any)?.error) throw new Error((data as any).error);
+
   localStorage.setItem(KEY, JSON.stringify(rules));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
-
-  const { error } = await supabase.from('system_access_rules').upsert(
-    {
-      id: GLOBAL_RULES_ID,
-      rules,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'id' },
-  );
-
-  if (error) {
-    throw new Error(`تعذر حفظ إعدادات الوصول على الخادم: ${error.message}`);
-  }
 }
 
 const normalizePath = (pathname: string) => {
