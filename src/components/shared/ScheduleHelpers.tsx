@@ -98,8 +98,9 @@ export function openAssignmentsPrintWindow(opts: {
   headers: string[];
   rows: ScheduleRow[];
   autoPrint?: boolean;
+  headOfDepartment?: string;
 }) {
-  const { teacherName, semester, department, college, headers: rawHeaders, rows, autoPrint = true } = opts;
+  const { teacherName, semester, department, college, headers: rawHeaders, rows, autoPrint = true, headOfDepartment = '' } = opts;
   const w = window.open('', '_blank');
   if (!w) return;
 
