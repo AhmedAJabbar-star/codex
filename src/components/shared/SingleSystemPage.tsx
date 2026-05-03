@@ -280,12 +280,13 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return { teacherName, semester, department, college };
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!checkRequiredFilters()) return;
     if (activeSystem === 'assignments') {
       const { teacherName, semester, department, college } = buildAssignmentsContext();
+      const headOfDepartment = await fetchDepartmentHead(department, semester);
       openAssignmentsPrintWindow({
-        teacherName, semester, department, college,
+        teacherName, semester, department, college, headOfDepartment,
         headers: system.headers, rows: filteredRows,
         autoPrint: true,
       });
