@@ -14,41 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      password_archive: {
-        Row: {
-          action: string
-          created_at: string
-          full_name: string
-          id: string
-          performed_by: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          full_name: string
-          id?: string
-          performed_by?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          full_name?: string
-          id?: string
-          performed_by?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "password_archive_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "teacher_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       system_access_rules: {
         Row: {
           id: string
@@ -67,74 +32,6 @@ export type Database = {
         }
         Relationships: []
       }
-      teacher_sessions: {
-        Row: {
-          created_at: string
-          expires_at: string
-          token: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string
-          token?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          token?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "teacher_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "teacher_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      teacher_users: {
-        Row: {
-          college: string | null
-          created_at: string
-          department: string | null
-          full_name: string
-          id: string
-          is_manual: boolean
-          must_change_password: boolean
-          password_hash: string
-          role: Database["public"]["Enums"]["app_role"]
-          updated_at: string
-        }
-        Insert: {
-          college?: string | null
-          created_at?: string
-          department?: string | null
-          full_name: string
-          id?: string
-          is_manual?: boolean
-          must_change_password?: boolean
-          password_hash: string
-          role?: Database["public"]["Enums"]["app_role"]
-          updated_at?: string
-        }
-        Update: {
-          college?: string | null
-          created_at?: string
-          department?: string | null
-          full_name?: string
-          id?: string
-          is_manual?: boolean
-          must_change_password?: boolean
-          password_hash?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -143,7 +40,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      app_role: "user" | "admin"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -270,8 +167,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["user", "admin"],
-    },
+    Enums: {},
   },
 } as const
