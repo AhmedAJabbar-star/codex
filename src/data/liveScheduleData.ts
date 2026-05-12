@@ -259,6 +259,8 @@ export interface LiveScheduleData {
   lectureTypeAudit: ScheduleRow[];
   assignmentsAudit: ScheduleRow[];
   assignmentsAuditHeaders: string[];
+  quota: ScheduleRow[];
+  quotaHeaders: string[];
 }
 
 function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
@@ -274,20 +276,28 @@ function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
     }));
 }
 
-async function fetchAssignmentsAuditSheet(): Promise<{
+async function fetchSheetWithHeaders(gid: string, excluded: string[] = []): Promise<{
   rows: ScheduleRow[];
   headers: string[];
 }> {
-  const response = await fetch(buildCsvUrl(SHEET_GIDS.assignmentsAudit), { cache: 'no-store' });
+  const response = await fetch(buildCsvUrl(gid), { cache: 'no-store' });
   if (!response.ok) {
-    throw new Error(`تعذر جلب بيانات ورقة التكليفات (HTTP ${response.status})`);
+    throw new Error(`تعذر جلب البيانات (HTTP ${response.status})`);
   }
   const csvText = (await response.text()).replace(/^\uFEFF/, '');
   const [headerRow = [], ...dataRows] = parseCsv(csvText);
   const rawHeaders = headerRow.map((h) => compactText(h));
-  const headers = rawHeaders.filter((h) => h && !ASSIGNMENTS_AUDIT_EXCLUDED.includes(h));
+  const headers = rawHeaders.filter((h) => h && !excluded.includes(h));
   const rows = mapRows(rawHeaders, dataRows);
   return { rows, headers };
+}
+
+async function fetchAssignmentsAuditSheet() {
+  return fetchSheetWithHeaders(SHEET_GIDS.assignmentsAudit, ASSIGNMENTS_AUDIT_EXCLUDED);
+}
+
+async function fetchQuotaSheet() {
+  return fetchSheetWithHeaders(SHEET_GIDS.quota);
 }
 
 export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
