@@ -591,7 +591,8 @@ Deno.serve(async (req) => {
       const { full_name, password } = body;
       if (!full_name || !password) return json({ error: "البيانات ناقصة" }, 400);
       if (full_name === "__manager__") {
-        if (String(password) !== "aa") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
+        const expectedMgr = await getManagerPassword();
+        if (String(password) !== expectedMgr) return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
         const mgr = managerUser();
         const token = await createSession(mgr.id);
         return json({ token, user: publicUser(mgr) });
