@@ -63,12 +63,11 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
         const v = (r[auditKey] || '').trim() || '(غير محدد)';
         breakdown[v] = (breakdown[v] || 0) + 1;
       });
+      const isFulfilled = (k: string) => k.trim() === 'مستوفي';
       const fulfilled = Object.entries(breakdown)
-        .filter(([k]) => k.includes('مستوفي') || k.includes('مستوف'))
+        .filter(([k]) => isFulfilled(k))
         .reduce((sum, [, c]) => sum + c, 0);
-      const notFulfilled = Object.entries(breakdown)
-        .filter(([k]) => k.includes('غير') || k.includes('لم'))
-        .reduce((sum, [, c]) => sum + c, 0);
+      const notFulfilled = rows.length - fulfilled;
       return { total: rows.length, teachers: teachers.size, fulfilled, notFulfilled, breakdown };
     }
     return { total: rows.length };
