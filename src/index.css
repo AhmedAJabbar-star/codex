@@ -483,10 +483,10 @@
 .schedule-table .schedule-col-notes {
   min-width: 300px;
   max-width: 460px;
-  text-align: right;
-  white-space: normal;
-  overflow-wrap: normal;
-  word-break: keep-all;
+  text-align: center;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .schedule-table tbody td {
@@ -497,8 +497,8 @@
   border-bottom: 1px solid rgba(148,163,184,.16);
   vertical-align: middle;
   transition: background .16s ease;
-  white-space: normal;
-  overflow-wrap: normal;
+  white-space: pre-line;
+  overflow-wrap: break-word;
   word-break: keep-all;
 }
 
