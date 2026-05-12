@@ -81,8 +81,8 @@ body{font-family:'Cairo',sans-serif;color:#000;background:#fff}
 .chip-value{color:#000}
 table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:6px;table-layout:auto}
   th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;white-space:normal;overflow-wrap:normal;word-break:keep-all;line-height:1.2}
-  td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;white-space:normal;overflow-wrap:normal;word-break:keep-all}
-  .notes-col{min-width:48mm;text-align:right}
+  td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;white-space:pre-line;overflow-wrap:break-word;word-break:keep-all}
+  .notes-col{min-width:48mm;text-align:center;white-space:pre-line}
 tr.even{background:#f0f6ff}
 tr.odd{background:#fff}
 .signatures{margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid}
