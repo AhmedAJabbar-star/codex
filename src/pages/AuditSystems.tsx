@@ -49,8 +49,10 @@ const AuditSystemsPage = () => {
     );
   }
 
-  if (isLoading && !systemsOverride) return <LiveLoadingShell />;
-  if (error || !systemsOverride) return <LiveLoadingShell error={error} />;
+  if (!systemsOverride) {
+    if (isLoading) return <LiveLoadingShell />;
+    return <LiveLoadingShell error={error} />;
+  }
 
   return <SingleSystemPage systemIds={auditIds} systemsOverride={systemsOverride} />;
 };
