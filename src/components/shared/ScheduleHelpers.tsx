@@ -91,13 +91,26 @@ tr.odd{background:#fff}
 .doc-meta strong{color:#0f4c81}
 .footer-note{margin-top:6px;font-size:9.5px;color:#444;line-height:1.7;padding:6px 10px}
 .footer-note strong{color:#0f4c81}
+.preview-bar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}
+.preview-bar .pv-title{font-weight:800;font-size:13px;margin-inline-end:auto}
+.preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
+.preview-bar .btn-print{background:#fff;color:#0f4c81}
+.preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
+.page{margin-top:54px}
 @media print{
   ${singlePageCSS}
   body{padding:0}
   tr,td,th{page-break-inside:avoid}
   .signatures{page-break-inside:avoid}
+  .preview-bar{display:none!important}
+  .page{margin-top:0}
 }
 </style></head><body>
+<div class="preview-bar">
+  <span class="pv-title">📄 معاينة قبل الطباعة — ${title}</span>
+  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+  <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
+</div>
 <div class="watermark">الجامعة التكنولوجية</div>
 <div class="page"><div class="content">
 <div class="official-header">
@@ -154,7 +167,6 @@ ${(filtersInfo && filtersInfo.length > 0) ? `
 </div>
 
 </div></div>
-<script>window.onafterprint=()=>window.close();window.print();<\/script>
 </body></html>`);
   w.document.close();
 }
