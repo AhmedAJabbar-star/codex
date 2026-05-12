@@ -368,7 +368,13 @@ tr:hover{background:#e3edfa !important}
   .print-header{border-bottom-color:#000}
   .footer{border-top-color:#000}
 }
+<style>.preview-bar-sr{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}.preview-bar-sr .pv-title{font-weight:800;font-size:13px;margin-inline-end:auto}.preview-bar-sr button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px}.preview-bar-sr .btn-print{background:#fff;color:#0f4c81}.preview-bar-sr .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}body{padding-top:54px}@media print{.preview-bar-sr{display:none!important}body{padding-top:0!important}}</style>
 </style></head><body>
+<div class="preview-bar-sr">
+  <span class="pv-title">📄 معاينة قبل الطباعة — ${title}</span>
+  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+  <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
+</div>
 <div class="print-wrap">
 <div class="print-header">
 <img src="${universityLogo}" alt="شعار الجامعة"/>
@@ -383,13 +389,7 @@ ${infoHtml ? `<div class="info-section">${infoHtml}</div>` : ''}
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 <div class="footer">${footerHtml}</div>
-<div style="position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)" class="no-print">
-  <span style="font-weight:800;font-size:13px;margin-inline-end:auto">📄 معاينة قبل الطباعة — ${title}</span>
-  <button style="font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px;background:#fff;color:#0f4c81" onclick="window.print()">🖨️ طباعة</button>
-  <button style="font-family:'Cairo',sans-serif;border:1px solid rgba(255,255,255,.4);border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px;background:rgba(255,255,255,.15);color:#fff" onclick="window.close()">✕ إغلاق</button>
 </div>
-<style>@media print{.no-print{display:none!important}.print-wrap{margin-top:0!important}}</style>
-<div class="print-wrap" style="margin-top:54px">
 </body></html>`);
   w.document.close();
 }
