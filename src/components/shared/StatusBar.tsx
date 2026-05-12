@@ -13,7 +13,8 @@ const StatusBar = () => {
   const online = useNetworkStatus();
   const fetching = useIsFetching({ queryKey: ['live-schedule-data'] });
   const fetchingAssignments = useIsFetching({ queryKey: ['individual-assignments'] });
-  const isFetching = fetching + fetchingAssignments > 0;
+  const fetchingQuotaAudit = useIsFetching({ queryKey: ['quota-audit-data'] });
+  const isFetching = fetching + fetchingAssignments + fetchingQuotaAudit > 0;
 
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(REFRESH_INTERVAL_SEC);
