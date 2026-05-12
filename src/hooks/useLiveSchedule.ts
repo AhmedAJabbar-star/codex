@@ -54,9 +54,10 @@ export function useLiveSystems(systemIds: string[]) {
       assignmentsAudit: data.assignmentsAudit,
       quotaAudit: data.quota,
     };
+    const QUOTA_HIDDEN = ['ت', 'اسم التدريسي'];
     const headersMap: Record<string, string[]> = {
       assignmentsAudit: data.assignmentsAuditHeaders,
-      quotaAudit: data.quotaHeaders,
+      quotaAudit: (data.quotaHeaders || []).filter((h) => !QUOTA_HIDDEN.includes((h || '').trim())),
     };
     const result: SystemConfig[] = [];
     systemIds.forEach((id) => {

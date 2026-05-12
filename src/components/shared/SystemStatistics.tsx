@@ -55,6 +55,22 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
       const days = new Set(rows.map(r => r['اليوم']).filter(Boolean));
       return { total: rows.length, rooms: allRooms.size, days: days.size };
     }
+    if (systemId === 'quotaAudit') {
+      const auditKey = 'تدقيق استيفاء النصاب حسب نوع التعيين';
+      const teachers = new Set(rows.map(r => r['اسم التدريسي']).filter(Boolean));
+      const breakdown: Record<string, number> = {};
+      rows.forEach(r => {
+        const v = (r[auditKey] || '').trim() || '(غير محدد)';
+        breakdown[v] = (breakdown[v] || 0) + 1;
+      });
+      const fulfilled = Object.entries(breakdown)
+        .filter(([k]) => k.includes('مستوفي') || k.includes('مستوف'))
+        .reduce((sum, [, c]) => sum + c, 0);
+      const notFulfilled = Object.entries(breakdown)
+        .filter(([k]) => k.includes('غير') || k.includes('لم'))
+        .reduce((sum, [, c]) => sum + c, 0);
+      return { total: rows.length, teachers: teachers.size, fulfilled, notFulfilled, breakdown };
+    }
     return { total: rows.length };
   }, [rows, systemId]);
 
@@ -139,6 +155,41 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
           <StatCard label="قاعات" value={s.rooms} icon="🚪" color="#2563eb" />
           <StatCard label="الأيام" value={s.days} icon="📅" color="#d97706" />
         </div>
+      </div>
+    );
+  }
+
+  if (systemId === 'quotaAudit') {
+    const s = stats as any;
+    const colorFor = (k: string) => {
+      if (k.includes('مستوفي') || k.includes('مستوف')) return '#22c55e';
+      if (k.includes('غير') || k.includes('لم')) return '#ef4444';
+      return '#94a3b8';
+    };
+    const iconFor = (k: string) => {
+      if (k.includes('مستوفي') || k.includes('مستوف')) return '✅';
+      if (k.includes('غير') || k.includes('لم')) return '❌';
+      return '⚪';
+    };
+    return (
+      <div className="schedule-stats">
+        <div className="schedule-stats-header">⚖️ ملخص استيفاء النصاب</div>
+        <div className="schedule-stats-grid">
+          <StatCard label="إجمالي السجلات" value={s.total} icon="📄" color="#2563eb" />
+          <StatCard label="عدد التدريسيين" value={s.teachers} icon="👨‍🏫" color="#7c3aed" />
+          <StatCard label="مستوفي للنصاب" value={s.fulfilled} icon="✅" color="#22c55e" />
+          <StatCard label="غير مستوفي" value={s.notFulfilled} icon="❌" color="#ef4444" />
+        </div>
+        {Object.keys(s.breakdown).length > 0 && (
+          <div className="schedule-stats-breakdown">
+            {Object.entries(s.breakdown).sort((a: any, b: any) => b[1] - a[1]).map(([key, count]: any) => (
+              <div key={key} className="schedule-stats-tag-interactive" style={{ '--tag-color': colorFor(key) } as React.CSSProperties}>
+                <span>{iconFor(key)} {key}</span>
+                <strong>{count}</strong>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
