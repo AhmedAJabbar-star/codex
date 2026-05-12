@@ -21,6 +21,7 @@ const Charts = lazy(() => import("./pages/Charts"));
 const ErrorsSummary = lazy(() => import("./pages/ErrorsSummary"));
 const IndividualAssignments = lazy(() => import("./pages/IndividualAssignments"));
 const ControlPanel = lazy(() => import("./pages/ControlPanel"));
+const QuotaAudit = lazy(() => import("./pages/QuotaAudit"));
 
 const queryClient = new QueryClient();
 
