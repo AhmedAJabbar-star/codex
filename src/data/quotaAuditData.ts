@@ -82,7 +82,7 @@ export async function fetchQuotaAuditData(): Promise<QuotaAuditData> {
     const response = await fetchWithTimeout(`${PUB_BASE}?gid=${QUOTA_GID}&single=true&output=csv`, cached ? 2500 : 6000);
     if (!response.ok) throw new Error(`تعذر جلب بيانات تدقيق النصاب (HTTP ${response.status})`);
     const [headerRow = [], ...dataRows] = parseCsv((await response.text()).replace(/^\uFEFF/, ''));
-    const headers = headerRow.map(compactText).filter(Boolean);
+    const headers = headerRow.map(compactHeader).filter(Boolean);
     const rows = dataRows
       .filter((cells) => cells.some((cell) => compactText(cell).length > 0))
       .map((cells) => Object.fromEntries(headers.map((header, index) => [header, compactText(cells[index] ?? '')])) as ScheduleRow);
