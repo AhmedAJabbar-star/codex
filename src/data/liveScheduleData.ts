@@ -301,12 +301,13 @@ async function fetchQuotaSheet() {
 }
 
 export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
-  const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData] = await Promise.all([
+  const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData, quotaData] = await Promise.all([
     fetchSheet(SHEET_GIDS.teacher),
     fetchSheet(SHEET_GIDS.student),
     fetchSheet(SHEET_GIDS.report),
     fetchSheet(SHEET_GIDS.hours),
     fetchAssignmentsAuditSheet(),
+    fetchQuotaSheet().catch(() => ({ rows: [] as ScheduleRow[], headers: [] as string[] })),
   ]);
 
   const teacher = postProcessTeacher(teacherRaw);
@@ -324,6 +325,8 @@ export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
     lectureTypeAudit,
     assignmentsAudit: assignmentsAuditData.rows,
     assignmentsAuditHeaders: assignmentsAuditData.headers,
+    quota: quotaData.rows,
+    quotaHeaders: quotaData.headers,
   };
 }
 
