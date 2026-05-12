@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote, type SystemAccessRule } from '@/lib/systemAccess';
+import { SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote, MANAGER_PASSWORD_ID, DEFAULT_MANAGER_PASSWORD, type SystemAccessRule } from '@/lib/systemAccess';
 
 const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
@@ -12,7 +12,11 @@ const ControlPanel = () => {
     void syncRulesFromRemote().then((remoteRules) => setLocalRules(remoteRules));
   }, []);
 
-  const systems = useMemo(() => SYSTEMS_REGISTRY.filter((s) => s.id !== 'controlPanel'), []);
+  const systems = useMemo(
+    () => SYSTEMS_REGISTRY.filter((s) => s.id !== 'controlPanel' && s.id !== MANAGER_PASSWORD_ID),
+    [],
+  );
+  const managerPw = rules[MANAGER_PASSWORD_ID]?.password ?? DEFAULT_MANAGER_PASSWORD;
 
   const update = (id: string, patch: Partial<SystemAccessRule>) => {
     setLocalRules((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
