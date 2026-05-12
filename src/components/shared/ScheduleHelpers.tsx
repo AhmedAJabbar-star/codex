@@ -99,7 +99,7 @@ tr.odd{background:#fff}
     <img src="${universityLogo}" alt="شعار الجامعة"/>
     <div class="ar1">الجامعة التكنولوجية</div>
     <div class="ar2">كلية الهندسة المدنية</div>
-    <div class="ar3">قسم تسجيل الجداول الدراسية</div>
+    <div class="ar3">${department || ''}</div>
   </div>
   <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education &amp; Scientific Research<br/>University of Technology</div>
 </div>
@@ -117,23 +117,21 @@ tr.odd{background:#fff}
 
 <div class="signatures">
   <div class="sig-box">
-    <div class="sig-label">إعداد شعبة التسجيل</div>
-    <div class="sig-name">............................</div>
-    <div class="sig-sub">التوقيع</div>
-  </div>
-  <div class="sig-box">
-    <div class="sig-label">مصادقة مقرر القسم</div>
+    <div class="sig-label">مقرر القسم</div>
     <div class="sig-name">............................</div>
     <div class="sig-sub">التوقيع &amp; الختم</div>
   </div>
   <div class="sig-box">
-    <div class="sig-label">عميد الكلية</div>
-    <div class="sig-name">أ.د. علي مجيد خضير الدهوي</div>
+    <div class="sig-label">رئيس القسم</div>
+    <div class="sig-name">............................</div>
+    <div class="sig-sub">التوقيع &amp; الختم</div>
+  </div>
+  <div class="sig-box">
+    <div class="sig-label">مصادقة العميد</div>
+    <div class="sig-name">............................</div>
     <div class="sig-sub">التوقيع &amp; الختم</div>
   </div>
 </div>
-
-<div class="footer-note">${footerHtml}</div>
 
 <div class="doc-meta">
   <span><strong>وثيقة رسمية</strong> صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span>
