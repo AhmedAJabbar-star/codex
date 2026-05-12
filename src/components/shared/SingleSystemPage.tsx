@@ -296,7 +296,11 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const dept =
       filters['القسم الذي تنتمي اليه'] || filters['القسم'] ||
       filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
-    openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML, isSinglePage, dept);
+    const filtersInfo = system.filters
+      .filter(f => f.control !== 'time' && f.control !== 'timeSelect')
+      .map(f => ({ label: f.label, value: (filters[f.key] || '').trim() }))
+      .filter(f => f.value);
+    openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo);
   };
 
   const handleShortReport = () => {
