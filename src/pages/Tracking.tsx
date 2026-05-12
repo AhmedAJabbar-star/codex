@@ -4,8 +4,10 @@ import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 
 const TrackingPage = () => {
   const { systemsOverride, error, isLoading } = useLiveSystems(['tracking']);
-  if (isLoading && !systemsOverride) return <LiveLoadingShell />;
-  if (error || !systemsOverride) return <LiveLoadingShell error={error} />;
+  if (!systemsOverride) {
+    if (isLoading) return <LiveLoadingShell />;
+    return <LiveLoadingShell error={error} />;
+  }
   return <SingleSystemPage systemIds={['tracking']} systemsOverride={systemsOverride} />;
 };
 export default TrackingPage;
