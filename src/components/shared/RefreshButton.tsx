@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 interface Props {
   /** مفاتيح إضافية لإبطالها بجانب live-schedule-data */
   extraKeys?: string[][];
+  /** مفاتيح محددة فقط عند الحاجة لتحديث نظام خفيف دون إبطاء بقية الأنظمة */
+  onlyKeys?: string[][];
   className?: string;
   compact?: boolean;
 }
@@ -13,7 +15,7 @@ interface Props {
  * زر «تحديث الآن» — يجبر React Query على إبطال جميع استعلامات البيانات الحية
  * وإعادة جلبها فوراً من Google Sheets.
  */
-const RefreshButton = ({ extraKeys = [], className = '', compact = false }: Props) => {
+const RefreshButton = ({ extraKeys = [], onlyKeys, className = '', compact = false }: Props) => {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -22,7 +24,7 @@ const RefreshButton = ({ extraKeys = [], className = '', compact = false }: Prop
     if (refreshing) return;
     setRefreshing(true);
     try {
-      const keys = [
+      const keys = onlyKeys || [
         ['live-schedule-data'],
         ['individual-assignments'],
         ['quota-audit-data'],

@@ -253,6 +253,21 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return true;
   }, [system, filters]);
 
+  const activeFilterInfo = useMemo(() => system.filters
+    .filter(f => f.control !== 'time' && f.control !== 'timeSelect')
+    .map(f => ({ key: f.key, label: f.label, value: (filters[f.key] || '').trim() }))
+    .filter(f => f.value), [system.filters, filters]);
+
+  const reportHeaders = useMemo(() => {
+    const activeFilterKeys = new Set(activeFilterInfo.map(f => f.key));
+    return system.headers.filter(h => !activeFilterKeys.has(h));
+  }, [system.headers, activeFilterInfo]);
+
+  const reportTitle = useMemo(() => {
+    if (activeFilterInfo.length === 0) return system.appTitle;
+    return `${system.appTitle} - ${activeFilterInfo.map(f => `${f.label}: ${f.value}`).join(' - ')}`;
+  }, [system.appTitle, activeFilterInfo]);
+
   const buildAssignmentsContext = () => {
     const semester = filters['الفصل الدراسي'] || filters['الكورس'] || '';
     const pickFromRows = (keys: string[]): string => {
@@ -301,11 +316,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const dept =
       filters['القسم الذي تنتمي اليه'] || filters['القسم'] ||
       filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
-    const filtersInfo = system.filters
-      .filter(f => f.control !== 'time' && f.control !== 'timeSelect')
-      .map(f => ({ label: f.label, value: (filters[f.key] || '').trim() }))
-      .filter(f => f.value);
-    openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo);
+    const filtersInfo = activeFilterInfo.map(({ label, value }) => ({ label, value }));
+    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo);
   };
 
   const handleShortReport = () => {
@@ -343,7 +355,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   const handleExcel = () => {
     if (!checkRequiredFilters()) return;
-    exportToExcel(system.appTitle, system.headers, filteredRows);
+    exportToExcel(reportTitle, reportHeaders, filteredRows);
   };
 
   const handlePDF = async () => {
@@ -358,7 +370,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       });
       return;
     }
-    exportToPDF(system.appTitle, system.headers, filteredRows);
+    exportToPDF(reportTitle, reportHeaders, filteredRows);
   };
 
   const comboFilterKey = useMemo(() => {
@@ -381,7 +393,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             <div className="flex flex-col items-center gap-2.5 text-center relative">
               {showBackButton && (
                 <div className="absolute top-0 right-0 flex items-center gap-2">
-                  <RefreshButton compact />
+                  <RefreshButton compact onlyKeys={activeSystem === 'quotaAudit' ? [['quota-audit-data']] : undefined} />
                   <button
                     onClick={() => navigate('/')}
                     className="schedule-btn"
@@ -581,7 +593,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               <table className="schedule-table">
                 <thead>
                   <tr>
-                    {system.headers.map(h => <th key={h}>{h}</th>)}
+                    {system.headers.map(h => <th key={h} className={(h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : undefined}>{h}</th>)}
                     {activeSystem === 'emptyRooms' && <th>ملاحظة الحجز</th>}
                   </tr>
                 </thead>
@@ -612,7 +624,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                             else if (val.includes('⚠️')) cellClass = 'schedule-cell-warn';
                             else if (val.includes('❌')) cellClass = 'schedule-cell-danger';
                           }
-                          return <td key={h} className={cellClass}>{val}</td>;
+                          const tdClass = [cellClass, (h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : ''].filter(Boolean).join(' ');
+                          return <td key={h} className={tdClass}>{val}</td>;
                         })}
                         {activeSystem === 'emptyRooms' && (() => {
                           const note = getBookingNote(row['القاعة'], row['اليوم'], row['الفترة الشاغرة من'], row['الفترة الشاغرة الى']);

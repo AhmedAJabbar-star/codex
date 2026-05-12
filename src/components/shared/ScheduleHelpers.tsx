@@ -27,8 +27,9 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   const w = window.open('', '_blank');
   if (!w) return;
 
+  const isNotes = (h: string) => (h || '').trim() === 'الملاحظات';
   const tableRows = rows.map((r, i) =>
-    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`
+    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td class="${isNotes(h) ? 'notes-col' : ''}">${r[h] || ''}</td>`).join('')}</tr>`
   ).join('');
 
   const colCount = headers.length;
@@ -79,8 +80,9 @@ body{font-family:'Cairo',sans-serif;color:#000;background:#fff}
 .chip-label::after{content:" :"}
 .chip-value{color:#000}
 table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:6px;table-layout:auto}
-th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;white-space:nowrap;line-height:1.2}
-td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;word-break:break-word}
+  th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;white-space:normal;overflow-wrap:normal;word-break:keep-all;line-height:1.2}
+  td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;white-space:normal;overflow-wrap:normal;word-break:keep-all}
+  .notes-col{min-width:48mm;text-align:right}
 tr.even{background:#f0f6ff}
 tr.odd{background:#fff}
 .signatures{margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid}
