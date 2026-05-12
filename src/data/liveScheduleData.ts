@@ -300,6 +300,15 @@ async function fetchQuotaSheet() {
   return fetchSheetWithHeaders(SHEET_GIDS.quota);
 }
 
+export interface QuotaAuditData {
+  rows: ScheduleRow[];
+  headers: string[];
+}
+
+export async function fetchQuotaAuditData(): Promise<QuotaAuditData> {
+  return fetchQuotaSheet();
+}
+
 export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
   const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData, quotaData] = await Promise.all([
     fetchSheet(SHEET_GIDS.teacher),

@@ -13,7 +13,8 @@ const StatusBar = () => {
   const online = useNetworkStatus();
   const fetching = useIsFetching({ queryKey: ['live-schedule-data'] });
   const fetchingAssignments = useIsFetching({ queryKey: ['individual-assignments'] });
-  const isFetching = fetching + fetchingAssignments > 0;
+  const fetchingQuotaAudit = useIsFetching({ queryKey: ['quota-audit-data'] });
+  const isFetching = fetching + fetchingAssignments + fetchingQuotaAudit > 0;
 
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(REFRESH_INTERVAL_SEC);
@@ -51,6 +52,7 @@ const StatusBar = () => {
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['live-schedule-data'], refetchType: 'active' });
     queryClient.invalidateQueries({ queryKey: ['individual-assignments'], refetchType: 'active' });
+    queryClient.invalidateQueries({ queryKey: ['quota-audit-data'], refetchType: 'active' });
   };
 
   return (

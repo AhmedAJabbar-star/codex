@@ -25,6 +25,7 @@ const RefreshButton = ({ extraKeys = [], className = '', compact = false }: Prop
       const keys = [
         ['live-schedule-data'],
         ['individual-assignments'],
+        ['quota-audit-data'],
         ...extraKeys,
       ];
       // إبطال + إعادة جلب فوري لجميع المفاتيح المعنية
