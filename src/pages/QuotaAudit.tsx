@@ -4,8 +4,10 @@ import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 
 const QuotaAuditPage = () => {
   const { systemsOverride, error, isLoading } = useLiveSystems(['quotaAudit']);
-  if (isLoading && !systemsOverride) return <LiveLoadingShell />;
-  if (error || !systemsOverride) return <LiveLoadingShell error={error} />;
+  if (!systemsOverride) {
+    if (isLoading) return <LiveLoadingShell />;
+    return <LiveLoadingShell error={error} />;
+  }
   return <SingleSystemPage systemIds={['quotaAudit']} systemsOverride={systemsOverride} />;
 };
 export default QuotaAuditPage;
