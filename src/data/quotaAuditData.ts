@@ -45,8 +45,8 @@ export const cacheQuotaAuditData = (data: QuotaAuditData) => {
 
 const fetchWithTimeout = (url: string, timeoutMs: number) => {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { cache: 'no-store', signal: controller.signal }).finally(() => window.clearTimeout(timeout));
+  const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { cache: 'no-store', signal: controller.signal }).finally(() => globalThis.clearTimeout(timeout));
 };
 
 const compactText = (value: string) =>
