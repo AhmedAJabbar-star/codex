@@ -52,9 +52,11 @@ export function useLiveSystems(systemIds: string[]) {
       emptyRooms: data.emptyRooms,
       lectureTypeAudit: data.lectureTypeAudit,
       assignmentsAudit: data.assignmentsAudit,
+      quotaAudit: data.quota,
     };
     const headersMap: Record<string, string[]> = {
       assignmentsAudit: data.assignmentsAuditHeaders,
+      quotaAudit: data.quotaHeaders,
     };
     const result: SystemConfig[] = [];
     systemIds.forEach((id) => {

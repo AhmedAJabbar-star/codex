@@ -8468,4 +8468,22 @@ export const SYSTEMS: SystemConfig[] = [
     rows: individualAssignmentRows,
     requiredFilters: ['الفصل الدراسي', 'اسم التدريسي'],
   },
+  {
+    id: 'quotaAudit',
+    title: 'تدقيق استيفاء النصاب',
+    appTitle: 'تدقيق استيفاء النصاب',
+    universityLine: 'كلية الهندسة المدنية - الجامعة التكنولوجية',
+    hint: 'نظام مختص لعرض ملخص لساعات الاستاذ الاسبوعية وتوضيح استيفاء النصاب حسب نوع التعيين. حدّد الفصل الدراسي لعرض البيانات.',
+    icon: '⚖️',
+    headers: [],
+    filters: [
+      { label: 'الفصل الدراسي', key: 'الفصل الدراسي', control: 'select' },
+      { label: 'القسم', key: 'القسم', control: 'select' },
+      { label: 'نوع التعيين', key: 'نوع التعيين', control: 'select' },
+      { label: 'تدقيق استيفاء النصاب حسب نوع التعيين', key: 'تدقيق استيفاء النصاب حسب نوع التعيين', control: 'select' },
+      { label: 'اسم التدريسي', key: 'اسم التدريسي', control: 'combo' },
+    ],
+    rows: [],
+    requiredFilters: ['الفصل الدراسي'],
+  },
 ];

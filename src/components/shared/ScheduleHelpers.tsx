@@ -22,7 +22,7 @@ export function parseTimeToMinutes(timeStr: string): number | null {
 }
 
 /* ───── Official Print helper (Unified University Schedule) ───── */
-export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string) {
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[]) {
   const w = window.open('', '_blank');
   if (!w) return;
 
@@ -70,6 +70,13 @@ body{font-family:'Cairo',sans-serif;color:#000;background:#fff}
 .info-band{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0;padding:6px;background:#f7faff;border:1px solid #c5d3e3;border-radius:6px}
 .info-cell{font-size:10px;font-weight:700;color:#333;padding:4px 8px;border-right:3px solid #0f4c81;background:#fff;border-radius:3px}
 .info-cell strong{color:#0f4c81;display:block;font-size:9px;margin-bottom:2px}
+.filters-band{margin:6px 0 4px;padding:8px 10px;background:linear-gradient(180deg,#fff,#eef4fc);border:1.5px solid #0f4c81;border-radius:8px;position:relative}
+.filters-band-title{position:absolute;top:-9px;right:14px;background:#0f4c81;color:#fff;font-size:9.5px;font-weight:800;padding:2px 10px;border-radius:4px;letter-spacing:.4px}
+.filters-band-grid{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:4px}
+.filter-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c5d3e3;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:700;color:#222}
+.chip-label{color:#0f4c81;font-weight:800}
+.chip-label::after{content:" :"}
+.chip-value{color:#000}
 table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:6px;table-layout:auto}
 th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;white-space:nowrap;line-height:1.2}
 td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;word-break:break-word}
@@ -111,6 +118,14 @@ tr.odd{background:#fff}
   <div class="info-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
   <div class="info-cell"><strong>عدد السجلات</strong>${rows.length}</div>
 </div>
+
+${(filtersInfo && filtersInfo.length > 0) ? `
+<div class="filters-band">
+  <div class="filters-band-title">معايير التصفية المطبّقة</div>
+  <div class="filters-band-grid">
+    ${filtersInfo.map(f => `<div class="filter-chip"><span class="chip-label">${f.label}</span><span class="chip-value">${f.value}</span></div>`).join('')}
+  </div>
+</div>` : ''}
 
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>

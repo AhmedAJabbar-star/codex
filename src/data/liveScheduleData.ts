@@ -15,6 +15,7 @@ export const SHEET_GIDS = {
   report: '587741649',           // Schedulereport
   hours: '1878774467',           // الساعات
   assignmentsAudit: '1416068353', // التكليفات
+  quota: '457825033',            // النصاب
 } as const;
 
 // أعمدة يجب استبعادها من تقرير "تدقيق تكليفات القسم"
@@ -258,6 +259,8 @@ export interface LiveScheduleData {
   lectureTypeAudit: ScheduleRow[];
   assignmentsAudit: ScheduleRow[];
   assignmentsAuditHeaders: string[];
+  quota: ScheduleRow[];
+  quotaHeaders: string[];
 }
 
 function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
@@ -273,29 +276,38 @@ function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
     }));
 }
 
-async function fetchAssignmentsAuditSheet(): Promise<{
+async function fetchSheetWithHeaders(gid: string, excluded: string[] = []): Promise<{
   rows: ScheduleRow[];
   headers: string[];
 }> {
-  const response = await fetch(buildCsvUrl(SHEET_GIDS.assignmentsAudit), { cache: 'no-store' });
+  const response = await fetch(buildCsvUrl(gid), { cache: 'no-store' });
   if (!response.ok) {
-    throw new Error(`تعذر جلب بيانات ورقة التكليفات (HTTP ${response.status})`);
+    throw new Error(`تعذر جلب البيانات (HTTP ${response.status})`);
   }
   const csvText = (await response.text()).replace(/^\uFEFF/, '');
   const [headerRow = [], ...dataRows] = parseCsv(csvText);
   const rawHeaders = headerRow.map((h) => compactText(h));
-  const headers = rawHeaders.filter((h) => h && !ASSIGNMENTS_AUDIT_EXCLUDED.includes(h));
+  const headers = rawHeaders.filter((h) => h && !excluded.includes(h));
   const rows = mapRows(rawHeaders, dataRows);
   return { rows, headers };
 }
 
+async function fetchAssignmentsAuditSheet() {
+  return fetchSheetWithHeaders(SHEET_GIDS.assignmentsAudit, ASSIGNMENTS_AUDIT_EXCLUDED);
+}
+
+async function fetchQuotaSheet() {
+  return fetchSheetWithHeaders(SHEET_GIDS.quota);
+}
+
 export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
-  const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData] = await Promise.all([
+  const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData, quotaData] = await Promise.all([
     fetchSheet(SHEET_GIDS.teacher),
     fetchSheet(SHEET_GIDS.student),
     fetchSheet(SHEET_GIDS.report),
     fetchSheet(SHEET_GIDS.hours),
     fetchAssignmentsAuditSheet(),
+    fetchQuotaSheet().catch(() => ({ rows: [] as ScheduleRow[], headers: [] as string[] })),
   ]);
 
   const teacher = postProcessTeacher(teacherRaw);
@@ -313,6 +325,8 @@ export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
     lectureTypeAudit,
     assignmentsAudit: assignmentsAuditData.rows,
     assignmentsAuditHeaders: assignmentsAuditData.headers,
+    quota: quotaData.rows,
+    quotaHeaders: quotaData.headers,
   };
 }
 

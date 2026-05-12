@@ -73,6 +73,15 @@ const systemCards = [
     gradient: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
   },
   {
+    id: 'quotaAudit',
+    title: 'تدقيق استيفاء النصاب',
+    icon: '⚖️',
+    description: 'ملخص ساعات الاستاذ الاسبوعية واستيفاء النصاب حسب نوع التعيين',
+    path: '/quota-audit',
+    color: '#0d9488',
+    gradient: 'linear-gradient(135deg, #0d9488 0%, #115e59 100%)',
+  },
+  {
     id: 'errors',
     title: 'ملخص الأخطاء',
     icon: '⚠️',
@@ -136,6 +145,7 @@ const Dashboard = () => {
       tracking: liveData?.tracking.length,
       emptyRooms: liveData?.emptyRooms.length,
       assignments: assignmentsRows?.length,
+      quotaAudit: liveData?.quota.length,
     };
     if (id === 'audit') {
       return (

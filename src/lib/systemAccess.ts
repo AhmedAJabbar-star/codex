@@ -25,6 +25,7 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'emptyRooms', title: 'القاعات الشاغرة', path: '/empty-rooms' },
   { id: 'assignments', title: 'تكليفات التدريسي', path: '/assignments' },
   { id: 'individualAssignments', title: 'التكليفات الفردية', path: '/individual-assignments' },
+  { id: 'quotaAudit', title: 'تدقيق استيفاء النصاب', path: '/quota-audit' },
   { id: 'errors', title: 'ملخص الأخطاء', path: '/errors' },
   { id: 'charts', title: 'الإحصائيات', path: '/charts' },
 ];
