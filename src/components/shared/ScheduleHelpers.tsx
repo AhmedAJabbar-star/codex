@@ -22,7 +22,7 @@ export function parseTimeToMinutes(timeStr: string): number | null {
 }
 
 /* ───── Official Print helper (Unified University Schedule) ───── */
-export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string, singlePage?: boolean) {
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string) {
   const w = window.open('', '_blank');
   if (!w) return;
 
