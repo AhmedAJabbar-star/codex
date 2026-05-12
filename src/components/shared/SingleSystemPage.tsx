@@ -393,7 +393,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             <div className="flex flex-col items-center gap-2.5 text-center relative">
               {showBackButton && (
                 <div className="absolute top-0 right-0 flex items-center gap-2">
-                  <RefreshButton compact />
+                  <RefreshButton compact onlyKeys={activeSystem === 'quotaAudit' ? [['quota-audit-data']] : undefined} />
                   <button
                     onClick={() => navigate('/')}
                     className="schedule-btn"
@@ -593,7 +593,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               <table className="schedule-table">
                 <thead>
                   <tr>
-                    {system.headers.map(h => <th key={h}>{h}</th>)}
+                    {system.headers.map(h => <th key={h} className={(h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : undefined}>{h}</th>)}
                     {activeSystem === 'emptyRooms' && <th>ملاحظة الحجز</th>}
                   </tr>
                 </thead>
@@ -624,7 +624,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                             else if (val.includes('⚠️')) cellClass = 'schedule-cell-warn';
                             else if (val.includes('❌')) cellClass = 'schedule-cell-danger';
                           }
-                          return <td key={h} className={cellClass}>{val}</td>;
+                          const tdClass = [cellClass, (h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : ''].filter(Boolean).join(' ');
+                          return <td key={h} className={tdClass}>{val}</td>;
                         })}
                         {activeSystem === 'emptyRooms' && (() => {
                           const note = getBookingNote(row['القاعة'], row['اليوم'], row['الفترة الشاغرة من'], row['الفترة الشاغرة الى']);
