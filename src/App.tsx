@@ -5,12 +5,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
-import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
 import { getRuleByPath, syncRulesFromRemote, SYSTEM_ACCESS_RULES_UPDATED_EVENT } from "@/lib/systemAccess";
 
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
 const AuditSystems = lazy(() => import("./pages/AuditSystems"));

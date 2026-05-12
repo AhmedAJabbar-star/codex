@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { SYSTEMS, TIME_OPTIONS_ARABIC, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import type { SystemConfig, ScheduleRow } from '@/data/scheduleData';
+import { TIME_OPTIONS_ARABIC } from '@/data/timeOptions';
 import {
   parseTimeToMinutes, openPrintWindow, openShortReportWindow,
   generateAfterHeaderReport, exportToExcel, exportToPDF,
@@ -50,8 +51,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   const systems = useMemo(() => {
     if (systemsOverride && systemsOverride.length > 0) return systemsOverride;
-    return SYSTEMS.filter(s => systemIds.includes(s.id));
-  }, [systemIds, systemsOverride]);
+    return [];
+  }, [systemsOverride]);
   const system = useMemo(() => systems.find(s => s.id === activeSystem) || systems[0], [activeSystem, systems]);
 
   useEffect(() => {

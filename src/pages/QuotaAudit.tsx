@@ -1,17 +1,81 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import SingleSystemPage from '@/components/shared/SingleSystemPage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
-import { fetchQuotaAuditData } from '@/data/liveScheduleData';
-import { SYSTEMS, type SystemConfig } from '@/data/scheduleData';
+import { fetchQuotaAuditData, type QuotaAuditData } from '@/data/quotaAuditData';
+import type { SystemConfig } from '@/data/scheduleData';
+
+interface CachedLiveQuotaData {
+  quota?: QuotaAuditData['rows'];
+  quotaHeaders?: string[];
+}
 
 const QUOTA_HIDDEN_HEADERS = ['ت', 'اسم التدريسي'];
+const QUOTA_AUDIT_CACHE_KEY = 'quota-audit:last-good-data';
+const QUOTA_AUDIT_SYSTEM: SystemConfig = {
+  id: 'quotaAudit',
+  title: 'تدقيق استيفاء النصاب',
+  appTitle: 'تدقيق استيفاء النصاب',
+  universityLine: 'كلية الهندسة المدنية - الجامعة التكنولوجية',
+  hint: 'نظام مختص لعرض ملخص لساعات الاستاذ الاسبوعية وتوضيح استيفاء النصاب حسب نوع التعيين. حدّد الفصل الدراسي لعرض البيانات.',
+  icon: '⚖️',
+  headers: [],
+  filters: [
+    { label: 'الفصل الدراسي', key: 'الفصل الدراسي', control: 'select' },
+    { label: 'القسم', key: 'القسم', control: 'select' },
+    { label: 'نوع التعيين', key: 'نوع التعيين', control: 'select' },
+    { label: 'تدقيق استيفاء النصاب حسب نوع التعيين', key: 'تدقيق استيفاء النصاب حسب نوع التعيين', control: 'select' },
+    { label: 'اسم التدريسي', key: 'اسم التدريسي', control: 'combo' },
+  ],
+  rows: [],
+  requiredFilters: ['الفصل الدراسي'],
+};
+
+const readCachedQuotaAudit = (): QuotaAuditData | undefined => {
+  try {
+    const raw = window.localStorage.getItem(QUOTA_AUDIT_CACHE_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as QuotaAuditData;
+    if (!Array.isArray(parsed.rows) || !Array.isArray(parsed.headers) || parsed.rows.length === 0) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+};
+
+const cacheQuotaAudit = (data: QuotaAuditData) => {
+  if (!data.rows.length || !data.headers.length) return;
+  try {
+    window.localStorage.setItem(QUOTA_AUDIT_CACHE_KEY, JSON.stringify(data));
+  } catch {
+    // تجاهل امتلاء التخزين المحلي؛ الجلب المباشر يبقى المصدر الأساسي.
+  }
+};
 
 const QuotaAuditPage = () => {
-  const baseSystem = useMemo(() => SYSTEMS.find((system) => system.id === 'quotaAudit'), []);
+  const queryClient = useQueryClient();
+  const initialQuotaData = useMemo<QuotaAuditData | undefined>(() => {
+    const liveData = queryClient.getQueryData<CachedLiveQuotaData>(['live-schedule-data']);
+    if (liveData?.quota?.length) {
+      return { rows: liveData.quota, headers: liveData.quotaHeaders || [] };
+    }
+    return queryClient.getQueryData<QuotaAuditData>(['quota-audit-data']) || readCachedQuotaAudit();
+  }, [queryClient]);
+
   const { data, error, isLoading } = useQuery({
     queryKey: ['quota-audit-data'],
-    queryFn: fetchQuotaAuditData,
+    queryFn: async () => {
+      const freshData = await fetchQuotaAuditData();
+      if (!freshData.rows.length || !freshData.headers.length) {
+        const fallback = queryClient.getQueryData<QuotaAuditData>(['quota-audit-data']) || readCachedQuotaAudit();
+        if (fallback?.rows.length) return fallback;
+        throw new Error('تعذر تحميل بيانات تدقيق النصاب حالياً');
+      }
+      cacheQuotaAudit(freshData);
+      return freshData;
+    },
+    initialData: initialQuotaData,
+    placeholderData: (previousData) => previousData,
     staleTime: 0,
     gcTime: 30 * 60 * 1000,
     refetchOnMount: 'always',
@@ -22,20 +86,16 @@ const QuotaAuditPage = () => {
   });
 
   const systemsOverride = useMemo<SystemConfig[] | undefined>(() => {
-    if (!baseSystem || !data) return undefined;
+    if (!data) return undefined;
     const headers = (data.headers || []).filter((h) => !QUOTA_HIDDEN_HEADERS.includes((h || '').trim()));
-    return [{ ...baseSystem, rows: data.rows, headers: headers.length > 0 ? headers : baseSystem.headers }];
-  }, [baseSystem, data]);
-
-  if (!baseSystem) {
-    return <LiveLoadingShell error={new Error('تعذر تهيئة صفحة تدقيق استيفاء النصاب.')} />;
-  }
+    return [{ ...QUOTA_AUDIT_SYSTEM, rows: data.rows, headers: headers.length > 0 ? headers : QUOTA_AUDIT_SYSTEM.headers }];
+  }, [data]);
 
   if (isLoading && !data) {
     return <LiveLoadingShell />;
   }
 
-  if (error || !systemsOverride) {
+  if (!systemsOverride) {
     return <LiveLoadingShell error={error} />;
   }
 
