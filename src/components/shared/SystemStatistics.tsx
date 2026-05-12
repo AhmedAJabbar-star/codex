@@ -160,16 +160,8 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
 
   if (systemId === 'quotaAudit') {
     const s = stats as any;
-    const colorFor = (k: string) => {
-      if (k.includes('مستوفي') || k.includes('مستوف')) return '#22c55e';
-      if (k.includes('غير') || k.includes('لم')) return '#ef4444';
-      return '#94a3b8';
-    };
-    const iconFor = (k: string) => {
-      if (k.includes('مستوفي') || k.includes('مستوف')) return '✅';
-      if (k.includes('غير') || k.includes('لم')) return '❌';
-      return '⚪';
-    };
+    const colorFor = (k: string) => (k.trim() === 'مستوفي' ? '#22c55e' : '#ef4444');
+    const iconFor = (k: string) => (k.trim() === 'مستوفي' ? '✅' : '❌');
     return (
       <div className="schedule-stats">
         <div className="schedule-stats-header">⚖️ ملخص استيفاء النصاب</div>
