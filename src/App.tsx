@@ -112,13 +112,10 @@ const Loading = () => (
 
 
 const AccessRulesBootstrap = ({ children }: { children: ReactNode }) => {
-  const [ready] = useState(true);
-
   useEffect(() => {
     void syncRulesFromRemote();
   }, []);
 
-  if (!ready) return <Loading />;
   return children;
 };
 
