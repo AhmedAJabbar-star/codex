@@ -112,6 +112,14 @@ tr.odd{background:#fff}
   <div class="info-cell"><strong>عدد السجلات</strong>${rows.length}</div>
 </div>
 
+${(filtersInfo && filtersInfo.length > 0) ? `
+<div class="filters-band">
+  <div class="filters-band-title">معايير التصفية المطبّقة</div>
+  <div class="filters-band-grid">
+    ${filtersInfo.map(f => `<div class="filter-chip"><span class="chip-label">${f.label}</span><span class="chip-value">${f.value}</span></div>`).join('')}
+  </div>
+</div>` : ''}
+
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 
