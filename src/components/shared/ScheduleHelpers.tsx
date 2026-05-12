@@ -21,7 +21,7 @@ export function parseTimeToMinutes(timeStr: string): number | null {
   return h * 60 + m;
 }
 
-/* ───── Print helper ───── */
+/* ───── Official Print helper (Unified University Schedule) ───── */
 export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string, singlePage?: boolean) {
   const w = window.open('', '_blank');
   if (!w) return;
@@ -31,59 +31,116 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   ).join('');
 
   const colCount = headers.length;
-  const fontSize = singlePage ? '7px' : colCount > 12 ? '9px' : colCount > 8 ? '10px' : '11px';
+  const rowCount = rows.length;
+  const baseFont = colCount > 14 ? 7.5 : colCount > 12 ? 8.5 : colCount > 10 ? 9.5 : colCount > 8 ? 10.5 : 11;
+  const rowFactor = rowCount > 40 ? 0.88 : rowCount > 25 ? 0.94 : 1;
+  const fontSize = singlePage ? '7.5px' : `${(baseFont * rowFactor).toFixed(1)}px`;
+  const cellPadV = singlePage ? 2 : rowCount > 30 ? 3 : 5;
+  const cellPadH = colCount > 12 ? 2 : 4;
+  const today = new Date().toLocaleDateString('ar-IQ');
+  const docNumber = `${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`;
+
   const singlePageCSS = singlePage ? `
-    @page{size:landscape;margin:4mm}
+    @page{size:A4 landscape;margin:5mm}
     html,body{height:100vh;overflow:hidden}
-    .print-wrap{max-height:100vh;overflow:hidden}
-    table{font-size:${fontSize} !important}
-    td,th{padding:3px 2px !important}
-  ` : `@page{size:landscape;margin:6mm}`;
+    .page{padding:5mm 6mm}
+  ` : `@page{size:A4 landscape;margin:6mm}`;
 
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:0}
-.print-header{text-align:center;padding:20px 15px 15px;border-bottom:3px double #0f4c81}
-.print-header img{width:80px;height:80px;object-fit:contain;margin-bottom:8px}
-.print-header h1{font-size:18px;color:#0f4c81;margin:0 0 4px;font-weight:900}
-.print-header h2{font-size:22px;color:#000;margin:0;font-weight:900}
-.print-header .subtitle{font-size:12px;color:#555;margin-top:4px}
-table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:12px}
-th{background:#0f4c81;color:#fff;padding:8px 5px;font-weight:800;border:1px solid #0b3558;white-space:nowrap;text-align:center}
-td{padding:6px 5px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle}
+body{font-family:'Cairo',sans-serif;color:#000;background:#fff}
+.page{padding:6mm 8mm;position:relative}
+.page::before{content:"";position:absolute;inset:4mm;border:2px double #0f4c81;border-radius:6px;pointer-events:none;z-index:0}
+.content{position:relative;z-index:1}
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.045);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
+.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:6px 12px;border-bottom:3px double #0f4c81}
+.official-header img{width:78px;height:78px;object-fit:contain;justify-self:center}
+.header-text{text-align:center}
+.header-text .ar1{font-family:'Amiri',serif;font-size:16px;font-weight:700;color:#0f4c81;margin-bottom:2px}
+.header-text .ar2{font-size:13px;font-weight:800;color:#000;margin-bottom:1px}
+.header-text .ar3{font-size:10.5px;font-weight:700;color:#333}
+.header-side{font-size:9.5px;text-align:center;color:#444;line-height:1.5}
+.header-side strong{color:#0f4c81;display:block;margin-bottom:2px;font-size:10.5px}
+.doc-title{margin:10px auto 6px;text-align:center}
+.doc-title h1{font-family:'Amiri',serif;font-size:20px;color:#0f4c81;font-weight:700;letter-spacing:1px;display:inline-block;padding:6px 26px;border-top:2px solid #0f4c81;border-bottom:2px solid #0f4c81}
+.info-band{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0;padding:6px;background:#f7faff;border:1px solid #c5d3e3;border-radius:6px}
+.info-cell{font-size:10px;font-weight:700;color:#333;padding:4px 8px;border-right:3px solid #0f4c81;background:#fff;border-radius:3px}
+.info-cell strong{color:#0f4c81;display:block;font-size:9px;margin-bottom:2px}
+table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:6px;table-layout:auto}
+th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;white-space:nowrap;line-height:1.2}
+td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;word-break:break-word}
 tr.even{background:#f0f6ff}
 tr.odd{background:#fff}
-tr:hover{background:#e3edfa !important}
-.footer{margin-top:18px;border-top:3px double #0f4c81;padding:12px 15px;font-size:11px;line-height:2;color:#333}
-.footer strong{color:#0f4c81}
-.stats-bar{display:flex;gap:12px;justify-content:center;padding:10px 15px;flex-wrap:wrap}
-.stats-bar .stat{background:#f0f6ff;border:1px solid #c5d3e3;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;color:#0f4c81}
+.signatures{margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid}
+.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:6px}
+.sig-label{font-size:10.5px;font-weight:800;color:#0f4c81;margin-bottom:18px}
+.sig-name{font-size:10px;color:#555;border-bottom:1px dotted #888;min-height:14px;padding-bottom:2px;margin-bottom:4px}
+.sig-sub{font-size:9px;color:#555}
+.doc-meta{margin-top:8px;display:flex;justify-content:space-between;font-size:9.5px;color:#555;padding:5px 10px;border-top:1px solid #c5d3e3}
+.doc-meta strong{color:#0f4c81}
+.footer-note{margin-top:6px;font-size:9.5px;color:#444;line-height:1.7;padding:6px 10px}
+.footer-note strong{color:#0f4c81}
 @media print{
   ${singlePageCSS}
   body{padding:0}
   tr,td,th{page-break-inside:avoid}
-  .print-header{border-bottom-color:#000}
-  .footer{border-top-color:#000}
+  .signatures{page-break-inside:avoid}
 }
 </style></head><body>
-<div class="print-wrap">
-<div class="print-header">
-<img src="${universityLogo}" alt="شعار الجامعة"/>
-<h1>كلية الهندسة المدنية - الجامعة التكنولوجية</h1>
-<h2>${title}</h2>
-<div class="subtitle">عدد السجلات: ${rows.length}</div>
+<div class="watermark">الجامعة التكنولوجية</div>
+<div class="page"><div class="content">
+<div class="official-header">
+  <div class="header-side"><strong>جمهورية العراق</strong>وزارة التعليم العالي<br/>والبحث العلمي</div>
+  <div class="header-text">
+    <img src="${universityLogo}" alt="شعار الجامعة"/>
+    <div class="ar1">الجامعة التكنولوجية</div>
+    <div class="ar2">كلية الهندسة المدنية</div>
+    <div class="ar3">قسم تسجيل الجداول الدراسية</div>
+  </div>
+  <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education &amp; Scientific Research<br/>University of Technology</div>
 </div>
-<div class="stats-bar">
-<div class="stat">📊 إجمالي: ${rows.length}</div>
+
+<div class="doc-title"><h1>${title}</h1></div>
+
+<div class="info-band">
+  <div class="info-cell"><strong>تاريخ الإصدار</strong>${today}</div>
+  <div class="info-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
+  <div class="info-cell"><strong>عدد السجلات</strong>${rows.length}</div>
 </div>
+
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
-<div class="footer">${footerHtml}</div>
+
+<div class="signatures">
+  <div class="sig-box">
+    <div class="sig-label">إعداد شعبة التسجيل</div>
+    <div class="sig-name">............................</div>
+    <div class="sig-sub">التوقيع</div>
+  </div>
+  <div class="sig-box">
+    <div class="sig-label">مصادقة مقرر القسم</div>
+    <div class="sig-name">............................</div>
+    <div class="sig-sub">التوقيع &amp; الختم</div>
+  </div>
+  <div class="sig-box">
+    <div class="sig-label">عميد الكلية</div>
+    <div class="sig-name">أ.د. علي مجيد خضير الدهوي</div>
+    <div class="sig-sub">التوقيع &amp; الختم</div>
+  </div>
 </div>
+
+<div class="footer-note">${footerHtml}</div>
+
+<div class="doc-meta">
+  <span><strong>وثيقة رسمية</strong> صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span>
+  <span>صفحة 1 / 1</span>
+</div>
+
+</div></div>
 <script>window.onafterprint=()=>window.close();window.print();<\/script>
 </body></html>`);
   w.document.close();

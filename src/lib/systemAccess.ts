@@ -12,8 +12,12 @@ export type SystemAccessRule = {
   password: string;
 };
 
+export const MANAGER_PASSWORD_ID = '_manager';
+export const DEFAULT_MANAGER_PASSWORD = 'aa';
+
 export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'controlPanel', title: 'لوحة التحكم', path: '/control-panel' },
+  { id: MANAGER_PASSWORD_ID, title: 'كلمة مرور المدير', path: '__manager__' },
   { id: 'teacher', title: 'جدول الأستاذ', path: '/teacher' },
   { id: 'student', title: 'جدول الطالب', path: '/student' },
   { id: 'audit', title: 'أنظمة التدقيق', path: '/audit' },
@@ -42,8 +46,16 @@ type RawRules = Record<string, Partial<SystemAccessRule>>;
 const defaultRule = (systemId?: string): SystemAccessRule => ({
   visible: true,
   protected: systemId === 'controlPanel',
-  password: systemId === 'controlPanel' ? '2021' : '',
+  password:
+    systemId === 'controlPanel' ? '2021'
+    : systemId === MANAGER_PASSWORD_ID ? DEFAULT_MANAGER_PASSWORD
+    : '',
 });
+
+export function getManagerPassword(): string {
+  const r = getRules()[MANAGER_PASSWORD_ID];
+  return (r?.password || DEFAULT_MANAGER_PASSWORD).trim() || DEFAULT_MANAGER_PASSWORD;
+}
 
 const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule> => {
   const out: Record<string, SystemAccessRule> = {};

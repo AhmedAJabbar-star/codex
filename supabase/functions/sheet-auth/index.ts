@@ -3,6 +3,31 @@
 // Sheets used: "users" and "archive" (auto-created if missing).
 // Sessions are signed stateless tokens (survive cold starts; tokens last 7 days max).
 
+const SUPA_URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPA_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || "";
+const DEFAULT_MANAGER_PW = "aa";
+let _managerPwCache: { value: string; expires: number } | null = null;
+
+async function getManagerPassword(): Promise<string> {
+  const now = Date.now();
+  if (_managerPwCache && _managerPwCache.expires > now) return _managerPwCache.value;
+  let value = DEFAULT_MANAGER_PW;
+  try {
+    if (SUPA_URL && SUPA_KEY) {
+      const r = await fetch(`${SUPA_URL}/rest/v1/system_access_rules?id=eq.global&select=rules`, {
+        headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` },
+      });
+      if (r.ok) {
+        const arr = await r.json();
+        const pw = arr?.[0]?.rules?._manager?.password;
+        if (typeof pw === "string" && pw.trim()) value = pw.trim();
+      }
+    }
+  } catch { /* fallback */ }
+  _managerPwCache = { value, expires: now + 30_000 };
+  return value;
+}
+
 const textEncoder = new TextEncoder();
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -591,7 +616,8 @@ Deno.serve(async (req) => {
       const { full_name, password } = body;
       if (!full_name || !password) return json({ error: "البيانات ناقصة" }, 400);
       if (full_name === "__manager__") {
-        if (String(password) !== "aa") return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
+        const expectedMgr = await getManagerPassword();
+        if (String(password) !== expectedMgr) return json({ error: "كلمة مرور المدير غير صحيحة" }, 401);
         const mgr = managerUser();
         const token = await createSession(mgr.id);
         return json({ token, user: publicUser(mgr) });
