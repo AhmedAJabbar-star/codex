@@ -168,16 +168,16 @@ const SystemStatistics = ({ rows, allRows, systemId, onFilterApply, activeStatFi
         <div className="schedule-stats-grid">
           <StatCard label="إجمالي السجلات" value={s.total} icon="📄" color="#2563eb" />
           <StatCard label="عدد التدريسيين" value={s.teachers} icon="👨‍🏫" color="#7c3aed" />
-          <StatCard label="مستوفي للنصاب" value={s.fulfilled} icon="✅" color="#22c55e" />
-          <StatCard label="غير مستوفي" value={s.notFulfilled} icon="❌" color="#ef4444" />
+          <StatCard label="مستوفي للنصاب" value={s.fulfilled} icon="✅" color="#22c55e" active={activeStatFilter === 'مستوفي'} onClick={() => onFilterApply('تدقيق استيفاء النصاب حسب نوع التعيين', activeStatFilter === 'مستوفي' ? '' : 'مستوفي')} />
+          <StatCard label="غير مستوفي" value={s.notFulfilled} icon="❌" color="#ef4444" active={activeStatFilter === 'غير مستوفي'} onClick={() => onFilterApply('تدقيق استيفاء النصاب حسب نوع التعيين', activeStatFilter === 'غير مستوفي' ? '' : 'غير مستوفي')} />
         </div>
         {Object.keys(s.breakdown).length > 0 && (
           <div className="schedule-stats-breakdown">
             {Object.entries(s.breakdown).sort((a: any, b: any) => b[1] - a[1]).map(([key, count]: any) => (
-              <div key={key} className="schedule-stats-tag-interactive" style={{ '--tag-color': colorFor(key) } as React.CSSProperties}>
+              <button key={key} className={`schedule-stats-tag-interactive ${activeStatFilter === key ? 'active' : ''}`} style={{ '--tag-color': colorFor(key) } as React.CSSProperties} onClick={() => onFilterApply('تدقيق استيفاء النصاب حسب نوع التعيين', activeStatFilter === key ? '' : key)}>
                 <span>{iconFor(key)} {key}</span>
                 <strong>{count}</strong>
-              </div>
+              </button>
             ))}
           </div>
         )}

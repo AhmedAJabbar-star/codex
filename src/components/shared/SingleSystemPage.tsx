@@ -141,6 +141,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         else if (statFilter === 'conflict') result = result.filter(r => r['التضارب'] && r['التضارب'] !== '');
       } else if (activeSystem === 'hours') {
         result = result.filter(r => r['التدقيق حسب الاسبوع'] === statFilter);
+      } else if (activeSystem === 'quotaAudit') {
+        const auditKey = 'تدقيق استيفاء النصاب حسب نوع التعيين';
+        if (statFilter === 'غير مستوفي') result = result.filter(r => (r[auditKey] || '').trim() !== 'مستوفي');
+        else result = result.filter(r => (r[auditKey] || '').trim() === statFilter);
       } else if (['teacher', 'student', 'tracking', 'assignments'].includes(activeSystem)) {
         if (statFilter === 'نظري' || statFilter === 'عملي') {
           result = result.filter(r => r['نوع المحاضرة'] === statFilter);
