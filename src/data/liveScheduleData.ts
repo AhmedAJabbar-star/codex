@@ -15,6 +15,7 @@ export const SHEET_GIDS = {
   report: '587741649',           // Schedulereport
   hours: '1878774467',           // الساعات
   assignmentsAudit: '1416068353', // التكليفات
+  quota: '457825033',            // النصاب
 } as const;
 
 // أعمدة يجب استبعادها من تقرير "تدقيق تكليفات القسم"
