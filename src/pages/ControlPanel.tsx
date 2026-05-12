@@ -45,6 +45,21 @@ const ControlPanel = () => {
             <button className="schedule-btn" onClick={() => navigate('/')}>🏠 الرئيسية</button>
           </div>
           <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">إظهار/إخفاء الأنظمة والتحكم بكلمة المرور لكل نظام.</p>
+
+          <div className="border-2 border-[var(--schedule-primary,#0f4c81)] rounded-xl p-4 bg-blue-50/60 mb-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <strong>🛡️ كلمة مرور المدير (التكليفات الفردية)</strong>
+              <span className="text-xs text-[var(--schedule-muted)]">تستخدم لدخول لوحة المدير في صفحة التكليفات الفردية</span>
+            </div>
+            <input
+              className="schedule-select w-full"
+              type="text"
+              placeholder={`الافتراضي: ${DEFAULT_MANAGER_PASSWORD}`}
+              value={managerPw}
+              onChange={(e) => update(MANAGER_PASSWORD_ID, { password: e.target.value, visible: true, protected: false })}
+            />
+          </div>
+
           <div className="space-y-4">
             {systems.map((s) => {
               const r = rules[s.id];
