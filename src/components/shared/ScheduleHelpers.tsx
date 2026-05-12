@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import type { CSSProperties } from 'react';
+import type { SystemConfig, ScheduleRow } from '@/data/scheduleData';
 import { TIME_OPTIONS_ARABIC } from '@/data/timeOptions';
 import universityLogo from '@/assets/university-logo.jpg';
 
@@ -499,7 +499,7 @@ interface StatCardProps {
 export const StatCard = ({ label, value, icon, color, active, onClick }: StatCardProps) => (
   <button
     className={`schedule-stat-card schedule-stat-interactive ${active ? 'schedule-stat-active' : ''}`}
-    style={{ '--stat-color': color } as React.CSSProperties}
+    style={{ '--stat-color': color } as CSSProperties}
     onClick={onClick}
   >
     <span className="schedule-stat-icon">{icon}</span>
