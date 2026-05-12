@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { SYSTEMS, TIME_OPTIONS_ARABIC, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
+import { TIME_OPTIONS_ARABIC } from '@/data/timeOptions';
 import universityLogo from '@/assets/university-logo.jpg';
 
 /* ───── Time parsing helper ───── */
