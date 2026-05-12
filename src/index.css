@@ -472,8 +472,21 @@
   background: linear-gradient(180deg, var(--schedule-thead), color-mix(in srgb, var(--schedule-thead) 84%, transparent));
   border-bottom: 1px solid var(--schedule-border);
   backdrop-filter: blur(10px);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+  min-width: 96px;
   box-shadow: 0 1px 0 rgba(148,163,184,.16);
+}
+
+.schedule-table .schedule-col-notes {
+  min-width: 300px;
+  max-width: 460px;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .schedule-table tbody td {
@@ -484,6 +497,9 @@
   border-bottom: 1px solid rgba(148,163,184,.16);
   vertical-align: middle;
   transition: background .16s ease;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .schedule-table tbody tr:nth-child(even) {
