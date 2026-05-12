@@ -145,6 +145,7 @@ const Dashboard = () => {
       tracking: liveData?.tracking.length,
       emptyRooms: liveData?.emptyRooms.length,
       assignments: assignmentsRows?.length,
+      quotaAudit: liveData?.quota.length,
     };
     if (id === 'audit') {
       return (
