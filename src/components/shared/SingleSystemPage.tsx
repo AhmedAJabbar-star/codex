@@ -293,7 +293,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       return;
     }
     const isSinglePage = activeSystem === 'teacher';
-    openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML, isSinglePage);
+    const dept =
+      filters['القسم الذي تنتمي اليه'] || filters['القسم'] ||
+      filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
+    openPrintWindow(system.appTitle, system.headers, filteredRows, FOOTER_HTML, isSinglePage, dept);
   };
 
   const handleShortReport = () => {
