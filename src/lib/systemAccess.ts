@@ -12,8 +12,12 @@ export type SystemAccessRule = {
   password: string;
 };
 
+export const MANAGER_PASSWORD_ID = '_manager';
+export const DEFAULT_MANAGER_PASSWORD = 'aa';
+
 export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'controlPanel', title: 'لوحة التحكم', path: '/control-panel' },
+  { id: MANAGER_PASSWORD_ID, title: 'كلمة مرور المدير', path: '__manager__' },
   { id: 'teacher', title: 'جدول الأستاذ', path: '/teacher' },
   { id: 'student', title: 'جدول الطالب', path: '/student' },
   { id: 'audit', title: 'أنظمة التدقيق', path: '/audit' },
