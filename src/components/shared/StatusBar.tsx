@@ -51,6 +51,7 @@ const StatusBar = () => {
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['live-schedule-data'], refetchType: 'active' });
     queryClient.invalidateQueries({ queryKey: ['individual-assignments'], refetchType: 'active' });
+    queryClient.invalidateQueries({ queryKey: ['quota-audit-data'], refetchType: 'active' });
   };
 
   return (
