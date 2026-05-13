@@ -58,7 +58,7 @@ const systemCards = [
     id: 'assignments',
     title: 'تكليفات التدريسي',
     icon: '📑',
-    description: 'عرض تكليفات التدريسيين حسب الكلية والقسم',
+    description: 'متابعة المحاضرات حسب اليوم والوقت  -  خاص بلجان متابعة التدريسات وشعب الصيانة والخدمات',
     path: '/assignments',
     color: '#dc2626',
     gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
