@@ -34,7 +34,9 @@ export const LECTURE_TYPE_PLACEHOLDER =
 export type SheetKey = keyof typeof SHEET_GIDS;
 
 function buildCsvUrl(gid: string): string {
-  return `${PUB_BASE}?gid=${gid}&single=true&output=csv`;
+  // معامل زمني لتجاوز التخزين المؤقت في CDN لـ Google (يتغير كل 30 ثانية)
+  const bust = Math.floor(Date.now() / 30000);
+  return `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
 }
 
 /* ----------------------------- CSV parsing ----------------------------- */

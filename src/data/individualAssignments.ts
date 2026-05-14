@@ -107,7 +107,9 @@ function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
 }
 
 export async function fetchIndividualAssignmentRows(): Promise<ScheduleRow[]> {
-  const response = await fetch(INDIVIDUAL_ASSIGNMENTS_CSV_URL, { cache: 'no-store' });
+  // معامل زمني لتجاوز التخزين المؤقت في CDN لـ Google (يتغير كل 30 ثانية)
+  const bust = Math.floor(Date.now() / 30000);
+  const response = await fetch(`${INDIVIDUAL_ASSIGNMENTS_CSV_URL}&_=${bust}`, { cache: 'no-store' });
 
   if (!response.ok) {
     throw new Error('تعذر جلب بيانات تكليفات التدريسي من Google Sheets');
