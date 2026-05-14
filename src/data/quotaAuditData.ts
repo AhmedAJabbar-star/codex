@@ -79,7 +79,8 @@ const parseCsv = (text: string): string[][] => {
 export async function fetchQuotaAuditData(): Promise<QuotaAuditData> {
   const cached = getCachedQuotaAuditData();
   try {
-    const response = await fetchWithTimeout(`${PUB_BASE}?gid=${QUOTA_GID}&single=true&output=csv`, cached ? 2500 : 6000);
+    const bust = Math.floor(Date.now() / 30000);
+    const response = await fetchWithTimeout(`${PUB_BASE}?gid=${QUOTA_GID}&single=true&output=csv&_=${bust}`, cached ? 2500 : 6000);
     if (!response.ok) throw new Error(`تعذر جلب بيانات تدقيق النصاب (HTTP ${response.status})`);
     const [headerRow = [], ...dataRows] = parseCsv((await response.text()).replace(/^\uFEFF/, ''));
     const headers = headerRow.map(compactHeader).filter(Boolean);
