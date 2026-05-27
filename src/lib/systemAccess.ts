@@ -26,6 +26,11 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'assignments', title: 'تكليفات التدريسي', path: '/assignments' },
   { id: 'individualAssignments', title: 'التكليفات الفردية', path: '/individual-assignments' },
   { id: 'quotaAudit', title: 'تدقيق استيفاء النصاب', path: '/quota-audit' },
+  { id: 'supervisionReport', title: 'تقرير الاشراف', path: '/supervision-report' },
+  { id: 'expiredSupervision', title: 'حالات الاشراف المنتهية قبل بدء العام', path: '/expired-supervision' },
+  { id: 'studentsWithoutSupervisor', title: 'طلبة من دون مشرف', path: '/students-without-supervisor' },
+  { id: 'researchPhaseStudents', title: 'طلبة الدراسات العليا في مرحلة البحث', path: '/research-phase-students' },
+  { id: 'supervisionCap', title: 'سقف الاشراف', path: '/supervision-cap' },
   { id: 'errors', title: 'ملخص الأخطاء', path: '/errors' },
   { id: 'charts', title: 'الإحصائيات', path: '/charts' },
 ];
