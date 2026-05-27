@@ -29,6 +29,7 @@ const ResearchPhaseStudents = () => {
         { label: 'اسم الطالب', key: colA, control: 'select' },
       ],
       rows,
+      customSignatures: SUPERVISION_SIGNATURES,
     };
   }, []);
 
