@@ -22,6 +22,11 @@ const ErrorsSummary = lazy(() => import("./pages/ErrorsSummary"));
 const IndividualAssignments = lazy(() => import("./pages/IndividualAssignments"));
 const ControlPanel = lazy(() => import("./pages/ControlPanel"));
 const QuotaAudit = lazy(() => import("./pages/QuotaAudit"));
+const SupervisionReport = lazy(() => import("./pages/SupervisionReport"));
+const ExpiredSupervision = lazy(() => import("./pages/ExpiredSupervision"));
+const StudentsWithoutSupervisor = lazy(() => import("./pages/StudentsWithoutSupervisor"));
+const ResearchPhaseStudents = lazy(() => import("./pages/ResearchPhaseStudents"));
+const SupervisionCap = lazy(() => import("./pages/SupervisionCap"));
 
 const queryClient = new QueryClient();
 
@@ -141,6 +146,11 @@ const App = () => (
             <Route path="/errors" element={<ProtectedRoute><ErrorsSummary /></ProtectedRoute>} />
             <Route path="/individual-assignments" element={<ProtectedRoute><IndividualAssignments /></ProtectedRoute>} />
             <Route path="/quota-audit" element={<ProtectedRoute><QuotaAudit /></ProtectedRoute>} />
+            <Route path="/supervision-report" element={<ProtectedRoute><SupervisionReport /></ProtectedRoute>} />
+            <Route path="/expired-supervision" element={<ProtectedRoute><ExpiredSupervision /></ProtectedRoute>} />
+            <Route path="/students-without-supervisor" element={<ProtectedRoute><StudentsWithoutSupervisor /></ProtectedRoute>} />
+            <Route path="/research-phase-students" element={<ProtectedRoute><ResearchPhaseStudents /></ProtectedRoute>} />
+            <Route path="/supervision-cap" element={<ProtectedRoute><SupervisionCap /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

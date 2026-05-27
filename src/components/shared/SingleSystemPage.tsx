@@ -317,7 +317,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       filters['القسم الذي تنتمي اليه'] || filters['القسم'] ||
       filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
     const filtersInfo = activeFilterInfo.map(({ label, value }) => ({ label, value }));
-    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo);
+    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo, system.customSignatures);
   };
 
   const handleShortReport = () => {
@@ -441,6 +441,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           )}
 
           {/* Filters */}
+          {system.filters.length > 0 && (
           <div className="schedule-filters" style={{
             gridTemplateColumns: system.filters.length > 4
               ? `repeat(${Math.min(system.filters.length, 4)}, minmax(160px, 1fr))`
@@ -548,6 +549,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               </div>
             ))}
           </div>
+          )}
 
           {/* Toolbar */}
           <div className="schedule-toolbar">

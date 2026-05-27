@@ -23,7 +23,7 @@ export function parseTimeToMinutes(timeStr: string): number | null {
 }
 
 /* ───── Official Print helper (Unified University Schedule) ───── */
-export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[]) {
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[]) {
   const w = window.open('', '_blank');
   if (!w) return;
 
@@ -146,22 +146,16 @@ ${(filtersInfo && filtersInfo.length > 0) ? `
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 
-<div class="signatures">
+<div class="signatures" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
+  ${(customSignatures && customSignatures.length > 0
+    ? customSignatures
+    : [{ label: 'مقرر القسم' }, { label: 'رئيس القسم' }, { label: 'مصادقة العميد' }]
+  ).map((s) => `
   <div class="sig-box">
-    <div class="sig-label">مقرر القسم</div>
-    <div class="sig-name">............................</div>
+    <div class="sig-label">${s.label}</div>
+    <div class="sig-name">${s.name || '............................'}</div>
     <div class="sig-sub">التوقيع &amp; الختم</div>
-  </div>
-  <div class="sig-box">
-    <div class="sig-label">رئيس القسم</div>
-    <div class="sig-name">............................</div>
-    <div class="sig-sub">التوقيع &amp; الختم</div>
-  </div>
-  <div class="sig-box">
-    <div class="sig-label">مصادقة العميد</div>
-    <div class="sig-name">............................</div>
-    <div class="sig-sub">التوقيع &amp; الختم</div>
-  </div>
+  </div>`).join('')}
 </div>
 
 <div class="doc-meta">
