@@ -29,6 +29,7 @@ export interface SystemConfig {
     endKey: string;
     mode?: 'overlap' | 'containment';
   };
+  customSignatures?: { label: string; name?: string }[];
 }
 
 const teacherRows: ScheduleRow[] = [
