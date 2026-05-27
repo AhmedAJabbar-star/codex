@@ -4,6 +4,12 @@ import { POSTGRADUATE_GID } from '@/data/supervisionData';
 import type { SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig } from '@/data/scheduleData';
 
+const SUPERVISION_SIGNATURES = [
+  { label: 'مدير الدراسات العليا' },
+  { label: 'معاون العميد للشؤون العلمية والدراسات العليا' },
+  { label: 'مصادقة العميد' },
+];
+
 const StudentsWithoutSupervisor = () => {
   const build = useCallback((sheet: SheetFetchResult): SystemConfig => {
     const { headers } = slice(sheet, 0, 3); // A..D
