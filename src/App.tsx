@@ -22,6 +22,11 @@ const ErrorsSummary = lazy(() => import("./pages/ErrorsSummary"));
 const IndividualAssignments = lazy(() => import("./pages/IndividualAssignments"));
 const ControlPanel = lazy(() => import("./pages/ControlPanel"));
 const QuotaAudit = lazy(() => import("./pages/QuotaAudit"));
+const SupervisionReport = lazy(() => import("./pages/SupervisionReport"));
+const ExpiredSupervision = lazy(() => import("./pages/ExpiredSupervision"));
+const StudentsWithoutSupervisor = lazy(() => import("./pages/StudentsWithoutSupervisor"));
+const ResearchPhaseStudents = lazy(() => import("./pages/ResearchPhaseStudents"));
+const SupervisionCap = lazy(() => import("./pages/SupervisionCap"));
 
 const queryClient = new QueryClient();
 
