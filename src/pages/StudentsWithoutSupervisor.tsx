@@ -33,6 +33,7 @@ const StudentsWithoutSupervisor = () => {
       headers,
       filters: [],
       rows,
+      customSignatures: SUPERVISION_SIGNATURES,
     };
   }, []);
 
