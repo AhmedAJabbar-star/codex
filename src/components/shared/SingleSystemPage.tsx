@@ -441,6 +441,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           )}
 
           {/* Filters */}
+          {system.filters.length > 0 && (
           <div className="schedule-filters" style={{
             gridTemplateColumns: system.filters.length > 4
               ? `repeat(${Math.min(system.filters.length, 4)}, minmax(160px, 1fr))`
@@ -548,6 +549,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               </div>
             ))}
           </div>
+          )}
 
           {/* Toolbar */}
           <div className="schedule-toolbar">
