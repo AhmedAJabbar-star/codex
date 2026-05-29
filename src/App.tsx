@@ -31,6 +31,7 @@ const Projects = lazy(() => import("./pages/Projects"));
 const FourthStageStudents = lazy(() => import("./pages/FourthStageStudents"));
 const ProjectsAssignmentsAudit = lazy(() => import("./pages/ProjectsAssignmentsAudit"));
 const SystemGroupPage = lazy(() => import("./pages/SystemGroup"));
+const AuditSingle = lazy(() => import("./pages/AuditSingle"));
 
 const queryClient = new QueryClient();
 
