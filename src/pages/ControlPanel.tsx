@@ -217,8 +217,11 @@ const ControlPanel = () => {
                       })}
                     </div>
                   </div>
-                  <div className="mt-3 flex justify-end">
-                    <button className="schedule-btn" onClick={() => deleteGroup(g.id)} style={{ minHeight: 32, padding: '4px 12px', color: '#b91c1c' }}>
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <button className="schedule-btn schedule-btn-primary" disabled={saving} onClick={() => saveGroup(g.id)} style={{ minHeight: 32, padding: '4px 14px' }}>
+                      💾 حفظ المجموعة
+                    </button>
+                    <button className="schedule-btn" disabled={saving} onClick={() => deleteGroup(g.id)} style={{ minHeight: 32, padding: '4px 12px', color: '#b91c1c' }}>
                       🗑️ حذف المجموعة
                     </button>
                   </div>
