@@ -6,7 +6,7 @@ import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
 import { useEffect, useState } from 'react';
-import { getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote } from '@/lib/systemAccess';
+import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 
 const systemCards = [
   {
@@ -127,6 +127,42 @@ const systemCards = [
     gradient: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
   },
   {
+    id: 'supervisionCap',
+    title: 'سقف الاشراف',
+    icon: '📐',
+    description: 'حالات تجاوز سقف الاشراف الاعتيادي والاستثنائي وإحصائيات الاشراف',
+    path: '/supervision-cap',
+    color: '#7c3aed',
+    gradient: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+  },
+  {
+    id: 'projects',
+    title: 'المشاريع',
+    icon: '📁',
+    description: 'التدريسيون المكلفون بالاشراف على مشاريع طلبة المرحلة الرابعة',
+    path: '/projects',
+    color: '#0891b2',
+    gradient: 'linear-gradient(135deg, #0891b2 0%, #155e75 100%)',
+  },
+  {
+    id: 'fourthStageStudents',
+    title: 'طلبة المرحلة الرابعة',
+    icon: '🎓',
+    description: 'الطلبة الذين يفترض تكليفهم بمشاريع التخرج مع أسماء المشرفين',
+    path: '/fourth-stage-students',
+    color: '#16a34a',
+    gradient: 'linear-gradient(135deg, #16a34a 0%, #166534 100%)',
+  },
+  {
+    id: 'projectsAssignmentsAudit',
+    title: 'تدقيق تكليفات المشاريع',
+    icon: '⚠️',
+    description: 'حالات تكليفات مشاريع التخرج التي تحتوي على مخالفات',
+    path: '/projects-assignments-audit',
+    color: '#dc2626',
+    gradient: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+  },
+  {
     id: 'errors',
     title: 'ملخص الأخطاء',
     icon: '⚠️',
@@ -157,6 +193,7 @@ const systemCards = [
 
 const Dashboard = () => {
   const [rules, setRules] = useState(() => getRules());
+  const [groups, setGroups] = useState<SystemGroup[]>(() => getGroups());
   const navigate = useNavigate();
   const { data: liveData } = useLiveScheduleData();
   const { data: assignmentsRows } = useQuery({
@@ -172,9 +209,9 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    void syncRulesFromRemote().then(setRules);
+    void syncRulesFromRemote().then((r) => { setRules(r); setGroups(getGroups()); });
 
-    const refreshRules = () => setRules(getRules());
+    const refreshRules = () => { setRules(getRules()); setGroups(getGroups()); };
     window.addEventListener('storage', refreshRules);
     window.addEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
     return () => {
