@@ -6,6 +6,8 @@ const PUB_BASE =
 export const SUPERVISION_GID = '567847712';
 export const POSTGRADUATE_GID = '345813260';
 export const CHECK_GID = '997769481';
+export const PROJECT_GID = '2145658694';
+export const STUDENTS_GID = '1210995176';
 
 function buildCsvUrl(gid: string): string {
   const bust = Math.floor(Date.now() / 30000);

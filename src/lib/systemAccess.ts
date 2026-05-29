@@ -12,8 +12,18 @@ export type SystemAccessRule = {
   password: string;
 };
 
+export type SystemGroup = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  color: string;
+  systemIds: string[];
+};
+
 export const MANAGER_PASSWORD_ID = '_manager';
 export const DEFAULT_MANAGER_PASSWORD = 'aa';
+export const GROUPS_KEY = '__groups';
 
 export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'controlPanel', title: 'لوحة التحكم', path: '/control-panel' },
@@ -31,6 +41,9 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'studentsWithoutSupervisor', title: 'طلبة من دون مشرف', path: '/students-without-supervisor' },
   { id: 'researchPhaseStudents', title: 'طلبة الدراسات العليا في مرحلة البحث', path: '/research-phase-students' },
   { id: 'supervisionCap', title: 'سقف الاشراف', path: '/supervision-cap' },
+  { id: 'projects', title: 'المشاريع', path: '/projects' },
+  { id: 'fourthStageStudents', title: 'طلبة المرحلة الرابعة', path: '/fourth-stage-students' },
+  { id: 'projectsAssignmentsAudit', title: 'تدقيق تكليفات المشاريع', path: '/projects-assignments-audit' },
   { id: 'errors', title: 'ملخص الأخطاء', path: '/errors' },
   { id: 'charts', title: 'الإحصائيات', path: '/charts' },
 ];
@@ -47,7 +60,7 @@ const isRemoteRulesTableMissing = (error: unknown) => {
   return e?.status === 404 || e?.code === 'PGRST205' || /system_access_rules/i.test(msg) && /not\s+found|does not exist|could not find/i.test(msg);
 };
 
-type RawRules = Record<string, Partial<SystemAccessRule>>;
+type RawRules = Record<string, unknown>;
 
 const defaultRule = (systemId?: string): SystemAccessRule => ({
   visible: true,
@@ -66,7 +79,7 @@ export function getManagerPassword(): string {
 const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule> => {
   const out: Record<string, SystemAccessRule> = {};
   SYSTEMS_REGISTRY.forEach((s) => {
-    const r = parsed?.[s.id] || {};
+    const r = (parsed?.[s.id] as Partial<SystemAccessRule>) || {};
     const fallback = defaultRule(s.id);
     out[s.id] = {
       visible: typeof r.visible === 'boolean' ? r.visible : fallback.visible,
@@ -77,17 +90,33 @@ const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule>
   return out;
 };
 
-export function getRules(): Record<string, SystemAccessRule> {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return normalizeRules();
-  }
+const normalizeGroups = (parsed: RawRules = {}): SystemGroup[] => {
+  const raw = parsed?.[GROUPS_KEY];
+  if (!Array.isArray(raw)) return [];
+  return raw.map((g: any, i: number) => ({
+    id: String(g?.id || `group-${i}`),
+    title: String(g?.title || `مجموعة ${i + 1}`),
+    description: String(g?.description || ''),
+    icon: String(g?.icon || '📦'),
+    color: String(g?.color || '#475569'),
+    systemIds: Array.isArray(g?.systemIds) ? g.systemIds.map(String) : [],
+  })).filter(g => g.systemIds.length > 0);
+};
 
+export function getRules(): Record<string, SystemAccessRule> {
+  if (typeof window === 'undefined' || !window.localStorage) return normalizeRules();
   try {
     const raw = localStorage.getItem(KEY);
     return normalizeRules(raw ? JSON.parse(raw) : {});
-  } catch {
-    return normalizeRules();
-  }
+  } catch { return normalizeRules(); }
+}
+
+export function getGroups(): SystemGroup[] {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  try {
+    const raw = localStorage.getItem(KEY);
+    return normalizeGroups(raw ? JSON.parse(raw) : {});
+  } catch { return []; }
 }
 
 export async function syncRulesFromRemote(): Promise<Record<string, SystemAccessRule>> {
@@ -105,15 +134,20 @@ export async function syncRulesFromRemote(): Promise<Record<string, SystemAccess
   }
   if (!data?.rules) return getRules();
 
-  const normalized = normalizeRules(data.rules as RawRules);
-  localStorage.setItem(KEY, JSON.stringify(normalized));
+  const parsed = data.rules as RawRules;
+  const normalized = normalizeRules(parsed);
+  const groups = normalizeGroups(parsed);
+  const toStore: RawRules = { ...normalized, [GROUPS_KEY]: groups };
+  localStorage.setItem(KEY, JSON.stringify(toStore));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
   return normalized;
 }
 
-export async function setRules(rules: Record<string, SystemAccessRule>, password: string) {
+export async function setRules(rules: Record<string, SystemAccessRule>, password: string, groups?: SystemGroup[]) {
+  const groupList = groups ?? getGroups();
+  const payload: RawRules = { ...rules, [GROUPS_KEY]: groupList };
   const { data, error } = await supabase.functions.invoke('system-rules', {
-    body: { password, rules },
+    body: { password, rules: payload },
   });
   if (error) {
     const ctx: any = (error as any).context;
@@ -129,7 +163,7 @@ export async function setRules(rules: Record<string, SystemAccessRule>, password
   }
   if ((data as any)?.error) throw new Error((data as any).error);
 
-  localStorage.setItem(KEY, JSON.stringify(rules));
+  localStorage.setItem(KEY, JSON.stringify(payload));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
 }
 
@@ -144,4 +178,8 @@ export function getRuleByPath(pathname: string): SystemAccessRule | null {
   const m = SYSTEMS_REGISTRY.find((s) => normalizePath(s.path) === normalizedPath);
   if (!m) return null;
   return getRules()[m.id] || defaultRule(m.id);
+}
+
+export function getGroupById(id: string): SystemGroup | null {
+  return getGroups().find(g => g.id === id) || null;
 }

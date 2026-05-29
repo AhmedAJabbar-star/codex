@@ -6,7 +6,7 @@ import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
 import { useEffect, useState } from 'react';
-import { getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote } from '@/lib/systemAccess';
+import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 
 const systemCards = [
   {
@@ -127,6 +127,42 @@ const systemCards = [
     gradient: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
   },
   {
+    id: 'supervisionCap',
+    title: 'سقف الاشراف',
+    icon: '📐',
+    description: 'حالات تجاوز سقف الاشراف الاعتيادي والاستثنائي وإحصائيات الاشراف',
+    path: '/supervision-cap',
+    color: '#7c3aed',
+    gradient: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+  },
+  {
+    id: 'projects',
+    title: 'المشاريع',
+    icon: '📁',
+    description: 'التدريسيون المكلفون بالاشراف على مشاريع طلبة المرحلة الرابعة',
+    path: '/projects',
+    color: '#0891b2',
+    gradient: 'linear-gradient(135deg, #0891b2 0%, #155e75 100%)',
+  },
+  {
+    id: 'fourthStageStudents',
+    title: 'طلبة المرحلة الرابعة',
+    icon: '🎓',
+    description: 'الطلبة الذين يفترض تكليفهم بمشاريع التخرج مع أسماء المشرفين',
+    path: '/fourth-stage-students',
+    color: '#16a34a',
+    gradient: 'linear-gradient(135deg, #16a34a 0%, #166534 100%)',
+  },
+  {
+    id: 'projectsAssignmentsAudit',
+    title: 'تدقيق تكليفات المشاريع',
+    icon: '⚠️',
+    description: 'حالات تكليفات مشاريع التخرج التي تحتوي على مخالفات',
+    path: '/projects-assignments-audit',
+    color: '#dc2626',
+    gradient: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+  },
+  {
     id: 'errors',
     title: 'ملخص الأخطاء',
     icon: '⚠️',
@@ -157,6 +193,7 @@ const systemCards = [
 
 const Dashboard = () => {
   const [rules, setRules] = useState(() => getRules());
+  const [groups, setGroups] = useState<SystemGroup[]>(() => getGroups());
   const navigate = useNavigate();
   const { data: liveData } = useLiveScheduleData();
   const { data: assignmentsRows } = useQuery({
@@ -172,9 +209,9 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    void syncRulesFromRemote().then(setRules);
+    void syncRulesFromRemote().then((r) => { setRules(r); setGroups(getGroups()); });
 
-    const refreshRules = () => setRules(getRules());
+    const refreshRules = () => { setRules(getRules()); setGroups(getGroups()); };
     window.addEventListener('storage', refreshRules);
     window.addEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
     return () => {
@@ -222,7 +259,13 @@ const Dashboard = () => {
     return sys?.rows.length || 0;
   };
 
-  const visibleCards = systemCards.filter((c) => c.id === 'controlPanel' || rules[c.id]?.visible !== false);
+  const groupedSystemIds = new Set<string>(groups.flatMap(g => g.systemIds));
+  const visibleCards = systemCards.filter(
+    (c) => (c.id === 'controlPanel' || rules[c.id]?.visible !== false) && !groupedSystemIds.has(c.id),
+  );
+
+  const groupRowCount = (g: SystemGroup) =>
+    g.systemIds.reduce((sum, id) => sum + (getSystemRowCount(id) || 0), 0);
 
   return (
     <div className="schedule-body" dir="rtl">
@@ -252,6 +295,41 @@ const Dashboard = () => {
 
           {/* System Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6">
+            {groups.map(group => {
+              const count = groupRowCount(group);
+              const gradient = `linear-gradient(135deg, ${group.color} 0%, ${group.color}cc 100%)`;
+              return (
+                <button
+                  key={`group-${group.id}`}
+                  onClick={() => navigate(`/group/${group.id}`)}
+                  className="group relative overflow-hidden rounded-2xl border-2 border-[var(--schedule-border)] p-6 text-right transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+                  style={{ background: 'var(--schedule-card-bg)' }}
+                >
+                  <div className="absolute top-0 right-0 w-1.5 h-full rounded-l-full" style={{ background: gradient }} />
+                  <div className="absolute top-2 left-2 text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: `${group.color}20`, color: group.color }}>
+                    📦 مجموعة · {group.systemIds.length}
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="text-4xl flex-shrink-0 w-14 h-14 rounded-2xl grid place-items-center" style={{ background: `${group.color}15` }}>
+                      {group.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-black text-[var(--schedule-text)] mb-1 group-hover:text-[var(--schedule-accent-blue)] transition-colors">
+                        {group.title}
+                      </h3>
+                      <p className="text-sm font-semibold text-[var(--schedule-muted)] leading-relaxed">
+                        {group.description || 'مجموعة أنظمة'}
+                      </p>
+                      {count > 0 && (
+                        <div className="mt-3 inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black" style={{ background: `${group.color}12`, color: group.color }}>
+                          📊 {count.toLocaleString('ar-SA')} سجل
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
             {visibleCards.map(card => {
               const count = getSystemRowCount(card.id);
               return (

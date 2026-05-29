@@ -1,15 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote, MANAGER_PASSWORD_ID, DEFAULT_MANAGER_PASSWORD, type SystemAccessRule } from '@/lib/systemAccess';
+import {
+  SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote,
+  getGroups, MANAGER_PASSWORD_ID, DEFAULT_MANAGER_PASSWORD,
+  type SystemAccessRule, type SystemGroup,
+} from '@/lib/systemAccess';
+
+const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖'];
+const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207'];
+
+const newId = () => `g-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
 
 const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
+  const [groups, setGroupsState] = useState<SystemGroup[]>(() => getGroups());
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    void syncRulesFromRemote().then((remoteRules) => setLocalRules(remoteRules));
+    void syncRulesFromRemote().then((remoteRules) => {
+      setLocalRules(remoteRules);
+      setGroupsState(getGroups());
+    });
   }, []);
 
   const systems = useMemo(
@@ -17,20 +30,50 @@ const ControlPanel = () => {
     [],
   );
   const managerPw = rules[MANAGER_PASSWORD_ID]?.password ?? DEFAULT_MANAGER_PASSWORD;
+  const cpRule = rules.controlPanel || { visible: true, protected: true, password: '2021' };
 
   const update = (id: string, patch: Partial<SystemAccessRule>) => {
     setLocalRules((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   };
 
+  const addGroup = () => {
+    setGroupsState((prev) => [
+      ...prev,
+      { id: newId(), title: 'مجموعة جديدة', description: '', icon: '📦', color: '#475569', systemIds: [] },
+    ]);
+  };
+
+  const updateGroup = (id: string, patch: Partial<SystemGroup>) => {
+    setGroupsState((prev) => prev.map(g => g.id === id ? { ...g, ...patch } : g));
+  };
+
+  const deleteGroup = (id: string) => {
+    if (!confirm('حذف هذه المجموعة؟')) return;
+    setGroupsState((prev) => prev.filter(g => g.id !== id));
+  };
+
+  const toggleSystemInGroup = (groupId: string, sysId: string) => {
+    setGroupsState((prev) => prev.map(g => {
+      if (g.id !== groupId) return g;
+      const has = g.systemIds.includes(sysId);
+      return { ...g, systemIds: has ? g.systemIds.filter(x => x !== sysId) : [...g.systemIds, sysId] };
+    }));
+  };
+
   const save = async () => {
-    const password = window.prompt('أدخل كلمة مرور لوحة التحكم لتأكيد الحفظ:');
+    const password = window.prompt('أدخل كلمة مرور لوحة التحكم الحالية لتأكيد الحفظ:');
     if (password === null) return;
+    // Validate groups
+    const cleaned = groups
+      .map(g => ({ ...g, title: g.title.trim() || 'بدون اسم', systemIds: g.systemIds.filter(Boolean) }))
+      .filter(g => g.systemIds.length > 0);
     setSaving(true);
     try {
-      await setRules(rules, password);
-      toast.success('تم حفظ إعدادات لوحة التحكم بنجاح وتطبيقها على جميع المستخدمين');
+      await setRules(rules, password, cleaned);
+      setGroupsState(cleaned);
+      toast.success('تم حفظ الإعدادات بنجاح');
     } catch (error) {
-      toast.error((error as Error).message || 'فشل حفظ الإعدادات على الخادم');
+      toast.error((error as Error).message || 'فشل حفظ الإعدادات');
     } finally {
       setSaving(false);
     }
@@ -44,8 +87,25 @@ const ControlPanel = () => {
             <h1 className="text-2xl font-black">لوحة التحكم</h1>
             <button className="schedule-btn" onClick={() => navigate('/')}>🏠 الرئيسية</button>
           </div>
-          <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">إظهار/إخفاء الأنظمة والتحكم بكلمة المرور لكل نظام.</p>
+          <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">إظهار/إخفاء الأنظمة، التحكم بكلمات المرور، وتجميع الأنظمة في مجموعات.</p>
 
+          {/* Control panel password */}
+          <div className="border-2 border-amber-400 rounded-xl p-4 bg-amber-50/60 mb-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <strong>🔐 كلمة مرور لوحة التحكم</strong>
+              <span className="text-xs text-[var(--schedule-muted)]">تستخدم للدخول إلى لوحة التحكم وتأكيد الحفظ</span>
+            </div>
+            <input
+              className="schedule-select w-full"
+              type="text"
+              placeholder="كلمة المرور"
+              value={cpRule.password}
+              onChange={(e) => update('controlPanel', { password: e.target.value, visible: true, protected: true })}
+            />
+            <p className="text-xs text-[var(--schedule-muted)] mt-2">⚠️ سيتم طلب كلمة المرور الحالية عند الحفظ.</p>
+          </div>
+
+          {/* Manager password */}
           <div className="border-2 border-[var(--schedule-primary,#0f4c81)] rounded-xl p-4 bg-blue-50/60 mb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
               <strong>🛡️ كلمة مرور المدير (التكليفات الفردية)</strong>
@@ -60,6 +120,88 @@ const ControlPanel = () => {
             />
           </div>
 
+          {/* Groups manager */}
+          <div className="border-2 border-purple-300 rounded-xl p-4 bg-purple-50/40 mb-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <strong>📦 مجموعات الأنظمة</strong>
+              <button className="schedule-btn schedule-btn-primary" onClick={addGroup} style={{ minHeight: 36, padding: '6px 14px' }}>
+                ➕ إضافة مجموعة
+              </button>
+            </div>
+            <p className="text-xs text-[var(--schedule-muted)] mb-3">
+              عند إنشاء مجموعة وإضافة أنظمة إليها، ستظهر في الصفحة الرئيسية كبطاقة واحدة بدل البطاقات المنفردة (مثل أنظمة التدقيق).
+            </p>
+
+            {groups.length === 0 && (
+              <div className="text-center py-6 text-sm text-[var(--schedule-muted)] font-bold">لا توجد مجموعات حالياً</div>
+            )}
+
+            <div className="space-y-4">
+              {groups.map(g => (
+                <div key={g.id} className="border rounded-xl p-4 bg-white">
+                  <div className="grid md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="schedule-filter-label mb-1">اسم المجموعة</label>
+                      <input className="schedule-select w-full" type="text" value={g.title} onChange={e => updateGroup(g.id, { title: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="schedule-filter-label mb-1">الوصف</label>
+                      <input className="schedule-select w-full" type="text" value={g.description} onChange={e => updateGroup(g.id, { description: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="schedule-filter-label mb-1">الأيقونة</label>
+                      <div className="flex flex-wrap gap-1">
+                        {PRESET_ICONS.map(ic => (
+                          <button key={ic} onClick={() => updateGroup(g.id, { icon: ic })}
+                            className="w-10 h-10 rounded-lg border text-xl"
+                            style={{
+                              borderColor: g.icon === ic ? g.color : 'var(--schedule-border)',
+                              background: g.icon === ic ? `${g.color}20` : 'white',
+                            }}
+                          >{ic}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="schedule-filter-label mb-1">اللون</label>
+                      <div className="flex flex-wrap gap-1">
+                        {PRESET_COLORS.map(c => (
+                          <button key={c} onClick={() => updateGroup(g.id, { color: c })}
+                            className="w-8 h-8 rounded-full border-2"
+                            style={{ background: c, borderColor: g.color === c ? '#111' : 'transparent' }}
+                            title={c}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="schedule-filter-label mb-1">الأنظمة المضمنة ({g.systemIds.length})</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-auto p-2 border rounded-lg bg-slate-50/60">
+                      {systems.map(s => {
+                        const checked = g.systemIds.includes(s.id);
+                        return (
+                          <label key={s.id} className="flex items-center gap-2 text-xs font-bold cursor-pointer p-1.5 rounded hover:bg-white">
+                            <input type="checkbox" checked={checked} onChange={() => toggleSystemInGroup(g.id, s.id)} />
+                            <span className="truncate">{s.title}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <button className="schedule-btn" onClick={() => deleteGroup(g.id)} style={{ minHeight: 32, padding: '4px 12px', color: '#b91c1c' }}>
+                      🗑️ حذف المجموعة
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Per-system visibility/passwords */}
           <div className="space-y-4">
             {systems.map((s) => {
               const r = rules[s.id];
@@ -89,7 +231,9 @@ const ControlPanel = () => {
             })}
           </div>
           <div className="mt-5">
-            <button className="schedule-btn schedule-btn-primary" onClick={save} disabled={saving}>{saving ? '⏳ جاري الحفظ...' : '💾 حفظ الإعدادات'}</button>
+            <button className="schedule-btn schedule-btn-primary" onClick={save} disabled={saving}>
+              {saving ? '⏳ جاري الحفظ...' : '💾 حفظ الإعدادات'}
+            </button>
           </div>
         </div>
       </div>
