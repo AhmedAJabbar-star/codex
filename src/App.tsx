@@ -144,6 +144,10 @@ const App = () => (
             <Route path="/teacher" element={<ProtectedRoute><TeacherSchedule /></ProtectedRoute>} />
             <Route path="/student" element={<ProtectedRoute><StudentSchedule /></ProtectedRoute>} />
             <Route path="/audit" element={<ProtectedRoute><AuditSystems /></ProtectedRoute>} />
+            <Route path="/audit-report" element={<ProtectedRoute><AuditSingle systemId="report" title="تدقيق الجدول الدراسي" /></ProtectedRoute>} />
+            <Route path="/audit-hours" element={<ProtectedRoute><AuditSingle systemId="hours" title="تدقيق الساعات الدراسية" /></ProtectedRoute>} />
+            <Route path="/audit-lecture-type" element={<ProtectedRoute><AuditSingle systemId="lectureTypeAudit" title="تدقيق نوع المحاضرة" /></ProtectedRoute>} />
+            <Route path="/audit-assignments" element={<ProtectedRoute><AuditSingle systemId="assignmentsAudit" title="تدقيق تكليفات القسم" /></ProtectedRoute>} />
             <Route path="/tracking" element={<ProtectedRoute><Tracking /></ProtectedRoute>} />
             <Route path="/empty-rooms" element={<ProtectedRoute><EmptyRooms /></ProtectedRoute>} />
             <Route path="/assignments" element={<ProtectedRoute><Assignments /></ProtectedRoute>} />
