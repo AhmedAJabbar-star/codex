@@ -14,22 +14,28 @@ const ProjectsAssignmentsAudit = () => {
   const build = useCallback((sheet: SheetFetchResult): SystemConfig => {
     const allHeaders = sheet.headers;
     const colI = allHeaders[8] || 'I';
-    const visibleHeaders = allHeaders.slice(0, 8); // A..H
+    const visibleHeaders = allHeaders.slice(0, 9); // A..I
 
-    // Keep only rows where column I != "سليم"
+    const isSafe = (v: string) => {
+      const t = (v || '').replace(/\s+/g, '').trim();
+      return t === 'سليم' || t === '';
+    };
+
+    // Keep only rows where column I is not empty and not "سليم"
     const filteredRows = sheet.rows
-      .filter(r => (r[colI] || '').trim() !== '' && (r[colI] || '').trim() !== 'سليم')
+      .filter(r => !isSafe(r[colI] || ''))
       .map(r => {
         const out: Record<string, string> = {};
         visibleHeaders.forEach(h => { out[h] = r[h] || ''; });
-        // expose column I as a synthetic header for the violations filter
-        out['__violation'] = (r[colI] || '').trim();
+        out[colI] = (r[colI] || '').trim();
         return out;
       });
 
     const deptKey = visibleHeaders[4] || 'E';
     const studyKey = visibleHeaders[3] || 'D';
-    const violationOptions = [...new Set(filteredRows.map(r => r['__violation']).filter(Boolean))].sort();
+    const violationOptions = [...new Set(
+      filteredRows.map(r => r[colI]).filter(v => v && !isSafe(v))
+    )].sort();
 
     return {
       id: 'projectsAssignmentsAudit',
