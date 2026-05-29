@@ -18,7 +18,7 @@ const ProjectsAssignmentsAudit = () => {
 
     const isSafe = (v: string) => {
       const t = (v || '').replace(/\s+/g, '').trim();
-      return t === 'سليم' || t === '';
+      return t === '' || t.includes('سليم');
     };
 
     // Keep only rows where column I is not empty and not "سليم"
