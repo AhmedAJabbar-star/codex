@@ -48,7 +48,7 @@ const ProjectsAssignmentsAudit = () => {
       filters: [
         { label: 'القسم', key: deptKey, control: 'select' },
         { label: 'الدراسة', key: studyKey, control: 'select' },
-        { label: 'المخالفات', key: '__violation', control: 'select', fixedOptions: violationOptions },
+        { label: 'المخالفات', key: colI, control: 'select', fixedOptions: violationOptions },
       ],
       rows: filteredRows,
       customSignatures: PROJECT_SIGNATURES,
