@@ -41,15 +41,53 @@ const ControlPanel = () => {
       ...prev,
       { id: newId(), title: 'مجموعة جديدة', description: '', icon: '📦', color: '#475569', systemIds: [] },
     ]);
+    toast.info('تمت إضافة مجموعة جديدة. حدد الأنظمة ثم اضغط "حفظ المجموعة".');
   };
 
   const updateGroup = (id: string, patch: Partial<SystemGroup>) => {
     setGroupsState((prev) => prev.map(g => g.id === id ? { ...g, ...patch } : g));
   };
 
-  const deleteGroup = (id: string) => {
-    if (!confirm('حذف هذه المجموعة؟')) return;
-    setGroupsState((prev) => prev.filter(g => g.id !== id));
+  const persistAll = async (nextGroups: SystemGroup[], successMsg: string): Promise<boolean> => {
+    const password = window.prompt('أدخل كلمة مرور لوحة التحكم لتأكيد العملية:');
+    if (password === null) return false;
+    setSaving(true);
+    try {
+      await setRules(rules, password, nextGroups);
+      setGroupsState(nextGroups);
+      toast.success(successMsg);
+      return true;
+    } catch (error) {
+      toast.error((error as Error).message || 'فشل حفظ الإعدادات');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveGroup = async (id: string) => {
+    const g = groups.find(x => x.id === id);
+    if (!g) return;
+    if (!g.title.trim()) { toast.error('يرجى إدخال اسم المجموعة'); return; }
+    if (g.systemIds.length === 0) { toast.error('حدد نظاماً واحداً على الأقل قبل الحفظ'); return; }
+    const cleaned = groups
+      .map(x => ({ ...x, title: x.title.trim() || 'بدون اسم' }))
+      .filter(x => x.systemIds.length > 0);
+    await persistAll(cleaned, 'تم حفظ المجموعة وستظهر في الواجهة الرئيسية');
+  };
+
+  const deleteGroup = async (id: string) => {
+    const g = groups.find(x => x.id === id);
+    if (!g) return;
+    if (!confirm(`حذف المجموعة "${g.title}"؟ ستعود أنظمتها للظهور بشكل منفرد في الواجهة الرئيسية.`)) return;
+    // If the group was never saved (empty), remove locally without server roundtrip.
+    if (g.systemIds.length === 0) {
+      setGroupsState(prev => prev.filter(x => x.id !== id));
+      toast.success('تم حذف المجموعة');
+      return;
+    }
+    const next = groups.filter(x => x.id !== id);
+    await persistAll(next, 'تم حذف المجموعة وأعيدت أنظمتها للواجهة');
   };
 
   const toggleSystemInGroup = (groupId: string, sysId: string) => {
@@ -61,22 +99,10 @@ const ControlPanel = () => {
   };
 
   const save = async () => {
-    const password = window.prompt('أدخل كلمة مرور لوحة التحكم الحالية لتأكيد الحفظ:');
-    if (password === null) return;
-    // Validate groups
     const cleaned = groups
       .map(g => ({ ...g, title: g.title.trim() || 'بدون اسم', systemIds: g.systemIds.filter(Boolean) }))
       .filter(g => g.systemIds.length > 0);
-    setSaving(true);
-    try {
-      await setRules(rules, password, cleaned);
-      setGroupsState(cleaned);
-      toast.success('تم حفظ الإعدادات بنجاح');
-    } catch (error) {
-      toast.error((error as Error).message || 'فشل حفظ الإعدادات');
-    } finally {
-      setSaving(false);
-    }
+    await persistAll(cleaned, 'تم حفظ الإعدادات بنجاح');
   };
 
   return (
