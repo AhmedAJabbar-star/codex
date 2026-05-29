@@ -154,15 +154,6 @@ const systemCards = [
     gradient: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
   },
   {
-    id: 'supervisionCap',
-    title: 'سقف الاشراف',
-    icon: '📐',
-    description: 'حالات تجاوز سقف الاشراف الاعتيادي والاستثنائي وإحصائيات الاشراف',
-    path: '/supervision-cap',
-    color: '#7c3aed',
-    gradient: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-  },
-  {
     id: 'projects',
     title: 'المشاريع',
     icon: '📁',
