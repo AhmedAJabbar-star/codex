@@ -264,6 +264,10 @@ const Dashboard = () => {
         (liveData?.assignmentsAudit.length || 0)
       );
     }
+    if (id === 'auditReport') return liveData?.report.length || 0;
+    if (id === 'auditHours') return liveData?.hours.length || 0;
+    if (id === 'auditLectureType') return liveData?.lectureTypeAudit.length || 0;
+    if (id === 'auditAssignments') return liveData?.assignmentsAudit.length || 0;
     if (id === 'errors') {
       if (!liveData) return 0;
       const isInvalid = (v: string) => {
