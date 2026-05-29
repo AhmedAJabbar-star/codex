@@ -27,6 +27,10 @@ const ExpiredSupervision = lazy(() => import("./pages/ExpiredSupervision"));
 const StudentsWithoutSupervisor = lazy(() => import("./pages/StudentsWithoutSupervisor"));
 const ResearchPhaseStudents = lazy(() => import("./pages/ResearchPhaseStudents"));
 const SupervisionCap = lazy(() => import("./pages/SupervisionCap"));
+const Projects = lazy(() => import("./pages/Projects"));
+const FourthStageStudents = lazy(() => import("./pages/FourthStageStudents"));
+const ProjectsAssignmentsAudit = lazy(() => import("./pages/ProjectsAssignmentsAudit"));
+const SystemGroupPage = lazy(() => import("./pages/SystemGroup"));
 
 const queryClient = new QueryClient();
 
@@ -151,6 +155,10 @@ const App = () => (
             <Route path="/students-without-supervisor" element={<ProtectedRoute><StudentsWithoutSupervisor /></ProtectedRoute>} />
             <Route path="/research-phase-students" element={<ProtectedRoute><ResearchPhaseStudents /></ProtectedRoute>} />
             <Route path="/supervision-cap" element={<ProtectedRoute><SupervisionCap /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+            <Route path="/fourth-stage-students" element={<ProtectedRoute><FourthStageStudents /></ProtectedRoute>} />
+            <Route path="/projects-assignments-audit" element={<ProtectedRoute><ProjectsAssignmentsAudit /></ProtectedRoute>} />
+            <Route path="/group/:groupId" element={<SystemGroupPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
