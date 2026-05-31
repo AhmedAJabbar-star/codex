@@ -32,7 +32,12 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
 
   // Build filters: prefer filters_config when provided; fall back to filter_columns
   const builtFilters: SystemConfig['filters'] = [];
-  type RuleFilter = { synthKey: string; column: string; rules: NonNullable<import('@/data/customSystemsRegistry').FilterConfigItem['rules']> };
+  type RuleFilter = {
+    synthKey: string;
+    column: string;
+    rules: NonNullable<import('@/data/customSystemsRegistry').FilterConfigItem['rules']>;
+    includeValues: boolean;
+  };
   const ruleFilters: RuleFilter[] = [];
   const configList = (def.filters_config && def.filters_config.length > 0)
     ? def.filters_config
@@ -47,15 +52,26 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     const outKey = visibleIdx >= 0 ? displayHeaders[visibleIdx] : realKey;
 
     if (Array.isArray(fc.rules) && fc.rules.length > 0) {
-      // Rule-based filter — hidden synthetic column populated per-row, fixed options = rule labels.
+      // Rule-based filter. If include_values is set, mix in the column's individual values too.
       const synthKey = `__rule_${fIdx}_${letter}`;
-      ruleFilters.push({ synthKey, column: letter, rules: fc.rules });
+      const includeValues = !!fc.include_values;
+      ruleFilters.push({ synthKey, column: letter, rules: fc.rules, includeValues });
+      const ruleLabels = fc.rules.map((r: any) => String(r.label || '')).filter(Boolean);
+      let options = ruleLabels;
+      if (includeValues) {
+        const vals = new Set<string>();
+        sheet.rows.forEach((r) => {
+          const cell = r[realKey] || '';
+          cell.split('\n').forEach((t) => { const v = t.trim(); if (v) vals.add(v); });
+        });
+        options = [...ruleLabels, ...Array.from(vals).sort()];
+      }
       builtFilters.push({
         label: displayLabel,
         key: synthKey,
         control: (fc.control || 'select') as any,
-        fixedOptions: fc.rules.map((r: any) => String(r.label || '')).filter(Boolean),
-        matchMode: 'contains',
+        fixedOptions: options,
+        matchMode: 'token',
       } as any);
     } else {
       builtFilters.push({
