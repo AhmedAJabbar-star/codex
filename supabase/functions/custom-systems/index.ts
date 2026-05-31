@@ -265,12 +265,15 @@ Deno.serve(async (req) => {
       const idx = all.findIndex((r) => clean(r.id) === clean(sys.id));
       if (idx >= 0) {
         sys.created_at = clean(all[idx].created_at) || new Date().toISOString();
-        await gapi(`/values/${encodeURIComponent(rangeForRow(idx))}?valueInputOption=RAW`, {
-          method: "PUT", body: JSON.stringify({ values: [systemToRow(sys)] }),
+        const rowVals = await systemToRow(sys);
+        const range = await rangeForRow(idx);
+        await gapi(`/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
+          method: "PUT", body: JSON.stringify({ values: [rowVals] }),
         });
       } else {
+        const rowVals = await systemToRow(sys);
         await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-          method: "POST", body: JSON.stringify({ values: [systemToRow(sys)] }),
+          method: "POST", body: JSON.stringify({ values: [rowVals] }),
         });
       }
       listCache = null;
