@@ -13,12 +13,15 @@ const UnassignedSupervisors = () => {
     const nKey = sheet.headers[13] || 'N';
     const { headers } = slice(sheet, 5, 7); // F..H
 
+    const normalizeAr = (s: string) => s.replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').trim();
     const rows = sheet.rows
       .filter((r) => {
-        const e = (r[eKey] || '').trim();
+        const e = normalizeAr(r[eKey] || '');
         const c = (r[cKey] || '').trim();
-        const nNum = parseFloat((r[nKey] || '').replace(/[^\d.\-]/g, ''));
-        return e.includes('استاذ') && c !== 'مجاز' && !isNaN(nNum) && nNum === 0;
+        const nRaw = (r[nKey] || '').trim();
+        const nNum = parseFloat(nRaw.replace(/[^\d.\-]/g, ''));
+        const nIsZero = nRaw === '' || nRaw === '0' || (!isNaN(nNum) && nNum === 0);
+        return e.includes('استاذ') && c !== 'مجاز' && nIsZero;
       })
       .map((r) => {
         const out: Record<string, string> = {};
