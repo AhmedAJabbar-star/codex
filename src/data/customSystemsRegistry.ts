@@ -15,8 +15,10 @@ export interface FilterConfigItem {
   column: string; // Excel letter
   label?: string; // optional override
   control?: 'select' | 'combo' | 'text';
-  /** Optional named rules — replaces raw cell values in the dropdown. */
+  /** Optional named rules — appear in the dropdown as choices. */
   rules?: FilterRule[];
+  /** When true (and rules exist), also include the column's individual values in the dropdown. */
+  include_values?: boolean;
 }
 
 export interface CustomSystemDef {
