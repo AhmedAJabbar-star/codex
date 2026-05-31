@@ -665,6 +665,9 @@ const ScheduleSystem = () => {
         if (f.matchMode === 'contains') {
           return (row[f.key] || '').includes(val);
         }
+        if (f.matchMode === 'token') {
+          return (row[f.key] || '').split('\n').map((t) => t.trim()).includes(val);
+        }
         return row[f.key] === val;
       });
       if (!standardPass) return false;
