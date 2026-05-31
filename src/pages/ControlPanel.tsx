@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote,
   getGroups, MANAGER_PASSWORD_ID, DEFAULT_MANAGER_PASSWORD,
   type SystemAccessRule, type SystemGroup,
 } from '@/lib/systemAccess';
+import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
+import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog';
 
 const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖'];
 const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207'];
@@ -16,7 +19,15 @@ const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
   const [groups, setGroupsState] = useState<SystemGroup[]>(() => getGroups());
   const [saving, setSaving] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [builderInitial, setBuilderInitial] = useState<CustomSystemDef | null>(null);
   const navigate = useNavigate();
+
+  const { data: customSystems = [], refetch: refetchCustom } = useQuery({
+    queryKey: ['custom-systems-list'],
+    queryFn: () => listCustomSystems(),
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     void syncRulesFromRemote().then((remoteRules) => {
@@ -230,6 +241,41 @@ const ControlPanel = () => {
             </div>
           </div>
 
+          {/* Custom Systems Builder */}
+          <div className="border-2 border-cyan-300 rounded-xl p-4 bg-cyan-50/40 mb-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <strong>🧩 منشئ الأنظمة (بدون كود)</strong>
+              <button
+                className="schedule-btn schedule-btn-primary"
+                onClick={() => { setBuilderInitial(null); setBuilderOpen(true); }}
+                style={{ minHeight: 36, padding: '6px 14px' }}
+              >➕ نظام جديد</button>
+            </div>
+            <p className="text-xs text-[var(--schedule-muted)] mb-3">
+              أنشئ نظاماً جديداً بتحديد ورقة المصدر (GID)، أعمدة العرض، فلاتر القوائم، وشروط تصفية الصفوف — يظهر تلقائياً في الواجهة الرئيسية.
+            </p>
+            {customSystems.length === 0 ? (
+              <div className="text-center py-6 text-sm text-[var(--schedule-muted)] font-bold">لا توجد أنظمة مخصّصة بعد</div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-2">
+                {customSystems.map((cs) => (
+                  <button key={cs.id}
+                    onClick={() => { setBuilderInitial(cs); setBuilderOpen(true); }}
+                    className="text-right border rounded-lg p-3 bg-white hover:shadow-md transition flex items-center gap-3"
+                    style={{ borderColor: `${cs.color}66` }}
+                  >
+                    <div className="text-2xl">{cs.icon || '📋'}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-black text-sm truncate">{cs.title}</div>
+                      <div className="text-[11px] text-slate-500 truncate">GID: {cs.sheet_gid} · {cs.columns_range}</div>
+                    </div>
+                    {cs.enabled === false && <span className="text-[10px] font-black text-amber-600">معطّل</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Per-system visibility/passwords */}
           <div className="space-y-4">
             {systems.map((s) => {
@@ -266,6 +312,13 @@ const ControlPanel = () => {
           </div>
         </div>
       </div>
+      {builderOpen && (
+        <SystemBuilderDialog
+          initial={builderInitial}
+          onClose={() => setBuilderOpen(false)}
+          onSaved={() => { void refetchCustom(); }}
+        />
+      )}
     </div>
   );
 };

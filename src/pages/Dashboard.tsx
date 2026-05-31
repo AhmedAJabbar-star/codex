@@ -7,6 +7,7 @@ import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
 import { useEffect, useState } from 'react';
 import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
+import { listCustomSystems, CUSTOM_SYSTEMS_UPDATED_EVENT } from '@/data/customSystemsRegistry';
 
 const systemCards = [
   {
@@ -261,6 +262,15 @@ const Dashboard = () => {
     refetchIntervalInBackground: false,
     retry: 1,
   });
+  const { data: customSystems = [] } = useQuery({
+    queryKey: ['custom-systems-list'],
+    queryFn: () => listCustomSystems(),
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
+    retry: 1,
+  });
 
   useEffect(() => {
     void syncRulesFromRemote().then((r) => { setRules(r); setGroups(getGroups()); });
@@ -318,9 +328,21 @@ const Dashboard = () => {
   };
 
   const groupedSystemIds = new Set<string>(groups.flatMap(g => g.systemIds));
-  const visibleCards = systemCards.filter(
+  const customCards = (customSystems || [])
+    .filter((sys) => sys.enabled !== false)
+    .map((sys) => ({
+      id: `custom_${sys.id}`,
+      title: sys.title,
+      icon: sys.icon || '📋',
+      description: sys.description || '',
+      path: `/custom/${sys.id}`,
+      color: sys.color || '#0891b2',
+      gradient: `linear-gradient(135deg, ${sys.color || '#0891b2'} 0%, ${sys.color || '#0891b2'}cc 100%)`,
+    }));
+  const baseVisibleCards = systemCards.filter(
     (c) => (c.id === 'controlPanel' || rules[c.id]?.visible !== false) && !groupedSystemIds.has(c.id),
   );
+  const visibleCards = [...customCards, ...baseVisibleCards];
 
   const groupRowCount = (g: SystemGroup) =>
     g.systemIds.reduce((sum, id) => sum + (getSystemRowCount(id) || 0), 0);
