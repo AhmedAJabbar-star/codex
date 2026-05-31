@@ -150,13 +150,13 @@ function writeSheetCache(gid: string, rows: ScheduleRow[], headers?: string[]) {
 
 async function fetchTextWithTimeout(url: string, timeoutMs = 12000): Promise<string> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
     if (!response.ok) throw new Error(`تعذر جلب البيانات من Google Sheets (HTTP ${response.status})`);
     return (await response.text()).replace(/^\uFEFF/, '');
   } finally {
-    window.clearTimeout(timeout);
+    globalThis.clearTimeout(timeout);
   }
 }
 
