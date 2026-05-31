@@ -58,6 +58,20 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     patch({ filters_config: filtersCfg.map((f, idx) => idx === i ? { ...f, ...p } : f) });
   const delFilter = (i: number) => patch({ filters_config: filtersCfg.filter((_, idx) => idx !== i) });
 
+  // Per-filter rules helpers
+  const addRule = (fi: number) => {
+    const f = filtersCfg[fi]; const rules = [...(f.rules || []), { label: '', op: 'is_not_empty' as ConditionOp }];
+    updFilter(fi, { rules });
+  };
+  const updRule = (fi: number, ri: number, p: Partial<FilterRule>) => {
+    const f = filtersCfg[fi]; const rules = (f.rules || []).map((r, idx) => idx === ri ? { ...r, ...p } : r);
+    updFilter(fi, { rules });
+  };
+  const delRule = (fi: number, ri: number) => {
+    const f = filtersCfg[fi]; const rules = (f.rules || []).filter((_, idx) => idx !== ri);
+    updFilter(fi, { rules });
+  };
+
   // Signatures
   const sigs: SignatureItem[] = s.signatures || [];
   const addSig = () => patch({ signatures: [...sigs, { label: '', name: '' }] });
