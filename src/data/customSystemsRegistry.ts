@@ -1,11 +1,22 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Condition, DerivedColumn } from '@/lib/conditionEngine';
+import type { Condition, ConditionOp, DerivedColumn } from '@/lib/conditionEngine';
 
 export interface SignatureItem { label: string; name?: string }
+
+/** A named rule attached to a filter. When the user picks it, only rows whose source cell satisfies the rule pass. */
+export interface FilterRule {
+  label: string;
+  op: ConditionOp;
+  value?: string | number;
+  values?: (string | number)[];
+}
+
 export interface FilterConfigItem {
   column: string; // Excel letter
   label?: string; // optional override
   control?: 'select' | 'combo' | 'text';
+  /** Optional named rules — replaces raw cell values in the dropdown. */
+  rules?: FilterRule[];
 }
 
 export interface CustomSystemDef {
@@ -15,14 +26,16 @@ export interface CustomSystemDef {
   icon: string;
   color: string;
   sheet_gid: string;
-  columns_range: string; // supports "A:B,D:J,L"
-  filter_columns: string; // legacy: comma-separated letters
-  filters_config?: FilterConfigItem[]; // optional richer filters
+  columns_range: string;
+  filter_columns: string;
+  filters_config?: FilterConfigItem[];
   conditions: Condition[];
   conditions_logic?: 'AND' | 'OR';
   derived_columns: DerivedColumn[];
-  header_labels?: Record<string, string>; // Excel letter -> custom display label
-  signatures?: SignatureItem[]; // shown in print signatures area
+  header_labels?: Record<string, string>;
+  signatures?: SignatureItem[];
+  /** Position on the home dashboard. Lower = earlier. Default 100. */
+  sort_order?: number;
   protected: boolean;
   password: string;
   hint: string;
@@ -44,6 +57,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   derived_columns: [],
   header_labels: {},
   signatures: [],
+  sort_order: 100,
   protected: false,
   password: '',
   hint: '',
