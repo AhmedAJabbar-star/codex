@@ -29,6 +29,8 @@ const HEADERS = [
   "created_at", "updated_at",
   // v2 additions:
   "filters_config_json", "conditions_logic", "header_labels_json", "signatures_json",
+  // v3 additions:
+  "sort_order",
 ];
 const SHEET_TITLE = "systems_registry";
 
