@@ -20,7 +20,7 @@ export interface SystemConfig {
   hint: string;
   icon: string;
   headers: string[];
-  filters: { label: string; key: string; control: 'select' | 'combo' | 'time' | 'timeSelect' | 'number'; matchMode?: 'contains'; fixedOptions?: string[] }[];
+  filters: { label: string; key: string; control: 'select' | 'combo' | 'time' | 'timeSelect' | 'number'; matchMode?: 'contains' | 'token'; fixedOptions?: string[] }[];
   rows: ScheduleRow[];
   shortReport?: ShortReportConfig;
   requiredFilters?: string[];
