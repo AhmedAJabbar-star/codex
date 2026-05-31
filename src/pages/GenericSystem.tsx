@@ -32,10 +32,12 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
 
   // Build filters: prefer filters_config when provided; fall back to filter_columns
   const builtFilters: SystemConfig['filters'] = [];
+  type RuleFilter = { synthKey: string; column: string; rules: NonNullable<import('@/data/customSystemsRegistry').FilterConfigItem['rules']> };
+  const ruleFilters: RuleFilter[] = [];
   const configList = (def.filters_config && def.filters_config.length > 0)
     ? def.filters_config
     : (def.filter_columns || '').split(/[,\s]+/).filter(Boolean).map((c) => ({ column: c } as any));
-  configList.forEach((fc: any) => {
+  configList.forEach((fc: any, fIdx: number) => {
     const i = colLetterToIndex(fc.column);
     if (i < 0 || !sheet.headers[i]) return;
     const realKey = sheet.headers[i];
@@ -43,11 +45,25 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     const displayLabel = (fc.label && String(fc.label).trim()) || labelMap[letter] || realKey;
     const visibleIdx = sourceHeaders.indexOf(realKey);
     const outKey = visibleIdx >= 0 ? displayHeaders[visibleIdx] : realKey;
-    builtFilters.push({
-      label: displayLabel,
-      key: outKey,
-      control: (fc.control || 'select') as any,
-    } as any);
+
+    if (Array.isArray(fc.rules) && fc.rules.length > 0) {
+      // Rule-based filter — hidden synthetic column populated per-row, fixed options = rule labels.
+      const synthKey = `__rule_${fIdx}_${letter}`;
+      ruleFilters.push({ synthKey, column: letter, rules: fc.rules });
+      builtFilters.push({
+        label: displayLabel,
+        key: synthKey,
+        control: (fc.control || 'select') as any,
+        fixedOptions: fc.rules.map((r: any) => String(r.label || '')).filter(Boolean),
+        matchMode: 'contains',
+      } as any);
+    } else {
+      builtFilters.push({
+        label: displayLabel,
+        key: outKey,
+        control: (fc.control || 'select') as any,
+      } as any);
+    }
   });
 
   (def.derived_columns || []).forEach((d) => {
@@ -73,6 +89,13 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
       const out: Record<string, string> = {};
       sourceHeaders.forEach((real, idx) => { out[displayHeaders[idx]] = row[real] || ''; });
       derivedNames.forEach((dn) => { out[dn] = row[dn] || ''; });
+      // Populate rule-filter synthetic keys (use raw sheet row + headers so evaluateCondition resolves by Excel letter)
+      ruleFilters.forEach((rf) => {
+        const labels = rf.rules
+          .filter((rule) => evaluateCondition({ column: rf.column, op: rule.op, value: rule.value, values: rule.values } as any, r, sheet.headers))
+          .map((rule) => String(rule.label || ''));
+        out[rf.synthKey] = labels.length > 0 ? ` || ${labels.join(' || ')} || ` : '';
+      });
       rows.push(out);
     });
   });

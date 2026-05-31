@@ -1,12 +1,22 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import type { CustomSystemDef, FilterConfigItem, SignatureItem } from '@/data/customSystemsRegistry';
+import type { CustomSystemDef, FilterConfigItem, FilterRule, SignatureItem } from '@/data/customSystemsRegistry';
 import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem } from '@/data/customSystemsRegistry';
 import { OP_LABELS, type Condition, type ConditionOp, parseColumnsRange, colIndexToLetter } from '@/lib/conditionEngine';
-
-const ICONS = ['📋','📊','📚','🗂️','🛡️','🎯','🧭','⚙️','📈','🧪','🎓','📁','🏛️','🧰','🔖','⚠️','🚨','📐','🧑‍🏫','🧑‍🎓'];
 const COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1e40af','#be123c'];
 
+const ICONS = [
+  // Original
+  '📋','📊','📚','🗂️','🛡️','🎯','🧭','⚙️','📈','🧪','🎓','📁','🏛️','🧰','🔖','⚠️','🚨','📐','🧑‍🏫','🧑‍🎓',
+  // HR / People
+  '👥','🧑‍💼','👨‍💼','👩‍💼','🪪','🧾','📇','🕴️','🤝','🧠','🧑‍🔧','🧑‍🏭','🧑‍🚀','🪖','🎖️',
+  // Finance
+  '💰','💵','💴','💳','🏦','🧮','📉','💹','🧾','🪙','💎','🧧',
+  // Academic
+  '📖','📝','✏️','🖋️','🖊️','📜','🏫','🔬','🔭','🧫','🧬','📔','📕','📗','📘','📙',
+  // Office / Admin
+  '📅','📆','🗓️','📌','📍','🔗','📎','🗃️','🗄️','📤','📥','✉️','📨','📧',
+];
 const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','contains_any','eq_number','gt','lt','gte','lte','is_empty','is_not_empty','regex'];
 const NEEDS_VALUE: Record<ConditionOp, boolean> = {
   eq: true, neq: true, contains: true, not_contains: true, contains_any: false,
@@ -47,6 +57,20 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const updFilter = (i: number, p: Partial<FilterConfigItem>) =>
     patch({ filters_config: filtersCfg.map((f, idx) => idx === i ? { ...f, ...p } : f) });
   const delFilter = (i: number) => patch({ filters_config: filtersCfg.filter((_, idx) => idx !== i) });
+
+  // Per-filter rules helpers
+  const addRule = (fi: number) => {
+    const f = filtersCfg[fi]; const rules = [...(f.rules || []), { label: '', op: 'is_not_empty' as ConditionOp }];
+    updFilter(fi, { rules });
+  };
+  const updRule = (fi: number, ri: number, p: Partial<FilterRule>) => {
+    const f = filtersCfg[fi]; const rules = (f.rules || []).map((r, idx) => idx === ri ? { ...r, ...p } : r);
+    updFilter(fi, { rules });
+  };
+  const delRule = (fi: number, ri: number) => {
+    const f = filtersCfg[fi]; const rules = (f.rules || []).filter((_, idx) => idx !== ri);
+    updFilter(fi, { rules });
+  };
 
   // Signatures
   const sigs: SignatureItem[] = s.signatures || [];
@@ -137,6 +161,18 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 <input className="schedule-select w-full" value={s.hint} onChange={(e) => patch({ hint: e.target.value })} />
               </div>
               <div>
+                <label className="block text-sm font-black mb-1">موضع الظهور في الواجهة الرئيسية</label>
+                <input
+                  type="number"
+                  min={1}
+                  className="schedule-select w-full"
+                  value={Number.isFinite(Number(s.sort_order)) ? Number(s.sort_order) : 100}
+                  onChange={(e) => patch({ sort_order: parseInt(e.target.value || '100', 10) || 100 })}
+                  placeholder="مثلاً: 1 = الأول، 25 = البطاقة رقم 25"
+                />
+                <p className="text-xs text-slate-500 mt-1">رقم ترتيب البطاقة بين باقي الأنظمة (الأصغر يظهر أولاً). الافتراضي 100 = نهاية القائمة تقريباً.</p>
+              </div>
+              <div>
                 <label className="block text-sm font-black mb-1">الأيقونة</label>
                 <div className="flex flex-wrap gap-1">
                   {ICONS.map((ic) => (
@@ -206,17 +242,71 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 </>
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {filtersCfg.map((f, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-2 items-center bg-slate-50 p-2 rounded-lg border">
-                    <input className="schedule-select col-span-2" value={f.column} onChange={(e) => updFilter(i, { column: e.target.value.toUpperCase() })} placeholder="G" />
-                    <input className="schedule-select col-span-6" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر (اختياري)" />
-                    <select className="schedule-select col-span-3" value={f.control || 'select'} onChange={(e) => updFilter(i, { control: e.target.value as any })}>
-                      <option value="select">قائمة منسدلة</option>
-                      <option value="combo">قائمة + بحث</option>
-                      <option value="text">نص حر</option>
-                    </select>
-                    <button onClick={() => delFilter(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                  <div key={i} className="bg-slate-50 p-3 rounded-lg border space-y-2">
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <input className="schedule-select col-span-2" value={f.column} onChange={(e) => updFilter(i, { column: e.target.value.toUpperCase() })} placeholder="G" />
+                      <input className="schedule-select col-span-6" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر (اختياري)" />
+                      <select className="schedule-select col-span-3" value={f.control || 'select'} onChange={(e) => updFilter(i, { control: e.target.value as any })}>
+                        <option value="select">قائمة منسدلة</option>
+                        <option value="combo">قائمة + بحث</option>
+                        <option value="text">نص حر</option>
+                      </select>
+                      <button onClick={() => delFilter(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                    </div>
+
+                    <details>
+                      <summary className="cursor-pointer text-xs font-black text-slate-700">
+                        خيارات مخصّصة (قواعد) — {(f.rules || []).length}
+                      </summary>
+                      <div className="mt-2 space-y-2">
+                        <p className="text-[11px] text-slate-500">
+                          عند إضافة قواعد، تتحوّل القائمة المنسدلة لعرض هذه الخيارات بدلاً من قيم الخلية. كل خيار = تسمية + شرط على نفس العمود.
+                          مثال: <code>«لديه منصب»</code> + <code>غير فارغ</code>، أو <code>«يدرّس في الموقع X»</code> + <code>يحتوي على</code> + <code>X</code>.
+                        </p>
+                        {(f.rules || []).map((r, ri) => (
+                          <div key={ri} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border">
+                            <input
+                              className="schedule-select col-span-4"
+                              value={r.label}
+                              onChange={(e) => updRule(i, ri, { label: e.target.value })}
+                              placeholder="تسمية الخيار"
+                            />
+                            <select
+                              className="schedule-select col-span-3"
+                              value={r.op}
+                              onChange={(e) => updRule(i, ri, { op: e.target.value as ConditionOp, value: '', values: [] })}
+                            >
+                              {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
+                            </select>
+                            {r.op === 'contains_any' ? (
+                              <input
+                                className="schedule-select col-span-4"
+                                value={(r.values || []).join(',')}
+                                onChange={(e) => updRule(i, ri, { values: e.target.value.split(',').map((v) => v.trim()).filter(Boolean) })}
+                                placeholder="قيم بفواصل"
+                              />
+                            ) : NEEDS_VALUE[r.op] ? (
+                              <input
+                                className="schedule-select col-span-4"
+                                value={String(r.value ?? '')}
+                                onChange={(e) => updRule(i, ri, { value: e.target.value })}
+                                placeholder="القيمة"
+                              />
+                            ) : (
+                              <div className="col-span-4 text-[11px] text-slate-400 text-center">— لا قيمة —</div>
+                            )}
+                            <button onClick={() => delRule(i, ri)} className="col-span-1 text-red-600 font-black">✕</button>
+                          </div>
+                        ))}
+                        <button
+                          className="schedule-btn"
+                          onClick={() => addRule(i)}
+                          style={{ minHeight: 30, padding: '4px 10px', fontSize: 12 }}
+                        >➕ إضافة خيار</button>
+                      </div>
+                    </details>
                   </div>
                 ))}
               </div>
