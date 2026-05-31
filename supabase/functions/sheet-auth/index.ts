@@ -636,7 +636,9 @@ Deno.serve(async (req) => {
 
     if (action === "me") {
       const u = await getSessionUser(body.token);
-      if (!u) return json({ error: "الجلسة منتهية" }, 401);
+      // Return 200 with user:null when session is missing/expired so the client
+      // can gracefully show the login screen without triggering a runtime error.
+      if (!u) return json({ user: null });
       return json({ user: publicUser(u) });
     }
 
