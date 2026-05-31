@@ -170,24 +170,74 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
               </div>
               <div>
                 <label className="block text-sm font-black mb-1">نطاق الأعمدة المعروضة *</label>
-                <input className="schedule-select w-full" value={s.columns_range} onChange={(e) => patch({ columns_range: e.target.value })} placeholder="مثال: F:N أو F,G,I,K" />
-                <p className="text-xs text-slate-500 mt-1">حروف الأعمدة كما في Excel. يقبل النطاق (F:N) أو القائمة (F,G,I).</p>
+                <input className="schedule-select w-full" value={s.columns_range} onChange={(e) => patch({ columns_range: e.target.value })} placeholder="مثال: A:B,D:J,L أو F,G,I,K" />
+                <p className="text-xs text-slate-500 mt-1">يدعم نطاقات متعددة بفواصل: مثال <code>A:B,D:J,L</code>. الترتيب يحدد ترتيب الأعمدة.</p>
               </div>
+
+              {colLetters.length > 0 && (
+                <div>
+                  <label className="block text-sm font-black mb-2">تسميات الأعمدة (اختياري — استبدال اسم العمود الظاهر)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {colLetters.map((L) => (
+                      <div key={L} className="flex items-center gap-2">
+                        <span className="text-xs font-black w-10 text-center bg-slate-100 rounded py-2">{L}</span>
+                        <input className="schedule-select flex-1" value={labels[L] || ''} onChange={(e) => setLabel(L, e.target.value)} placeholder={`اسم بديل لعمود ${L}`} />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1">اتركه فارغاً للإبقاء على اسم العمود الأصلي من الورقة.</p>
+                </div>
+              )}
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-3">
-              <label className="block text-sm font-black mb-1">أعمدة قوائم الفلترة</label>
-              <input className="schedule-select w-full" value={s.filter_columns} onChange={(e) => patch({ filter_columns: e.target.value })} placeholder="مثال: G,F,E" />
-              <p className="text-xs text-slate-500">حروف الأعمدة مفصولة بفواصل. ترتيب الحروف هو ترتيب ظهور الفلاتر.</p>
+              <div className="flex items-center justify-between">
+                <strong className="text-sm">فلاتر متقدمة (لكل فلتر: عمود + عنوان + نوع التحكم)</strong>
+                <button className="schedule-btn schedule-btn-primary" onClick={addFilter} style={{ minHeight: 32, padding: '4px 10px' }}>➕ فلتر</button>
+              </div>
+
+              {filtersCfg.length === 0 && (
+                <>
+                  <p className="text-xs text-slate-500 text-center py-2">لا توجد فلاتر مفصّلة — يمكنك استخدام الحقل السريع بالأسفل أو إضافة فلاتر.</p>
+                  <label className="block text-sm font-black mb-1">حقل سريع (حروف الأعمدة بفواصل)</label>
+                  <input className="schedule-select w-full" value={s.filter_columns} onChange={(e) => patch({ filter_columns: e.target.value })} placeholder="مثال: G,F,E" />
+                </>
+              )}
+
+              <div className="space-y-2">
+                {filtersCfg.map((f, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center bg-slate-50 p-2 rounded-lg border">
+                    <input className="schedule-select col-span-2" value={f.column} onChange={(e) => updFilter(i, { column: e.target.value.toUpperCase() })} placeholder="G" />
+                    <input className="schedule-select col-span-6" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر (اختياري)" />
+                    <select className="schedule-select col-span-3" value={f.control || 'select'} onChange={(e) => updFilter(i, { control: e.target.value as any })}>
+                      <option value="select">قائمة منسدلة</option>
+                      <option value="combo">قائمة + بحث</option>
+                      <option value="text">نص حر</option>
+                    </select>
+                    <button onClick={() => delFilter(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {step === 4 && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <strong className="text-sm">شروط تصفية الصفوف (AND بينها)</strong>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <strong className="text-sm">شروط تصفية الصفوف</strong>
+                  <select
+                    className="schedule-select"
+                    value={s.conditions_logic || 'AND'}
+                    onChange={(e) => patch({ conditions_logic: e.target.value as 'AND' | 'OR' })}
+                    style={{ minWidth: 120 }}
+                  >
+                    <option value="AND">الكل (AND)</option>
+                    <option value="OR">أي شرط (OR)</option>
+                  </select>
+                </div>
                 <button className="schedule-btn schedule-btn-primary" onClick={addCondition} style={{ minHeight: 32, padding: '4px 10px' }}>➕ شرط</button>
               </div>
               {s.conditions.length === 0 && <p className="text-xs text-slate-500 text-center py-3">لا توجد شروط — سيتم عرض كل الصفوف</p>}
@@ -226,7 +276,22 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
           )}
 
           {step === 5 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <strong className="text-sm">تواقيع الطباعة</strong>
+                  <button className="schedule-btn schedule-btn-primary" onClick={addSig} style={{ minHeight: 32, padding: '4px 10px' }}>➕ توقيع</button>
+                </div>
+                {sigs.length === 0 && <p className="text-xs text-slate-500 text-center py-2">سيتم استخدام التواقيع الافتراضية للنظام.</p>}
+                {sigs.map((sig, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                    <input className="schedule-select col-span-4" value={sig.label} onChange={(e) => updSig(i, { label: e.target.value })} placeholder="الوظيفة (مثال: عميد الكلية)" />
+                    <input className="schedule-select col-span-7" value={sig.name || ''} onChange={(e) => updSig(i, { name: e.target.value })} placeholder="الاسم" />
+                    <button onClick={() => delSig(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                  </div>
+                ))}
+              </div>
+
               <label className="flex items-center gap-2 text-sm font-bold">
                 <input type="checkbox" checked={s.protected} onChange={(e) => patch({ protected: e.target.checked })} />
                 حماية بكلمة سر
