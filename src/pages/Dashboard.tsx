@@ -265,10 +265,10 @@ const Dashboard = () => {
   const { data: customSystems = [] } = useQuery({
     queryKey: ['custom-systems-list'],
     queryFn: () => listCustomSystems(),
-    staleTime: 30_000,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-    refetchInterval: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchInterval: 5 * 60 * 1000,
     retry: 1,
   });
 
