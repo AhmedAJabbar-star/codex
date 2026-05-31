@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchLiveScheduleData, type LiveScheduleData } from '@/data/liveScheduleData';
+import { fetchLiveScheduleData, getCachedLiveScheduleData, type LiveScheduleData } from '@/data/liveScheduleData';
 import { SYSTEMS, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
 import { backgroundSyncTeachers, fetchTeacherList } from '@/lib/teacherAuth';
 
@@ -24,6 +24,8 @@ export function useLiveScheduleData() {
         .catch(() => { /* ignore */ });
       return data;
     },
+    initialData: () => getCachedLiveScheduleData(),
+    placeholderData: (previousData) => previousData,
     staleTime: 0,
     gcTime: 30 * 60 * 1000,
     refetchOnMount: 'always',
