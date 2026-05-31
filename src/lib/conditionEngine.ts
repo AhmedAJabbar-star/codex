@@ -46,20 +46,26 @@ export function colIndexToLetter(index: number): string {
   return s;
 }
 
-/** Parse a range like "F:N" or "F,G,I,K" into array of 0-based indexes */
+/** Parse "F:N", "F,G,I", or mixed "A:B,D:J,L" into array of 0-based indexes (de-duplicated, in order). */
 export function parseColumnsRange(range: string): number[] {
   const r = (range || '').trim();
   if (!r) return [];
-  if (r.includes(':')) {
-    const [a, b] = r.split(':').map((x) => x.trim());
-    const ia = colLetterToIndex(a);
-    const ib = colLetterToIndex(b);
-    if (ia < 0 || ib < 0 || ib < ia) return [];
-    const out: number[] = [];
-    for (let i = ia; i <= ib; i += 1) out.push(i);
-    return out;
-  }
-  return r.split(/[,\s]+/).filter(Boolean).map(colLetterToIndex).filter((x) => x >= 0);
+  const tokens = r.split(/[,\s;]+/).map((t) => t.trim()).filter(Boolean);
+  const out: number[] = [];
+  const seen = new Set<number>();
+  const push = (i: number) => { if (i >= 0 && !seen.has(i)) { seen.add(i); out.push(i); } };
+  tokens.forEach((tok) => {
+    if (tok.includes(':')) {
+      const [a, b] = tok.split(':').map((x) => x.trim());
+      const ia = colLetterToIndex(a);
+      const ib = colLetterToIndex(b);
+      if (ia < 0 || ib < 0 || ib < ia) return;
+      for (let i = ia; i <= ib; i += 1) push(i);
+    } else {
+      push(colLetterToIndex(tok));
+    }
+  });
+  return out;
 }
 
 function normalizeAr(s: string): string {

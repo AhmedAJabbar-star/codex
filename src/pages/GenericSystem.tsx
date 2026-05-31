@@ -8,46 +8,71 @@ import type { SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig } from '@/data/scheduleData';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
-  evaluateAll, applyDerivedColumns,
+  evaluateAll, evaluateCondition, applyDerivedColumns,
 } from '@/lib/conditionEngine';
 
 export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult): SystemConfig {
   const colIdxs = parseColumnsRange(def.columns_range);
-  const visibleHeaders = colIdxs
-    .map((i) => sheet.headers[i])
-    .filter((h): h is string => !!h);
+  const labelMap = def.header_labels || {};
 
-  // derived column names also act as table headers
-  const derivedNames = (def.derived_columns || []).map((d) => d.name);
-  const allHeaders = [...visibleHeaders, ...derivedNames];
-
-  // Build filter list from comma-separated letters
-  const filterLetters = (def.filter_columns || '').split(/[,\s]+/).filter(Boolean);
-  const filters = filterLetters
-    .map((letter) => {
-      const i = colLetterToIndex(letter);
-      if (i < 0 || !sheet.headers[i]) return null;
-      const key = sheet.headers[i];
-      return { label: key, key, control: 'select' as const };
-    })
-    .filter((f): f is { label: string; key: string; control: 'select' } => !!f);
-
-  // Add a synthetic filter for each derived column
-  (def.derived_columns || []).forEach((d) => {
-    const options = Array.from(new Set(Object.values(d.from_columns).map(String)));
-    filters.push({ label: d.name, key: d.name, control: 'select' as any, fixedOptions: options } as any);
+  // Source headers (real names in sheet) and display labels (renamed)
+  const sourceHeaders: string[] = [];
+  const displayHeaders: string[] = [];
+  colIdxs.forEach((i) => {
+    const real = sheet.headers[i];
+    if (!real) return;
+    sourceHeaders.push(real);
+    const letter = colIndexToLetter(i);
+    const override = (labelMap[letter] || labelMap[letter.toLowerCase()] || '').trim();
+    displayHeaders.push(override || real);
   });
 
-  // Apply conditions, then expand derived rows, and project onto visible headers
+  const derivedNames = (def.derived_columns || []).map((d) => d.name);
+  const allHeaders = [...displayHeaders, ...derivedNames];
+
+  // Build filters: prefer filters_config when provided; fall back to filter_columns
+  const builtFilters: SystemConfig['filters'] = [];
+  const configList = (def.filters_config && def.filters_config.length > 0)
+    ? def.filters_config
+    : (def.filter_columns || '').split(/[,\s]+/).filter(Boolean).map((c) => ({ column: c } as any));
+  configList.forEach((fc: any) => {
+    const i = colLetterToIndex(fc.column);
+    if (i < 0 || !sheet.headers[i]) return;
+    const realKey = sheet.headers[i];
+    const letter = (fc.column || '').toUpperCase();
+    const displayLabel = (fc.label && String(fc.label).trim()) || labelMap[letter] || realKey;
+    const visibleIdx = sourceHeaders.indexOf(realKey);
+    const outKey = visibleIdx >= 0 ? displayHeaders[visibleIdx] : realKey;
+    builtFilters.push({
+      label: displayLabel,
+      key: outKey,
+      control: (fc.control || 'select') as any,
+    } as any);
+  });
+
+  (def.derived_columns || []).forEach((d) => {
+    const options = Array.from(new Set(Object.values(d.from_columns).map(String)));
+    builtFilters.push({ label: d.name, key: d.name, control: 'select' as any, fixedOptions: options } as any);
+  });
+
+  // Apply conditions (AND or OR), expand derived rows, and project onto display headers
+  const logic = def.conditions_logic || 'AND';
+  const conds = def.conditions || [];
+  const passes = (r: Record<string, string>) => {
+    if (conds.length === 0) return true;
+    return logic === 'OR'
+      ? conds.some((c) => evaluateCondition(c, r, sheet.headers))
+      : evaluateAll(conds, r, sheet.headers);
+  };
+
   const rows: Record<string, string>[] = [];
   sheet.rows.forEach((r) => {
-    if (!evaluateAll(def.conditions || [], r, sheet.headers)) return;
-    const projected: Record<string, string> = {};
-    visibleHeaders.forEach((h) => { projected[h] = r[h] || ''; });
-    const expanded = applyDerivedColumns(def.derived_columns || [], { ...r, ...projected }, sheet.headers);
+    if (!passes(r)) return;
+    const expanded = applyDerivedColumns(def.derived_columns || [], r, sheet.headers);
     expanded.forEach((row) => {
       const out: Record<string, string> = {};
-      allHeaders.forEach((h) => { out[h] = row[h] || ''; });
+      sourceHeaders.forEach((real, idx) => { out[displayHeaders[idx]] = row[real] || ''; });
+      derivedNames.forEach((dn) => { out[dn] = row[dn] || ''; });
       rows.push(out);
     });
   });
@@ -60,8 +85,9 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     hint: def.hint || def.description || '',
     icon: def.icon || '📋',
     headers: allHeaders,
-    filters,
+    filters: builtFilters,
     rows,
+    customSignatures: (def.signatures && def.signatures.length > 0) ? def.signatures : undefined,
   };
 }
 

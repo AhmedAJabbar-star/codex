@@ -27,6 +27,8 @@ const HEADERS = [
   "conditions_json", "derived_columns_json",
   "protected", "password", "hint", "enabled",
   "created_at", "updated_at",
+  // v2 additions:
+  "filters_config_json", "conditions_logic", "header_labels_json", "signatures_json",
 ];
 const SHEET_TITLE = "systems_registry";
 
@@ -95,31 +97,59 @@ async function ensureSheet() {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
     });
-  } else {
-    const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:Z1`);
-    if (!r.values || r.values.length === 0 || (r.values[0] || []).length === 0) {
-      await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
-        method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
-      });
-    }
+    return;
+  }
+  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:Z1`);
+  const currentRow: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "")) : [];
+  if (currentRow.length === 0) {
+    await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
+      method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
+    });
+    return;
+  }
+  // Extend header row if new columns are missing (preserve order of existing ones).
+  const missing = HEADERS.filter((h) => !currentRow.includes(h));
+  if (missing.length > 0) {
+    const newRow = [...currentRow, ...missing];
+    await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
+      method: "PUT", body: JSON.stringify({ values: [newRow] }),
+    });
   }
 }
 
-function rangeForRow(rowIdx0: number) {
-  // Up to column P (16 columns)
-  const lastCol = String.fromCharCode(64 + HEADERS.length);
+async function rangeForRow(rowIdx0: number) {
+  const order = await getColOrder();
+  const n = order.length || HEADERS.length;
+  // Supports up to column ZZ
+  const toLetter = (idx1: number) => {
+    let n = idx1; let s = "";
+    while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  };
+  const lastCol = toLetter(n);
   return `${SHEET_TITLE}!A${rowIdx0 + 2}:${lastCol}${rowIdx0 + 2}`;
+}
+
+let cachedColOrder: string[] | null = null;
+async function getColOrder(): Promise<string[]> {
+  if (cachedColOrder) return cachedColOrder;
+  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:Z1`);
+  const row: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "").trim()) : HEADERS;
+  cachedColOrder = row.length > 0 ? row : HEADERS;
+  return cachedColOrder;
 }
 
 async function readAll(): Promise<Record<string, string>[]> {
   await ensureSheet();
+  cachedColOrder = null; // re-read after ensureSheet (may have extended)
+  const order = await getColOrder();
   const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A2:Z`);
   const rows = (r.values || []) as string[][];
   return rows
     .filter((row) => row.some((c) => clean(c)))
     .map((row) => {
       const obj: Record<string, string> = {};
-      HEADERS.forEach((h, i) => { obj[h] = (row[i] ?? "").toString(); });
+      order.forEach((h, i) => { obj[h] = (row[i] ?? "").toString(); });
       return obj;
     });
 }
@@ -135,8 +165,12 @@ function rowToSystem(r: Record<string, string>) {
     sheet_gid: clean(r.sheet_gid),
     columns_range: clean(r.columns_range) || "F:N",
     filter_columns: clean(r.filter_columns),
+    filters_config: parseJson(r.filters_config_json || "[]", []),
     conditions: parseJson(r.conditions_json || "[]", []),
+    conditions_logic: (clean(r.conditions_logic) || "AND").toUpperCase() === "OR" ? "OR" : "AND",
     derived_columns: parseJson(r.derived_columns_json || "[]", []),
+    header_labels: parseJson(r.header_labels_json || "{}", {}),
+    signatures: parseJson(r.signatures_json || "[]", []),
     protected: String(r.protected || "").toLowerCase() === "true",
     password: clean(r.password),
     hint: clean(r.hint),
@@ -144,26 +178,32 @@ function rowToSystem(r: Record<string, string>) {
   };
 }
 
-function systemToRow(s: any) {
+async function systemToRow(s: any): Promise<string[]> {
   const now = new Date().toISOString();
-  return [
-    String(s.id || ""),
-    String(s.title || ""),
-    String(s.description || ""),
-    String(s.icon || "📋"),
-    String(s.color || "#0891b2"),
-    String(s.sheet_gid || ""),
-    String(s.columns_range || "F:N"),
-    String(s.filter_columns || ""),
-    JSON.stringify(s.conditions || []),
-    JSON.stringify(s.derived_columns || []),
-    String(!!s.protected),
-    String(s.password || ""),
-    String(s.hint || ""),
-    String(s.enabled === false ? "false" : "true"),
-    String(s.created_at || now),
-    now,
-  ];
+  const order = await getColOrder();
+  const valByCol: Record<string, string> = {
+    id: String(s.id || ""),
+    title: String(s.title || ""),
+    description: String(s.description || ""),
+    icon: String(s.icon || "📋"),
+    color: String(s.color || "#0891b2"),
+    sheet_gid: String(s.sheet_gid || ""),
+    columns_range: String(s.columns_range || "F:N"),
+    filter_columns: String(s.filter_columns || ""),
+    conditions_json: JSON.stringify(s.conditions || []),
+    derived_columns_json: JSON.stringify(s.derived_columns || []),
+    protected: String(!!s.protected),
+    password: String(s.password || ""),
+    hint: String(s.hint || ""),
+    enabled: String(s.enabled === false ? "false" : "true"),
+    created_at: String(s.created_at || now),
+    updated_at: now,
+    filters_config_json: JSON.stringify(s.filters_config || []),
+    conditions_logic: String(s.conditions_logic || "AND").toUpperCase() === "OR" ? "OR" : "AND",
+    header_labels_json: JSON.stringify(s.header_labels || {}),
+    signatures_json: JSON.stringify(s.signatures || []),
+  };
+  return order.map((h) => valByCol[h] ?? "");
 }
 
 async function validatePassword(password: string): Promise<boolean> {
@@ -225,12 +265,15 @@ Deno.serve(async (req) => {
       const idx = all.findIndex((r) => clean(r.id) === clean(sys.id));
       if (idx >= 0) {
         sys.created_at = clean(all[idx].created_at) || new Date().toISOString();
-        await gapi(`/values/${encodeURIComponent(rangeForRow(idx))}?valueInputOption=RAW`, {
-          method: "PUT", body: JSON.stringify({ values: [systemToRow(sys)] }),
+        const rowVals = await systemToRow(sys);
+        const range = await rangeForRow(idx);
+        await gapi(`/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
+          method: "PUT", body: JSON.stringify({ values: [rowVals] }),
         });
       } else {
+        const rowVals = await systemToRow(sys);
         await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-          method: "POST", body: JSON.stringify({ values: [systemToRow(sys)] }),
+          method: "POST", body: JSON.stringify({ values: [rowVals] }),
         });
       }
       listCache = null;
