@@ -185,6 +185,10 @@ function slugify(t: string): string {
   return (s || "system") + "_" + rand;
 }
 
+// In-memory cache for list action to avoid Google Sheets 429 quota errors.
+let listCache: { at: number; payload: any } | null = null;
+const LIST_TTL_MS = 60_000;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -192,8 +196,19 @@ Deno.serve(async (req) => {
     const action = String(body?.action || "list");
 
     if (action === "list") {
-      const all = await readAll();
-      return json({ systems: all.map(rowToSystem) });
+      if (listCache && Date.now() - listCache.at < LIST_TTL_MS) {
+        return json(listCache.payload);
+      }
+      try {
+        const all = await readAll();
+        const payload = { systems: all.map(rowToSystem) };
+        listCache = { at: Date.now(), payload };
+        return json(payload);
+      } catch (e) {
+        // On rate-limit or transient error, serve stale cache if any.
+        if (listCache) return json(listCache.payload);
+        return json({ systems: [], error: (e as Error).message }, 200);
+      }
     }
 
     // Write actions
