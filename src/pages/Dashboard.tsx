@@ -328,8 +328,12 @@ const Dashboard = () => {
   };
 
   const groupedSystemIds = new Set<string>(groups.flatMap(g => g.systemIds));
-  const customCards = (customSystems || [])
+  const baseVisibleCards = systemCards.filter(
+    (c) => (c.id === 'controlPanel' || rules[c.id]?.visible !== false) && !groupedSystemIds.has(c.id),
+  );
+  const customCards = [...(customSystems || [])]
     .filter((sys) => sys.enabled !== false)
+    .sort((a, b) => ((a.sort_order ?? 100) - (b.sort_order ?? 100)))
     .map((sys) => ({
       id: `custom_${sys.id}`,
       title: sys.title,
@@ -338,11 +342,14 @@ const Dashboard = () => {
       path: `/custom/${sys.id}`,
       color: sys.color || '#0891b2',
       gradient: `linear-gradient(135deg, ${sys.color || '#0891b2'} 0%, ${sys.color || '#0891b2'}cc 100%)`,
+      _sortOrder: sys.sort_order ?? 100,
     }));
-  const baseVisibleCards = systemCards.filter(
-    (c) => (c.id === 'controlPanel' || rules[c.id]?.visible !== false) && !groupedSystemIds.has(c.id),
-  );
-  const visibleCards = [...customCards, ...baseVisibleCards];
+  // Insert each custom card at its sort_order position (1-indexed) within the visible list.
+  const visibleCards: any[] = [...baseVisibleCards];
+  customCards.forEach((c) => {
+    const pos = Math.max(1, Math.min(c._sortOrder, visibleCards.length + 1));
+    visibleCards.splice(pos - 1, 0, c);
+  });
 
   const groupRowCount = (g: SystemGroup) =>
     g.systemIds.reduce((sum, id) => sum + (getSystemRowCount(id) || 0), 0);
