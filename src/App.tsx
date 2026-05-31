@@ -119,7 +119,9 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 // Gate for /custom/:id routes — fetches the system def and checks its `protected/password`.
 const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
   const { pathname } = useLocation();
-  const id = pathname.replace(/^\/custom\//, '').replace(/\/$/, '');
+  const rawId = pathname.replace(/^\/custom\//, '').replace(/\/$/, '');
+  let id = rawId;
+  try { id = decodeURIComponent(rawId); } catch { /* keep raw */ }
   const [state, setState] = useState<{ loading: boolean; protected: boolean; password: string; visible: boolean }>(
     { loading: true, protected: false, password: '', visible: true },
   );
