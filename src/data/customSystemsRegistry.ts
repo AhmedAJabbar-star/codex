@@ -1,6 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Condition, DerivedColumn } from '@/lib/conditionEngine';
 
+export interface SignatureItem { label: string; name?: string }
+export interface FilterConfigItem {
+  column: string; // Excel letter
+  label?: string; // optional override
+  control?: 'select' | 'combo' | 'text';
+}
+
 export interface CustomSystemDef {
   id: string;
   title: string;
@@ -8,10 +15,14 @@ export interface CustomSystemDef {
   icon: string;
   color: string;
   sheet_gid: string;
-  columns_range: string;
-  filter_columns: string; // comma-separated letters
+  columns_range: string; // supports "A:B,D:J,L"
+  filter_columns: string; // legacy: comma-separated letters
+  filters_config?: FilterConfigItem[]; // optional richer filters
   conditions: Condition[];
+  conditions_logic?: 'AND' | 'OR';
   derived_columns: DerivedColumn[];
+  header_labels?: Record<string, string>; // Excel letter -> custom display label
+  signatures?: SignatureItem[]; // shown in print signatures area
   protected: boolean;
   password: string;
   hint: string;
@@ -27,8 +38,12 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   sheet_gid: '',
   columns_range: 'F:N',
   filter_columns: '',
+  filters_config: [],
   conditions: [],
+  conditions_logic: 'AND',
   derived_columns: [],
+  header_labels: {},
+  signatures: [],
   protected: false,
   password: '',
   hint: '',
