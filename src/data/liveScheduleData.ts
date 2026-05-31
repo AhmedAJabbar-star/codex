@@ -122,6 +122,29 @@ function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
     });
 }
 
+function isFormulaError(value: string): boolean {
+  const t = (value || '').trim().toUpperCase();
+  return /^#(N\/A|VALUE!|REF!|DIV\/0!|ERROR!|NAME\?|NUM!|NULL!)/.test(t);
+}
+
+function isBadSheet(rows: ScheduleRow[], minRows = 2): boolean {
+  if (rows.length < minRows) return true;
+  const inspected = rows.slice(0, Math.min(rows.length, 5));
+  return inspected.some((row) => Object.values(row).some(isFormulaError));
+}
+
+async function fetchTextWithTimeout(url: string, timeoutMs = 12000): Promise<string> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    if (!response.ok) throw new Error(`تعذر جلب البيانات من Google Sheets (HTTP ${response.status})`);
+    return (await response.text()).replace(/^\uFEFF/, '');
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 async function fetchSheet(gid: string): Promise<ScheduleRow[]> {
   const response = await fetch(buildCsvUrl(gid), { cache: 'no-store' });
   if (!response.ok) {
