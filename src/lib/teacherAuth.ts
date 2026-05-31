@@ -130,7 +130,14 @@ export async function fetchTeacherList(): Promise<string[]> {
  * the assignments sheet to the users sheet. Existing rows (and their passwords)
  * are never modified. Safe to call frequently — runs on the server.
  */
+const BG_SYNC_KEY = 'teacher_bg_sync_at';
+const BG_SYNC_MIN_INTERVAL_MS = 10 * 60 * 1000; // 10 دقائق على الأقل بين عمليات المزامنة لتفادي ضغط Sheets API
 export function backgroundSyncTeachers(): void {
+  try {
+    const last = Number(localStorage.getItem(BG_SYNC_KEY) || '0');
+    if (Date.now() - last < BG_SYNC_MIN_INTERVAL_MS) return;
+    localStorage.setItem(BG_SYNC_KEY, String(Date.now()));
+  } catch { /* ignore */ }
   const connection = getConnectionConfig();
   supabase.functions
     .invoke(FN, { body: { action: 'background-sync', connection } })
