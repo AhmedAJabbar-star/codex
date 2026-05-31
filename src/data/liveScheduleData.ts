@@ -317,6 +317,49 @@ export interface LiveScheduleData {
   quotaHeaders: string[];
 }
 
+function systemRows(id: string): ScheduleRow[] {
+  return SYSTEMS.find((s) => s.id === id)?.rows || [];
+}
+
+function buildBundledLiveScheduleData(): LiveScheduleData {
+  const teacher = postProcessTeacher(systemRows('teacher'));
+  const student = postProcessStudent(systemRows('student'));
+  return {
+    teacher,
+    student,
+    report: systemRows('report'),
+    hours: systemRows('hours'),
+    tracking: student,
+    emptyRooms: generateEmptyRoomsFromStudent(student),
+    lectureTypeAudit: buildLectureTypeAudit(student),
+    assignmentsAudit: systemRows('assignmentsAudit'),
+    assignmentsAuditHeaders: SYSTEMS.find((s) => s.id === 'assignmentsAudit')?.headers || [],
+    quota: systemRows('quotaAudit'),
+    quotaHeaders: SYSTEMS.find((s) => s.id === 'quotaAudit')?.headers || [],
+  };
+}
+
+export function getCachedLiveScheduleData(): LiveScheduleData | undefined {
+  if (liveMemoryCache) return liveMemoryCache;
+  if (typeof window !== 'undefined') {
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(LIVE_CACHE_KEY) || 'null');
+      if (parsed?.teacher?.length && parsed?.student?.length) {
+        liveMemoryCache = parsed;
+        return parsed;
+      }
+    } catch { /* ignore */ }
+  }
+  return buildBundledLiveScheduleData();
+}
+
+function cacheLiveScheduleData(data: LiveScheduleData) {
+  if (!data.teacher.length || !data.student.length) return;
+  liveMemoryCache = data;
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(LIVE_CACHE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+}
+
 function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
   return studentRows
     .filter((r) => {
