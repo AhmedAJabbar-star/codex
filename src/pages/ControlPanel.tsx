@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote,
   getGroups, MANAGER_PASSWORD_ID, DEFAULT_MANAGER_PASSWORD,
   type SystemAccessRule, type SystemGroup,
 } from '@/lib/systemAccess';
+import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
+import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog';
 
 const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖'];
 const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207'];
@@ -16,7 +19,15 @@ const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
   const [groups, setGroupsState] = useState<SystemGroup[]>(() => getGroups());
   const [saving, setSaving] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [builderInitial, setBuilderInitial] = useState<CustomSystemDef | null>(null);
   const navigate = useNavigate();
+
+  const { data: customSystems = [], refetch: refetchCustom } = useQuery({
+    queryKey: ['custom-systems-list'],
+    queryFn: () => listCustomSystems(),
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     void syncRulesFromRemote().then((remoteRules) => {
