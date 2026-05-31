@@ -416,13 +416,14 @@ export async function fetchQuotaAuditData(): Promise<QuotaAuditData> {
 }
 
 export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
+  const bundled = getCachedLiveScheduleData() || buildBundledLiveScheduleData();
   const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData, quotaData] = await Promise.all([
-    fetchSheet(SHEET_GIDS.teacher),
-    fetchSheet(SHEET_GIDS.student),
-    fetchSheet(SHEET_GIDS.report),
-    fetchSheet(SHEET_GIDS.hours),
-    fetchAssignmentsAuditSheet(),
-    fetchQuotaSheet().catch(() => ({ rows: [] as ScheduleRow[], headers: [] as string[] })),
+    fetchSheet(SHEET_GIDS.teacher, bundled.teacher, 100),
+    fetchSheet(SHEET_GIDS.student, bundled.student, 100),
+    fetchSheet(SHEET_GIDS.report, bundled.report, 100),
+    fetchSheet(SHEET_GIDS.hours, bundled.hours, 100),
+    fetchAssignmentsAuditSheet().catch(() => ({ rows: bundled.assignmentsAudit, headers: bundled.assignmentsAuditHeaders })),
+    fetchQuotaSheet().catch(() => ({ rows: bundled.quota, headers: bundled.quotaHeaders })),
   ]);
 
   const teacher = postProcessTeacher(teacherRaw);
@@ -430,7 +431,7 @@ export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
   const emptyRooms = generateEmptyRoomsFromStudent(student);
   const lectureTypeAudit = buildLectureTypeAudit(student);
 
-  return {
+  const data = {
     teacher,
     student,
     report: reportRaw,
@@ -443,10 +444,21 @@ export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
     quota: quotaData.rows,
     quotaHeaders: quotaData.headers,
   };
+  cacheLiveScheduleData(data);
+  return data;
 }
 
 export async function fetchSheetByKey(key: SheetKey): Promise<ScheduleRow[]> {
-  const rows = await fetchSheet(SHEET_GIDS[key]);
+  const bundled = getCachedLiveScheduleData() || buildBundledLiveScheduleData();
+  const fallbackMap: Record<SheetKey, ScheduleRow[]> = {
+    teacher: bundled.teacher,
+    student: bundled.student,
+    report: bundled.report,
+    hours: bundled.hours,
+    assignmentsAudit: bundled.assignmentsAudit,
+    quota: bundled.quota,
+  };
+  const rows = await fetchSheet(SHEET_GIDS[key], fallbackMap[key], 100);
   if (key === 'teacher') return postProcessTeacher(rows);
   if (key === 'student') return postProcessStudent(rows);
   return rows;
