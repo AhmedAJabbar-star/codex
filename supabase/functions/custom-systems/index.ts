@@ -27,6 +27,8 @@ const HEADERS = [
   "conditions_json", "derived_columns_json",
   "protected", "password", "hint", "enabled",
   "created_at", "updated_at",
+  // v2 additions:
+  "filters_config_json", "conditions_logic", "header_labels_json", "signatures_json",
 ];
 const SHEET_TITLE = "systems_registry";
 
