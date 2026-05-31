@@ -117,9 +117,16 @@ async function ensureSheet() {
   }
 }
 
-function rangeForRow(rowIdx0: number) {
-  // Up to column P (16 columns)
-  const lastCol = String.fromCharCode(64 + HEADERS.length);
+async function rangeForRow(rowIdx0: number) {
+  const order = await getColOrder();
+  const n = order.length || HEADERS.length;
+  // Supports up to column ZZ
+  const toLetter = (idx1: number) => {
+    let n = idx1; let s = "";
+    while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  };
+  const lastCol = toLetter(n);
   return `${SHEET_TITLE}!A${rowIdx0 + 2}:${lastCol}${rowIdx0 + 2}`;
 }
 
