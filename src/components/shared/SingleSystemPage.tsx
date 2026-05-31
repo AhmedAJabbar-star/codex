@@ -167,6 +167,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       const val = filters[f.key];
       if (val) {
         if (f.matchMode === 'contains') rows = rows.filter(r => (r[f.key] || '').includes(val));
+        else if (f.matchMode === 'token') rows = rows.filter(r => (r[f.key] || '').split('\n').map((t) => t.trim()).includes(val));
         else rows = rows.filter(r => r[f.key] === val);
       }
     });
