@@ -1,5 +1,6 @@
 import type { ScheduleRow } from '@/data/scheduleData';
 import {
+  SYSTEMS,
   ALL_ROOMS,
   ROOM_CAPACITY,
   TIME_SLOTS,
@@ -33,11 +34,16 @@ export const LECTURE_TYPE_PLACEHOLDER =
 
 export type SheetKey = keyof typeof SHEET_GIDS;
 
-function buildCsvUrl(gid: string): string {
-  // معامل زمني لتجاوز التخزين المؤقت في CDN لـ Google (يتغير كل 30 ثانية)
-  const bust = Math.floor(Date.now() / 30000);
+function buildCsvUrl(gid: string, attempt = 0): string {
+  // معامل فريد بكل طلب حتى لا تبقى نسخة Google المؤقتة العاطلة (#N/A/#VALUE!) ظاهرة 30 ثانية.
+  const bust = Date.now() + attempt;
   return `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
 }
+
+const LIVE_CACHE_KEY = 'live-schedule:last-good-data:v2';
+const SHEET_CACHE_PREFIX = 'live-sheet:last-good:';
+let liveMemoryCache: LiveScheduleData | undefined;
+const sheetMemoryCache = new Map<string, { rows: ScheduleRow[]; headers?: string[] }>();
 
 /* ----------------------------- CSV parsing ----------------------------- */
 
