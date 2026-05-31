@@ -47,6 +47,10 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'projects', title: 'المشاريع', path: '/projects' },
   { id: 'fourthStageStudents', title: 'طلبة المرحلة الرابعة', path: '/fourth-stage-students' },
   { id: 'projectsAssignmentsAudit', title: 'تدقيق تكليفات المشاريع', path: '/projects-assignments-audit' },
+  { id: 'supervisionWorkload', title: 'عبء المشاريع والاشراف', path: '/supervision-workload' },
+  { id: 'projectSupervisionExceeded', title: 'تجاوز الحد الاقصى للاشراف على المشاريع', path: '/project-supervision-exceeded' },
+  { id: 'teachersWithoutTheory', title: 'التدريسيون الذين ليس لديهم ساعات نظرية', path: '/teachers-without-theory' },
+  { id: 'unassignedSupervisors', title: 'التدريسيون غير المكلفين بالاشراف', path: '/unassigned-supervisors' },
   { id: 'errors', title: 'ملخص الأخطاء', path: '/errors' },
   { id: 'charts', title: 'الإحصائيات', path: '/charts' },
 ];

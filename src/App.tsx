@@ -32,6 +32,10 @@ const FourthStageStudents = lazy(() => import("./pages/FourthStageStudents"));
 const ProjectsAssignmentsAudit = lazy(() => import("./pages/ProjectsAssignmentsAudit"));
 const SystemGroupPage = lazy(() => import("./pages/SystemGroup"));
 const AuditSingle = lazy(() => import("./pages/AuditSingle"));
+const SupervisionWorkload = lazy(() => import("./pages/SupervisionWorkload"));
+const ProjectSupervisionExceeded = lazy(() => import("./pages/ProjectSupervisionExceeded"));
+const TeachersWithoutTheory = lazy(() => import("./pages/TeachersWithoutTheory"));
+const UnassignedSupervisors = lazy(() => import("./pages/UnassignedSupervisors"));
 
 const queryClient = new QueryClient();
 
@@ -163,6 +167,10 @@ const App = () => (
             <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
             <Route path="/fourth-stage-students" element={<ProtectedRoute><FourthStageStudents /></ProtectedRoute>} />
             <Route path="/projects-assignments-audit" element={<ProtectedRoute><ProjectsAssignmentsAudit /></ProtectedRoute>} />
+            <Route path="/supervision-workload" element={<ProtectedRoute><SupervisionWorkload /></ProtectedRoute>} />
+            <Route path="/project-supervision-exceeded" element={<ProtectedRoute><ProjectSupervisionExceeded /></ProtectedRoute>} />
+            <Route path="/teachers-without-theory" element={<ProtectedRoute><TeachersWithoutTheory /></ProtectedRoute>} />
+            <Route path="/unassigned-supervisors" element={<ProtectedRoute><UnassignedSupervisors /></ProtectedRoute>} />
             <Route path="/group/:groupId" element={<SystemGroupPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
