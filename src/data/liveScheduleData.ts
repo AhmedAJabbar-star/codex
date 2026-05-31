@@ -145,18 +145,26 @@ async function fetchTextWithTimeout(url: string, timeoutMs = 12000): Promise<str
   }
 }
 
-async function fetchSheet(gid: string): Promise<ScheduleRow[]> {
-  const response = await fetch(buildCsvUrl(gid), { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`تعذر جلب البيانات من Google Sheets (HTTP ${response.status})`);
+async function fetchSheet(gid: string, fallbackRows: ScheduleRow[] = [], minRows = 2): Promise<ScheduleRow[]> {
+  const cached = sheetMemoryCache.get(gid)?.rows || readSheetCache(gid)?.rows || fallbackRows;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const csvText = await fetchTextWithTimeout(buildCsvUrl(gid, attempt));
+      const [headerRow = [], ...dataRows] = parseCsv(csvText);
+      const headers = headerRow.map((h) => compactText(h));
+      if (headers.length === 0) throw new Error('تعذر قراءة ترويسات ورقة Google Sheets');
+      const rows = mapRows(headers, dataRows);
+      if (isBadSheet(rows, minRows)) throw new Error('بيانات Google Sheets غير مكتملة مؤقتاً');
+      writeSheetCache(gid, rows, headers);
+      return rows;
+    } catch (error) {
+      if (attempt === 2) {
+        if (cached.length) return cached;
+        throw error;
+      }
+    }
   }
-  const csvText = (await response.text()).replace(/^\uFEFF/, '');
-  const [headerRow = [], ...dataRows] = parseCsv(csvText);
-  const headers = headerRow.map((h) => compactText(h));
-  if (headers.length === 0) {
-    throw new Error('تعذر قراءة ترويسات ورقة Google Sheets');
-  }
-  return mapRows(headers, dataRows);
+  return cached;
 }
 
 /* ----------------------------- Time helpers ----------------------------- */
