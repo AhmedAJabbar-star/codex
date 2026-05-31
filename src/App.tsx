@@ -36,6 +36,7 @@ const SupervisionWorkload = lazy(() => import("./pages/SupervisionWorkload"));
 const ProjectSupervisionExceeded = lazy(() => import("./pages/ProjectSupervisionExceeded"));
 const TeachersWithoutTheory = lazy(() => import("./pages/TeachersWithoutTheory"));
 const UnassignedSupervisors = lazy(() => import("./pages/UnassignedSupervisors"));
+const GenericSystem = lazy(() => import("./pages/GenericSystem"));
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,34 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   return <PasswordGate pathname={pathname} expected={rule.password || ''} onSuccess={() => setOk(true)} />;
 };
 
+// Gate for /custom/:id routes — fetches the system def and checks its `protected/password`.
+const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
+  const { pathname } = useLocation();
+  const id = pathname.replace(/^\/custom\//, '').replace(/\/$/, '');
+  const [state, setState] = useState<{ loading: boolean; protected: boolean; password: string; visible: boolean }>(
+    { loading: true, protected: false, password: '', visible: true },
+  );
+  const [ok, setOk] = useState(() => sessionOk(pathname));
+
+  useEffect(() => {
+    let alive = true;
+    import('@/data/customSystemsRegistry').then(({ listCustomSystems }) => listCustomSystems())
+      .then((all) => {
+        if (!alive) return;
+        const s = all.find((x) => x.id === id);
+        if (!s) { setState({ loading: false, protected: false, password: '', visible: false }); return; }
+        setState({ loading: false, protected: !!s.protected, password: s.password || '', visible: s.enabled !== false });
+      })
+      .catch(() => alive && setState({ loading: false, protected: false, password: '', visible: false }));
+    return () => { alive = false; };
+  }, [id]);
+
+  if (state.loading) return <Loading />;
+  if (!state.visible) return <Navigate to="/" replace />;
+  if (!state.protected || ok || sessionOk(pathname)) return children;
+  return <PasswordGate pathname={pathname} expected={state.password} onSuccess={() => setOk(true)} />;
+};
+
 const Loading = () => (
   <div className="schedule-body flex items-center justify-center min-h-screen" dir="rtl">
     <div className="text-center">
@@ -171,6 +200,7 @@ const App = () => (
             <Route path="/project-supervision-exceeded" element={<ProtectedRoute><ProjectSupervisionExceeded /></ProtectedRoute>} />
             <Route path="/teachers-without-theory" element={<ProtectedRoute><TeachersWithoutTheory /></ProtectedRoute>} />
             <Route path="/unassigned-supervisors" element={<ProtectedRoute><UnassignedSupervisors /></ProtectedRoute>} />
+            <Route path="/custom/:id" element={<CustomSystemGate><GenericSystem /></CustomSystemGate>} />
             <Route path="/group/:groupId" element={<SystemGroupPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
