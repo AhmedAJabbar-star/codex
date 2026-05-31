@@ -133,6 +133,21 @@ function isBadSheet(rows: ScheduleRow[], minRows = 2): boolean {
   return inspected.some((row) => Object.values(row).some(isFormulaError));
 }
 
+function readSheetCache(gid: string): { rows: ScheduleRow[]; headers?: string[] } | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(`${SHEET_CACHE_PREFIX}${gid}`) || 'null');
+    return Array.isArray(parsed?.rows) ? parsed : undefined;
+  } catch { return undefined; }
+}
+
+function writeSheetCache(gid: string, rows: ScheduleRow[], headers?: string[]) {
+  const payload = { rows, headers };
+  sheetMemoryCache.set(gid, payload);
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(`${SHEET_CACHE_PREFIX}${gid}`, JSON.stringify(payload)); } catch { /* ignore */ }
+}
+
 async function fetchTextWithTimeout(url: string, timeoutMs = 12000): Promise<string> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
