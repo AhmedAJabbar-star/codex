@@ -32,6 +32,29 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     patch({ conditions: s.conditions.map((c, idx) => idx === i ? { ...c, ...p } : c) });
   const delCondition = (i: number) => patch({ conditions: s.conditions.filter((_, idx) => idx !== i) });
 
+  // Header labels (column letter -> display name)
+  const labels: Record<string, string> = s.header_labels || {};
+  const colLetters = parseColumnsRange(s.columns_range).map((i) => colIndexToLetter(i));
+  const setLabel = (letter: string, value: string) => {
+    const next = { ...(s.header_labels || {}) };
+    if (value.trim()) next[letter] = value; else delete next[letter];
+    patch({ header_labels: next });
+  };
+
+  // Filters config
+  const filtersCfg: FilterConfigItem[] = s.filters_config || [];
+  const addFilter = () => patch({ filters_config: [...filtersCfg, { column: 'A', control: 'select' }] });
+  const updFilter = (i: number, p: Partial<FilterConfigItem>) =>
+    patch({ filters_config: filtersCfg.map((f, idx) => idx === i ? { ...f, ...p } : f) });
+  const delFilter = (i: number) => patch({ filters_config: filtersCfg.filter((_, idx) => idx !== i) });
+
+  // Signatures
+  const sigs: SignatureItem[] = s.signatures || [];
+  const addSig = () => patch({ signatures: [...sigs, { label: '', name: '' }] });
+  const updSig = (i: number, p: Partial<SignatureItem>) =>
+    patch({ signatures: sigs.map((x, idx) => idx === i ? { ...x, ...p } : x) });
+  const delSig = (i: number) => patch({ signatures: sigs.filter((_, idx) => idx !== i) });
+
   const handleSave = async () => {
     if (!s.title.trim()) { toast.error('العنوان مطلوب'); setStep(1); return; }
     if (!s.sheet_gid.trim()) { toast.error('GID للورقة المصدر مطلوب'); setStep(2); return; }
