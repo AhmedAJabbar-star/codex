@@ -252,6 +252,7 @@ Deno.serve(async (req) => {
           startIndex: idx + 1, endIndex: idx + 2,
         }}}],
       })});
+      listCache = null;
       return json({ ok: true });
     }
 
