@@ -233,6 +233,7 @@ Deno.serve(async (req) => {
           method: "POST", body: JSON.stringify({ values: [systemToRow(sys)] }),
         });
       }
+      listCache = null;
       return json({ ok: true, id: sys.id });
     }
 
