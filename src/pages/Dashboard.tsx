@@ -347,6 +347,18 @@ const Dashboard = () => {
               <div className="flex flex-wrap gap-3 items-center justify-center">
                 <span className="schedule-badge">جاهز</span>
                 <RefreshButton compact />
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black border-2"
+                  style={{
+                    background: 'linear-gradient(135deg,#1e40af,#1d4ed8)',
+                    color: '#fff',
+                    borderColor: '#1e3a8a',
+                    boxShadow: '0 4px 12px rgba(30,64,175,0.25)',
+                  }}
+                  title="عدد الأنظمة المتاحة في الواجهة"
+                >
+                  🗂️ عدد الأنظمة: {(visibleCards.length + groups.length).toLocaleString('ar-SA')}
+                </span>
               </div>
             </div>
           </header>
