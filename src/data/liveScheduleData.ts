@@ -334,16 +334,25 @@ async function fetchSheetWithHeaders(gid: string, excluded: string[] = []): Prom
   rows: ScheduleRow[];
   headers: string[];
 }> {
-  const response = await fetch(buildCsvUrl(gid), { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`تعذر جلب البيانات (HTTP ${response.status})`);
+  const cached = sheetMemoryCache.get(gid) || readSheetCache(gid);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const csvText = await fetchTextWithTimeout(buildCsvUrl(gid, attempt));
+      const [headerRow = [], ...dataRows] = parseCsv(csvText);
+      const rawHeaders = headerRow.map((h) => compactText(h));
+      const headers = rawHeaders.filter((h) => h && !excluded.includes(h));
+      const rows = mapRows(rawHeaders, dataRows);
+      if (isBadSheet(rows, 2)) throw new Error('بيانات Google Sheets غير مكتملة مؤقتاً');
+      writeSheetCache(gid, rows, headers);
+      return { rows, headers };
+    } catch (error) {
+      if (attempt === 2) {
+        if (cached?.rows?.length) return { rows: cached.rows, headers: (cached.headers || []).filter((h) => !excluded.includes(h)) };
+        throw error;
+      }
+    }
   }
-  const csvText = (await response.text()).replace(/^\uFEFF/, '');
-  const [headerRow = [], ...dataRows] = parseCsv(csvText);
-  const rawHeaders = headerRow.map((h) => compactText(h));
-  const headers = rawHeaders.filter((h) => h && !excluded.includes(h));
-  const rows = mapRows(rawHeaders, dataRows);
-  return { rows, headers };
+  return { rows: cached?.rows || [], headers: cached?.headers || [] };
 }
 
 async function fetchAssignmentsAuditSheet() {
