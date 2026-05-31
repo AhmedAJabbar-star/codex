@@ -205,6 +205,7 @@ async function systemToRow(s: any): Promise<string[]> {
     conditions_logic: String(s.conditions_logic || "AND").toUpperCase() === "OR" ? "OR" : "AND",
     header_labels_json: JSON.stringify(s.header_labels || {}),
     signatures_json: JSON.stringify(s.signatures || []),
+    sort_order: String(Number.isFinite(Number(s.sort_order)) ? Number(s.sort_order) : 100),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
