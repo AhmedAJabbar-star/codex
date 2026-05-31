@@ -11,7 +11,7 @@ export const STUDENTS_GID = '1210995176';
 export const CHECKALLHR_GID = '1081297434';
 
 function buildCsvUrl(gid: string): string {
-  const bust = Math.floor(Date.now() / 30000);
+  const bust = Date.now();
   return `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
 }
 
