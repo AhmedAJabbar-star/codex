@@ -177,6 +177,7 @@ function rowToSystem(r: Record<string, string>) {
     password: clean(r.password),
     hint: clean(r.hint),
     enabled: String(r.enabled || "true").toLowerCase() !== "false",
+    sort_order: Number.parseInt(clean(r.sort_order) || "100", 10) || 100,
   };
 }
 
