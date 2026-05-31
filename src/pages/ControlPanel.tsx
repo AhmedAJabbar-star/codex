@@ -312,6 +312,13 @@ const ControlPanel = () => {
           </div>
         </div>
       </div>
+      {builderOpen && (
+        <SystemBuilderDialog
+          initial={builderInitial}
+          onClose={() => setBuilderOpen(false)}
+          onSaved={() => { void refetchCustom(); }}
+        />
+      )}
     </div>
   );
 };
