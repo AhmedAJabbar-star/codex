@@ -146,7 +146,7 @@ ${(filtersInfo && filtersInfo.length > 0) ? `
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 
-<div class="signatures" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
+${(Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `<div class="signatures" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
   ${(customSignatures && customSignatures.length > 0
     ? customSignatures
     : [{ label: 'مقرر القسم' }, { label: 'رئيس القسم' }, { label: 'مصادقة العميد' }]
@@ -156,7 +156,7 @@ ${(filtersInfo && filtersInfo.length > 0) ? `
     <div class="sig-name">${s.name || '............................'}</div>
     <div class="sig-sub">التوقيع &amp; الختم</div>
   </div>`).join('')}
-</div>
+</div>`}
 
 <div class="doc-meta">
   <span><strong>وثيقة رسمية</strong> صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span>

@@ -181,6 +181,42 @@ const systemCards = [
     gradient: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
   },
   {
+    id: 'supervisionWorkload',
+    title: 'عبء المشاريع والاشراف',
+    icon: '📊',
+    description: 'نظام إحصائي سريع لإعطاء نظرة عن عبء الإشراف على المشاريع وطلبة الدراسات العليا',
+    path: '/supervision-workload',
+    color: '#0891b2',
+    gradient: 'linear-gradient(135deg, #0891b2 0%, #155e75 100%)',
+  },
+  {
+    id: 'projectSupervisionExceeded',
+    title: 'تجاوز الحد الاقصى للاشراف على المشاريع',
+    icon: '🚨',
+    description: 'حالات تجاوز سقف الاشراف على مشاريع التخرج لطلبة الدراسة الاولية',
+    path: '/project-supervision-exceeded',
+    color: '#dc2626',
+    gradient: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+  },
+  {
+    id: 'teachersWithoutTheory',
+    title: 'التدريسيون الذين ليس لديهم ساعات نظرية',
+    icon: '📚',
+    description: 'تدريسيون مطالبون بتدريس مادة نظرية وليس لديهم تكليف نظري',
+    path: '/teachers-without-theory',
+    color: '#a16207',
+    gradient: 'linear-gradient(135deg, #a16207 0%, #713f12 100%)',
+  },
+  {
+    id: 'unassignedSupervisors',
+    title: 'التدريسيون غير المكلفين بالاشراف',
+    icon: '🧑‍🏫',
+    description: 'التدريسيون المؤهلون للإشراف وليس لديهم تكليف على طلبة الدراسات العليا',
+    path: '/unassigned-supervisors',
+    color: '#475569',
+    gradient: 'linear-gradient(135deg, #475569 0%, #1e293b 100%)',
+  },
+  {
     id: 'errors',
     title: 'ملخص الأخطاء',
     icon: '⚠️',
@@ -311,6 +347,18 @@ const Dashboard = () => {
               <div className="flex flex-wrap gap-3 items-center justify-center">
                 <span className="schedule-badge">جاهز</span>
                 <RefreshButton compact />
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black border-2"
+                  style={{
+                    background: 'linear-gradient(135deg,#1e40af,#1d4ed8)',
+                    color: '#fff',
+                    borderColor: '#1e3a8a',
+                    boxShadow: '0 4px 12px rgba(30,64,175,0.25)',
+                  }}
+                  title="عدد الأنظمة المتاحة في الواجهة"
+                >
+                  🗂️ عدد الأنظمة: {(visibleCards.length + groups.length).toLocaleString('ar-SA')}
+                </span>
               </div>
             </div>
           </header>
