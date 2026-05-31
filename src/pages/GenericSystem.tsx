@@ -107,10 +107,18 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
       derivedNames.forEach((dn) => { out[dn] = row[dn] || ''; });
       // Populate rule-filter synthetic keys (use raw sheet row + headers so evaluateCondition resolves by Excel letter)
       ruleFilters.forEach((rf) => {
-        const labels = rf.rules
-          .filter((rule) => evaluateCondition({ column: rf.column, op: rule.op, value: rule.value, values: rule.values } as any, r, sheet.headers))
-          .map((rule) => String(rule.label || ''));
-        out[rf.synthKey] = labels.length > 0 ? ` || ${labels.join(' || ')} || ` : '';
+        const tokens: string[] = [];
+        rf.rules.forEach((rule) => {
+          if (evaluateCondition({ column: rf.column, op: rule.op, value: rule.value, values: rule.values } as any, r, sheet.headers)) {
+            tokens.push(String(rule.label || ''));
+          }
+        });
+        if (rf.includeValues) {
+          const cellIdx = colLetterToIndex(rf.column);
+          const cell = (cellIdx >= 0 ? r[sheet.headers[cellIdx]] : '') || '';
+          cell.split('\n').forEach((t) => { const v = t.trim(); if (v) tokens.push(v); });
+        }
+        out[rf.synthKey] = tokens.join('\n');
       });
       rows.push(out);
     });
