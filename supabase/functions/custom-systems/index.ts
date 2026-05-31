@@ -97,13 +97,23 @@ async function ensureSheet() {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
     });
-  } else {
-    const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:Z1`);
-    if (!r.values || r.values.length === 0 || (r.values[0] || []).length === 0) {
-      await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
-        method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
-      });
-    }
+    return;
+  }
+  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:Z1`);
+  const currentRow: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "")) : [];
+  if (currentRow.length === 0) {
+    await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
+      method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
+    });
+    return;
+  }
+  // Extend header row if new columns are missing (preserve order of existing ones).
+  const missing = HEADERS.filter((h) => !currentRow.includes(h));
+  if (missing.length > 0) {
+    const newRow = [...currentRow, ...missing];
+    await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
+      method: "PUT", body: JSON.stringify({ values: [newRow] }),
+    });
   }
 }
 
