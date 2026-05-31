@@ -161,6 +161,18 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 <input className="schedule-select w-full" value={s.hint} onChange={(e) => patch({ hint: e.target.value })} />
               </div>
               <div>
+                <label className="block text-sm font-black mb-1">موضع الظهور في الواجهة الرئيسية</label>
+                <input
+                  type="number"
+                  min={1}
+                  className="schedule-select w-full"
+                  value={Number.isFinite(Number(s.sort_order)) ? Number(s.sort_order) : 100}
+                  onChange={(e) => patch({ sort_order: parseInt(e.target.value || '100', 10) || 100 })}
+                  placeholder="مثلاً: 1 = الأول، 25 = البطاقة رقم 25"
+                />
+                <p className="text-xs text-slate-500 mt-1">رقم ترتيب البطاقة بين باقي الأنظمة (الأصغر يظهر أولاً). الافتراضي 100 = نهاية القائمة تقريباً.</p>
+              </div>
+              <div>
                 <label className="block text-sm font-black mb-1">الأيقونة</label>
                 <div className="flex flex-wrap gap-1">
                   {ICONS.map((ic) => (
