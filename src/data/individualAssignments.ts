@@ -1,6 +1,8 @@
 import type { ScheduleRow } from '@/data/scheduleData';
 
 const INDIVIDUAL_ASSIGNMENTS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1147039908&single=true&output=csv';
+const CACHE_KEY = 'individual-assignments:last-good-data:v2';
+let memoryCache: ScheduleRow[] | undefined;
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -106,22 +108,50 @@ function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
     });
 }
 
+function isBadRows(rows: ScheduleRow[]): boolean {
+  if (rows.length < 100) return true;
+  return rows.slice(0, 5).some((row) => Object.values(row).some((v) => /^#(N\/A|VALUE!|REF!|ERROR!)/i.test((v || '').trim())));
+}
+
+function getCachedRows(): ScheduleRow[] | undefined {
+  if (memoryCache?.length) return memoryCache;
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(CACHE_KEY) || 'null');
+    if (Array.isArray(parsed) && parsed.length) {
+      memoryCache = parsed;
+      return parsed;
+    }
+  } catch { /* ignore */ }
+  return undefined;
+}
+
+function cacheRows(rows: ScheduleRow[]) {
+  memoryCache = rows;
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(CACHE_KEY, JSON.stringify(rows)); } catch { /* ignore */ }
+}
+
 export async function fetchIndividualAssignmentRows(): Promise<ScheduleRow[]> {
-  // معامل زمني لتجاوز التخزين المؤقت في CDN لـ Google (يتغير كل 30 ثانية)
-  const bust = Math.floor(Date.now() / 30000);
-  const response = await fetch(`${INDIVIDUAL_ASSIGNMENTS_CSV_URL}&_=${bust}`, { cache: 'no-store' });
-
-  if (!response.ok) {
-    throw new Error('تعذر جلب بيانات تكليفات التدريسي من Google Sheets');
+  const cached = getCachedRows();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(`${INDIVIDUAL_ASSIGNMENTS_CSV_URL}&_=${Date.now() + attempt}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error('تعذر جلب بيانات تكليفات التدريسي من Google Sheets');
+      const csvText = (await response.text()).replace(/^\uFEFF/, '');
+      const [headerRow = [], ...dataRows] = parseCsv(csvText);
+      const headers = headerRow.map((header) => compactText(header));
+      if (headers.length === 0) throw new Error('تعذر قراءة ترويسات ورقة Individualassignments');
+      const rows = mapRows(headers, dataRows);
+      if (isBadRows(rows)) throw new Error('بيانات التكليفات غير مكتملة مؤقتاً');
+      cacheRows(rows);
+      return rows;
+    } catch (error) {
+      if (attempt === 2) {
+        if (cached?.length) return cached;
+        throw error;
+      }
+    }
   }
-
-  const csvText = (await response.text()).replace(/^\uFEFF/, '');
-  const [headerRow = [], ...dataRows] = parseCsv(csvText);
-  const headers = headerRow.map((header) => compactText(header));
-
-  if (headers.length === 0) {
-    throw new Error('تعذر قراءة ترويسات ورقة Individualassignments');
-  }
-
-  return mapRows(headers, dataRows);
+  return cached || [];
 }

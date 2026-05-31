@@ -1,5 +1,6 @@
 import type { ScheduleRow } from '@/data/scheduleData';
 import {
+  SYSTEMS,
   ALL_ROOMS,
   ROOM_CAPACITY,
   TIME_SLOTS,
@@ -33,11 +34,16 @@ export const LECTURE_TYPE_PLACEHOLDER =
 
 export type SheetKey = keyof typeof SHEET_GIDS;
 
-function buildCsvUrl(gid: string): string {
-  // معامل زمني لتجاوز التخزين المؤقت في CDN لـ Google (يتغير كل 30 ثانية)
-  const bust = Math.floor(Date.now() / 30000);
+function buildCsvUrl(gid: string, attempt = 0): string {
+  // معامل فريد بكل طلب حتى لا تبقى نسخة Google المؤقتة العاطلة (#N/A/#VALUE!) ظاهرة 30 ثانية.
+  const bust = Date.now() + attempt;
   return `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
 }
+
+const LIVE_CACHE_KEY = 'live-schedule:last-good-data:v2';
+const SHEET_CACHE_PREFIX = 'live-sheet:last-good:';
+let liveMemoryCache: LiveScheduleData | undefined;
+const sheetMemoryCache = new Map<string, { rows: ScheduleRow[]; headers?: string[] }>();
 
 /* ----------------------------- CSV parsing ----------------------------- */
 
@@ -116,18 +122,64 @@ function mapRows(headers: string[], rawRows: string[][]): ScheduleRow[] {
     });
 }
 
-async function fetchSheet(gid: string): Promise<ScheduleRow[]> {
-  const response = await fetch(buildCsvUrl(gid), { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`تعذر جلب البيانات من Google Sheets (HTTP ${response.status})`);
+function isFormulaError(value: string): boolean {
+  const t = (value || '').trim().toUpperCase();
+  return /^#(N\/A|VALUE!|REF!|DIV\/0!|ERROR!|NAME\?|NUM!|NULL!)/.test(t);
+}
+
+function isBadSheet(rows: ScheduleRow[], minRows = 2): boolean {
+  if (rows.length < minRows) return true;
+  const inspected = rows.slice(0, Math.min(rows.length, 5));
+  return inspected.some((row) => Object.values(row).some(isFormulaError));
+}
+
+function readSheetCache(gid: string): { rows: ScheduleRow[]; headers?: string[] } | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(`${SHEET_CACHE_PREFIX}${gid}`) || 'null');
+    return Array.isArray(parsed?.rows) ? parsed : undefined;
+  } catch { return undefined; }
+}
+
+function writeSheetCache(gid: string, rows: ScheduleRow[], headers?: string[]) {
+  const payload = { rows, headers };
+  sheetMemoryCache.set(gid, payload);
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(`${SHEET_CACHE_PREFIX}${gid}`, JSON.stringify(payload)); } catch { /* ignore */ }
+}
+
+async function fetchTextWithTimeout(url: string, timeoutMs = 12000): Promise<string> {
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    if (!response.ok) throw new Error(`تعذر جلب البيانات من Google Sheets (HTTP ${response.status})`);
+    return (await response.text()).replace(/^\uFEFF/, '');
+  } finally {
+    globalThis.clearTimeout(timeout);
   }
-  const csvText = (await response.text()).replace(/^\uFEFF/, '');
-  const [headerRow = [], ...dataRows] = parseCsv(csvText);
-  const headers = headerRow.map((h) => compactText(h));
-  if (headers.length === 0) {
-    throw new Error('تعذر قراءة ترويسات ورقة Google Sheets');
+}
+
+async function fetchSheet(gid: string, fallbackRows: ScheduleRow[] = [], minRows = 2): Promise<ScheduleRow[]> {
+  const cached = sheetMemoryCache.get(gid)?.rows || readSheetCache(gid)?.rows || fallbackRows;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const csvText = await fetchTextWithTimeout(buildCsvUrl(gid, attempt));
+      const [headerRow = [], ...dataRows] = parseCsv(csvText);
+      const headers = headerRow.map((h) => compactText(h));
+      if (headers.length === 0) throw new Error('تعذر قراءة ترويسات ورقة Google Sheets');
+      const rows = mapRows(headers, dataRows);
+      if (isBadSheet(rows, minRows)) throw new Error('بيانات Google Sheets غير مكتملة مؤقتاً');
+      writeSheetCache(gid, rows, headers);
+      return rows;
+    } catch (error) {
+      if (attempt === 2) {
+        if (cached.length) return cached;
+        throw error;
+      }
+    }
   }
-  return mapRows(headers, dataRows);
+  return cached;
 }
 
 /* ----------------------------- Time helpers ----------------------------- */
@@ -265,6 +317,49 @@ export interface LiveScheduleData {
   quotaHeaders: string[];
 }
 
+function systemRows(id: string): ScheduleRow[] {
+  return SYSTEMS.find((s) => s.id === id)?.rows || [];
+}
+
+function buildBundledLiveScheduleData(): LiveScheduleData {
+  const teacher = postProcessTeacher(systemRows('teacher'));
+  const student = postProcessStudent(systemRows('student'));
+  return {
+    teacher,
+    student,
+    report: systemRows('report'),
+    hours: systemRows('hours'),
+    tracking: student,
+    emptyRooms: generateEmptyRoomsFromStudent(student),
+    lectureTypeAudit: buildLectureTypeAudit(student),
+    assignmentsAudit: systemRows('assignmentsAudit'),
+    assignmentsAuditHeaders: SYSTEMS.find((s) => s.id === 'assignmentsAudit')?.headers || [],
+    quota: systemRows('quotaAudit'),
+    quotaHeaders: SYSTEMS.find((s) => s.id === 'quotaAudit')?.headers || [],
+  };
+}
+
+export function getCachedLiveScheduleData(): LiveScheduleData | undefined {
+  if (liveMemoryCache) return liveMemoryCache;
+  if (typeof window !== 'undefined') {
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(LIVE_CACHE_KEY) || 'null');
+      if (parsed?.teacher?.length && parsed?.student?.length) {
+        liveMemoryCache = parsed;
+        return parsed;
+      }
+    } catch { /* ignore */ }
+  }
+  return buildBundledLiveScheduleData();
+}
+
+function cacheLiveScheduleData(data: LiveScheduleData) {
+  if (!data.teacher.length || !data.student.length) return;
+  liveMemoryCache = data;
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(LIVE_CACHE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+}
+
 function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
   return studentRows
     .filter((r) => {
@@ -282,16 +377,25 @@ async function fetchSheetWithHeaders(gid: string, excluded: string[] = []): Prom
   rows: ScheduleRow[];
   headers: string[];
 }> {
-  const response = await fetch(buildCsvUrl(gid), { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`تعذر جلب البيانات (HTTP ${response.status})`);
+  const cached = sheetMemoryCache.get(gid) || readSheetCache(gid);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const csvText = await fetchTextWithTimeout(buildCsvUrl(gid, attempt));
+      const [headerRow = [], ...dataRows] = parseCsv(csvText);
+      const rawHeaders = headerRow.map((h) => compactText(h));
+      const headers = rawHeaders.filter((h) => h && !excluded.includes(h));
+      const rows = mapRows(rawHeaders, dataRows);
+      if (isBadSheet(rows, 2)) throw new Error('بيانات Google Sheets غير مكتملة مؤقتاً');
+      writeSheetCache(gid, rows, headers);
+      return { rows, headers };
+    } catch (error) {
+      if (attempt === 2) {
+        if (cached?.rows?.length) return { rows: cached.rows, headers: (cached.headers || []).filter((h) => !excluded.includes(h)) };
+        throw error;
+      }
+    }
   }
-  const csvText = (await response.text()).replace(/^\uFEFF/, '');
-  const [headerRow = [], ...dataRows] = parseCsv(csvText);
-  const rawHeaders = headerRow.map((h) => compactText(h));
-  const headers = rawHeaders.filter((h) => h && !excluded.includes(h));
-  const rows = mapRows(rawHeaders, dataRows);
-  return { rows, headers };
+  return { rows: cached?.rows || [], headers: cached?.headers || [] };
 }
 
 async function fetchAssignmentsAuditSheet() {
@@ -312,13 +416,14 @@ export async function fetchQuotaAuditData(): Promise<QuotaAuditData> {
 }
 
 export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
+  const bundled = getCachedLiveScheduleData() || buildBundledLiveScheduleData();
   const [teacherRaw, studentRaw, reportRaw, hoursRaw, assignmentsAuditData, quotaData] = await Promise.all([
-    fetchSheet(SHEET_GIDS.teacher),
-    fetchSheet(SHEET_GIDS.student),
-    fetchSheet(SHEET_GIDS.report),
-    fetchSheet(SHEET_GIDS.hours),
-    fetchAssignmentsAuditSheet(),
-    fetchQuotaSheet().catch(() => ({ rows: [] as ScheduleRow[], headers: [] as string[] })),
+    fetchSheet(SHEET_GIDS.teacher, bundled.teacher, 100),
+    fetchSheet(SHEET_GIDS.student, bundled.student, 100),
+    fetchSheet(SHEET_GIDS.report, bundled.report, 100),
+    fetchSheet(SHEET_GIDS.hours, bundled.hours, 100),
+    fetchAssignmentsAuditSheet().catch(() => ({ rows: bundled.assignmentsAudit, headers: bundled.assignmentsAuditHeaders })),
+    fetchQuotaSheet().catch(() => ({ rows: bundled.quota, headers: bundled.quotaHeaders })),
   ]);
 
   const teacher = postProcessTeacher(teacherRaw);
@@ -326,7 +431,7 @@ export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
   const emptyRooms = generateEmptyRoomsFromStudent(student);
   const lectureTypeAudit = buildLectureTypeAudit(student);
 
-  return {
+  const data = {
     teacher,
     student,
     report: reportRaw,
@@ -339,10 +444,21 @@ export async function fetchLiveScheduleData(): Promise<LiveScheduleData> {
     quota: quotaData.rows,
     quotaHeaders: quotaData.headers,
   };
+  cacheLiveScheduleData(data);
+  return data;
 }
 
 export async function fetchSheetByKey(key: SheetKey): Promise<ScheduleRow[]> {
-  const rows = await fetchSheet(SHEET_GIDS[key]);
+  const bundled = getCachedLiveScheduleData() || buildBundledLiveScheduleData();
+  const fallbackMap: Record<SheetKey, ScheduleRow[]> = {
+    teacher: bundled.teacher,
+    student: bundled.student,
+    report: bundled.report,
+    hours: bundled.hours,
+    assignmentsAudit: bundled.assignmentsAudit,
+    quota: bundled.quota,
+  };
+  const rows = await fetchSheet(SHEET_GIDS[key], fallbackMap[key], 100);
   if (key === 'teacher') return postProcessTeacher(rows);
   if (key === 'student') return postProcessStudent(rows);
   return rows;

@@ -56,6 +56,8 @@ const compactText = (value: string) => {
 const compactHeader = (value: string) =>
   value.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n').map((p) => p.trim()).filter(Boolean).join(' ').trim();
 
+const isFormulaError = (value: string) => /^#(N\/A|VALUE!|REF!|DIV\/0!|ERROR!|NAME\?|NUM!|NULL!)/i.test((value || '').trim());
+
 const parseCsv = (text: string): string[][] => {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -78,20 +80,27 @@ const parseCsv = (text: string): string[][] => {
 
 export async function fetchQuotaAuditData(): Promise<QuotaAuditData> {
   const cached = getCachedQuotaAuditData();
-  try {
-    const bust = Math.floor(Date.now() / 30000);
-    const response = await fetchWithTimeout(`${PUB_BASE}?gid=${QUOTA_GID}&single=true&output=csv&_=${bust}`, cached ? 2500 : 6000);
+  for (let attempt = 0; attempt < 3; attempt += 1) try {
+    const bust = Date.now() + attempt;
+    const response = await fetchWithTimeout(`${PUB_BASE}?gid=${QUOTA_GID}&single=true&output=csv&_=${bust}`, cached ? 4000 : 9000);
     if (!response.ok) throw new Error(`تعذر جلب بيانات تدقيق النصاب (HTTP ${response.status})`);
     const [headerRow = [], ...dataRows] = parseCsv((await response.text()).replace(/^\uFEFF/, ''));
     const headers = headerRow.map(compactHeader).filter(Boolean);
     const rows = dataRows
       .filter((cells) => cells.some((cell) => compactText(cell).length > 0))
       .map((cells) => Object.fromEntries(headers.map((header, index) => [header, compactText(cells[index] ?? '')])) as ScheduleRow);
+    if (rows.length < 50 || rows.slice(0, 5).some((row) => Object.values(row).some(isFormulaError))) {
+      throw new Error('بيانات تدقيق النصاب غير مكتملة مؤقتاً');
+    }
     const fresh = { rows, headers };
     cacheQuotaAuditData(fresh);
     return fresh;
   } catch (error) {
-    if (cached) return cached;
-    throw error;
+    if (attempt === 2) {
+      if (cached) return cached;
+      throw error;
+    }
   }
+  if (cached) return cached;
+  throw new Error('تعذر تحميل بيانات تدقيق النصاب حالياً');
 }

@@ -88,7 +88,7 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 async function fetchSheetByGid(gid: string): Promise<SheetFetchResult> {
-  const bust = Math.floor(Date.now() / 30000);
+  const bust = Date.now();
   const url = `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`تعذر جلب الورقة (HTTP ${res.status})`);
