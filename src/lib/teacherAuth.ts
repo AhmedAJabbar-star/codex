@@ -163,7 +163,8 @@ export async function logout() {
 
 export async function refreshMe(): Promise<TeacherUser | null> {
   try {
-    const r = await call<{ user: TeacherUser }>('me');
+    const r = await call<{ user: TeacherUser | null }>('me');
+    if (!r?.user) { setSession(null); return null; }
     const cur = getSession();
     if (cur) setSession({ ...cur, user: r.user });
     return r.user;
