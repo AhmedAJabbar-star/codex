@@ -265,6 +265,17 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                           عند إضافة قواعد، تتحوّل القائمة المنسدلة لعرض هذه الخيارات بدلاً من قيم الخلية. كل خيار = تسمية + شرط على نفس العمود.
                           مثال: <code>«لديه منصب»</code> + <code>غير فارغ</code>، أو <code>«يدرّس في الموقع X»</code> + <code>يحتوي على</code> + <code>X</code>.
                         </p>
+                        <label className="flex items-center gap-2 text-xs font-black bg-white p-2 rounded border cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!f.include_values}
+                            onChange={(e) => updFilter(i, { include_values: e.target.checked })}
+                          />
+                          <span>إظهار القيم الفردية للعمود مع الخيارات المخصّصة</span>
+                          <span className="text-[10px] text-slate-500 font-normal">
+                            (يدمج قيم الخلية الفعلية — بما فيها القيم المفصولة بسطر جديد — مع قواعدك في نفس القائمة)
+                          </span>
+                        </label>
                         {(f.rules || []).map((r, ri) => (
                           <div key={ri} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border">
                             <input
