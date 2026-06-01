@@ -385,9 +385,9 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     </select>
                     {c.op === 'contains_any' ? (
                       <input className="schedule-select col-span-5"
-                        value={(c.values || []).join(',')}
-                        onChange={(e) => updCondition(i, { values: e.target.value.split(',').map((v) => v.trim()).filter(Boolean) })}
-                        placeholder="قيم مفصولة بفواصل: استاذ,أستاذ" />
+                        value={(c.values || []).join(', ')}
+                        onChange={(e) => updCondition(i, { values: splitMulti(e.target.value) })}
+                        placeholder="قيم مفصولة بأي من (, ، - | سطر جديد): مثل استاذ، أستاذ" />
                     ) : NEEDS_VALUE[c.op] ? (
                       <input className="schedule-select col-span-5" value={String(c.value ?? '')} onChange={(e) => updCondition(i, { value: e.target.value })} placeholder="القيمة" />
                     ) : (
