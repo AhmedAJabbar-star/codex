@@ -265,14 +265,26 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   <div key={i} className="bg-slate-50 p-3 rounded-lg border space-y-2">
                     <div className="grid grid-cols-12 gap-2 items-center">
                       <input className="schedule-select col-span-2" value={f.column} onChange={(e) => updFilter(i, { column: e.target.value.toUpperCase() })} placeholder="G" />
-                      <input className="schedule-select col-span-6" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر (اختياري)" />
+                      <input className="schedule-select col-span-5" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر (اختياري)" />
                       <select className="schedule-select col-span-3" value={f.control || 'select'} onChange={(e) => updFilter(i, { control: e.target.value as any })}>
                         <option value="select">قائمة منسدلة</option>
                         <option value="combo">قائمة + بحث</option>
                         <option value="text">نص حر</option>
                       </select>
-                      <button onClick={() => delFilter(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                      <div className="col-span-2 flex items-center justify-end gap-1">
+                        <button onClick={() => moveFilter(i, -1)} disabled={i === 0} className="px-2 py-1 rounded border text-xs font-black disabled:opacity-30" title="نقل لأعلى">▲</button>
+                        <button onClick={() => moveFilter(i, 1)} disabled={i === filtersCfg.length - 1} className="px-2 py-1 rounded border text-xs font-black disabled:opacity-30" title="نقل لأسفل">▼</button>
+                        <button onClick={() => delFilter(i)} className="text-red-600 font-black text-lg px-1" title="حذف">✕</button>
+                      </div>
                     </div>
+                    {f.control === 'combo' && (
+                      <input
+                        className="schedule-select w-full"
+                        value={f.search_placeholder || ''}
+                        onChange={(e) => updFilter(i, { search_placeholder: e.target.value })}
+                        placeholder="نص الإيضاح داخل مربع البحث (مثال: ابحث عن قسم، رقم، أو اسم...)"
+                      />
+                    )}
 
                     <details>
                       <summary className="cursor-pointer text-xs font-black text-slate-700">
