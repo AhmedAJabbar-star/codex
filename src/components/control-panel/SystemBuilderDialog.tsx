@@ -61,6 +61,13 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const updFilter = (i: number, p: Partial<FilterConfigItem>) =>
     patch({ filters_config: filtersCfg.map((f, idx) => idx === i ? { ...f, ...p } : f) });
   const delFilter = (i: number) => patch({ filters_config: filtersCfg.filter((_, idx) => idx !== i) });
+  const moveFilter = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= filtersCfg.length) return;
+    const next = [...filtersCfg];
+    [next[i], next[j]] = [next[j], next[i]];
+    patch({ filters_config: next });
+  };
 
   // Per-filter rules helpers
   const addRule = (fi: number) => {
@@ -73,6 +80,13 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   };
   const delRule = (fi: number, ri: number) => {
     const f = filtersCfg[fi]; const rules = (f.rules || []).filter((_, idx) => idx !== ri);
+    updFilter(fi, { rules });
+  };
+  const moveRule = (fi: number, ri: number, dir: -1 | 1) => {
+    const f = filtersCfg[fi]; const rules = [...(f.rules || [])];
+    const rj = ri + dir;
+    if (rj < 0 || rj >= rules.length) return;
+    [rules[ri], rules[rj]] = [rules[rj], rules[ri]];
     updFilter(fi, { rules });
   };
 
