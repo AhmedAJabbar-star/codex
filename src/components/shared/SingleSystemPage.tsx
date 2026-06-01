@@ -467,7 +467,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                         type="text"
                         className="flex-1 min-w-0 border-none outline-none bg-transparent font-extrabold text-sm text-[var(--schedule-text)]"
                         style={{ minHeight: 'auto', boxShadow: 'none', padding: 0 }}
-                        placeholder="ابحث عن التدريسي..."
+                        placeholder={(f as any).searchPlaceholder || `ابحث في ${f.label}...`}
                         value={filters[f.key] || comboQuery}
                         onChange={e => {
                           setComboQuery(e.target.value);
@@ -502,7 +502,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                         }}>
                         <div className="flex items-center justify-between gap-2.5 px-4 py-3.5 border-b border-[var(--schedule-border)] text-xs font-black text-[var(--schedule-muted)]"
                           style={{ background: 'linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03))' }}>
-                          <strong className="text-[var(--schedule-text)] text-[13px]">اختر التدريسي</strong>
+                          <strong className="text-[var(--schedule-text)] text-[13px]">{f.label}</strong>
                           <span>{comboOptions.length} نتيجة</span>
                         </div>
                         <div className="max-h-[300px] overflow-auto p-2.5 flex flex-col gap-2">
