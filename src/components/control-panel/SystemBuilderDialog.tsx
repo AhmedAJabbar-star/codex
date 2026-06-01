@@ -309,7 +309,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         {(f.rules || []).map((r, ri) => (
                           <div key={ri} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border">
                             <input
-                              className="schedule-select col-span-4"
+                              className="schedule-select col-span-3"
                               value={r.label}
                               onChange={(e) => updRule(i, ri, { label: e.target.value })}
                               placeholder="تسمية الخيار"
@@ -324,9 +324,9 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             {r.op === 'contains_any' ? (
                               <input
                                 className="schedule-select col-span-4"
-                                value={(r.values || []).join(',')}
-                                onChange={(e) => updRule(i, ri, { values: e.target.value.split(',').map((v) => v.trim()).filter(Boolean) })}
-                                placeholder="قيم بفواصل"
+                                value={(r.values || []).join(', ')}
+                                onChange={(e) => updRule(i, ri, { values: splitMulti(e.target.value) })}
+                                placeholder="قيم مفصولة (,  ،  -  |  أو سطر جديد)"
                               />
                             ) : NEEDS_VALUE[r.op] ? (
                               <input
@@ -338,7 +338,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             ) : (
                               <div className="col-span-4 text-[11px] text-slate-400 text-center">— لا قيمة —</div>
                             )}
-                            <button onClick={() => delRule(i, ri)} className="col-span-1 text-red-600 font-black">✕</button>
+                            <div className="col-span-2 flex items-center justify-end gap-1">
+                              <button onClick={() => moveRule(i, ri, -1)} disabled={ri === 0} className="px-1.5 py-1 rounded border text-[10px] font-black disabled:opacity-30" title="نقل لأعلى">▲</button>
+                              <button onClick={() => moveRule(i, ri, 1)} disabled={ri === (f.rules || []).length - 1} className="px-1.5 py-1 rounded border text-[10px] font-black disabled:opacity-30" title="نقل لأسفل">▼</button>
+                              <button onClick={() => delRule(i, ri)} className="text-red-600 font-black text-lg px-1" title="حذف">✕</button>
+                            </div>
                           </div>
                         ))}
                         <button
