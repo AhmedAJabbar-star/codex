@@ -17,12 +17,16 @@ const ICONS = [
   // Office / Admin
   '📅','📆','🗓️','📌','📍','🔗','📎','🗃️','🗄️','📤','📥','✉️','📨','📧',
 ];
-const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','contains_any','eq_number','gt','lt','gte','lte','is_empty','is_not_empty','regex'];
+const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','contains_any','eq_number','gt','lt','gte','lte','is_empty','is_not_empty'];
 const NEEDS_VALUE: Record<ConditionOp, boolean> = {
   eq: true, neq: true, contains: true, not_contains: true, contains_any: false,
   eq_number: true, gt: true, lt: true, gte: true, lte: true,
-  is_empty: false, is_not_empty: false, regex: true,
+  is_empty: false, is_not_empty: false, regex: false,
 };
+
+/** Split a free-text multi-value input on any of: comma, Arabic comma, dash, semicolon, newline, or pipe. */
+const splitMulti = (s: string): string[] =>
+  (s || '').split(/[,،\-;\n|]+/).map((v) => v.trim()).filter(Boolean);
 
 interface Props {
   initial: CustomSystemDef | null; // null = create new
