@@ -72,12 +72,14 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
         control: (fc.control || 'select') as any,
         fixedOptions: options,
         matchMode: 'token',
+        searchPlaceholder: fc.search_placeholder,
       } as any);
     } else {
       builtFilters.push({
         label: displayLabel,
         key: outKey,
         control: (fc.control || 'select') as any,
+        searchPlaceholder: fc.search_placeholder,
       } as any);
     }
   });

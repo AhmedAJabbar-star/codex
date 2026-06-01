@@ -17,12 +17,16 @@ const ICONS = [
   // Office / Admin
   '📅','📆','🗓️','📌','📍','🔗','📎','🗃️','🗄️','📤','📥','✉️','📨','📧',
 ];
-const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','contains_any','eq_number','gt','lt','gte','lte','is_empty','is_not_empty','regex'];
+const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','contains_any','eq_number','gt','lt','gte','lte','is_empty','is_not_empty'];
 const NEEDS_VALUE: Record<ConditionOp, boolean> = {
   eq: true, neq: true, contains: true, not_contains: true, contains_any: false,
   eq_number: true, gt: true, lt: true, gte: true, lte: true,
-  is_empty: false, is_not_empty: false, regex: true,
+  is_empty: false, is_not_empty: false, regex: false,
 };
+
+/** Split a free-text multi-value input on any of: comma, Arabic comma, dash, semicolon, newline, or pipe. */
+const splitMulti = (s: string): string[] =>
+  (s || '').split(/[,،\-;\n|]+/).map((v) => v.trim()).filter(Boolean);
 
 interface Props {
   initial: CustomSystemDef | null; // null = create new
@@ -57,6 +61,13 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const updFilter = (i: number, p: Partial<FilterConfigItem>) =>
     patch({ filters_config: filtersCfg.map((f, idx) => idx === i ? { ...f, ...p } : f) });
   const delFilter = (i: number) => patch({ filters_config: filtersCfg.filter((_, idx) => idx !== i) });
+  const moveFilter = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= filtersCfg.length) return;
+    const next = [...filtersCfg];
+    [next[i], next[j]] = [next[j], next[i]];
+    patch({ filters_config: next });
+  };
 
   // Per-filter rules helpers
   const addRule = (fi: number) => {
@@ -69,6 +80,13 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   };
   const delRule = (fi: number, ri: number) => {
     const f = filtersCfg[fi]; const rules = (f.rules || []).filter((_, idx) => idx !== ri);
+    updFilter(fi, { rules });
+  };
+  const moveRule = (fi: number, ri: number, dir: -1 | 1) => {
+    const f = filtersCfg[fi]; const rules = [...(f.rules || [])];
+    const rj = ri + dir;
+    if (rj < 0 || rj >= rules.length) return;
+    [rules[ri], rules[rj]] = [rules[rj], rules[ri]];
     updFilter(fi, { rules });
   };
 
@@ -247,14 +265,26 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   <div key={i} className="bg-slate-50 p-3 rounded-lg border space-y-2">
                     <div className="grid grid-cols-12 gap-2 items-center">
                       <input className="schedule-select col-span-2" value={f.column} onChange={(e) => updFilter(i, { column: e.target.value.toUpperCase() })} placeholder="G" />
-                      <input className="schedule-select col-span-6" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر (اختياري)" />
+                      <input className="schedule-select col-span-5" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر (اختياري)" />
                       <select className="schedule-select col-span-3" value={f.control || 'select'} onChange={(e) => updFilter(i, { control: e.target.value as any })}>
                         <option value="select">قائمة منسدلة</option>
                         <option value="combo">قائمة + بحث</option>
                         <option value="text">نص حر</option>
                       </select>
-                      <button onClick={() => delFilter(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                      <div className="col-span-2 flex items-center justify-end gap-1">
+                        <button onClick={() => moveFilter(i, -1)} disabled={i === 0} className="px-2 py-1 rounded border text-xs font-black disabled:opacity-30" title="نقل لأعلى">▲</button>
+                        <button onClick={() => moveFilter(i, 1)} disabled={i === filtersCfg.length - 1} className="px-2 py-1 rounded border text-xs font-black disabled:opacity-30" title="نقل لأسفل">▼</button>
+                        <button onClick={() => delFilter(i)} className="text-red-600 font-black text-lg px-1" title="حذف">✕</button>
+                      </div>
                     </div>
+                    {f.control === 'combo' && (
+                      <input
+                        className="schedule-select w-full"
+                        value={f.search_placeholder || ''}
+                        onChange={(e) => updFilter(i, { search_placeholder: e.target.value })}
+                        placeholder="نص الإيضاح داخل مربع البحث (مثال: ابحث عن قسم، رقم، أو اسم...)"
+                      />
+                    )}
 
                     <details>
                       <summary className="cursor-pointer text-xs font-black text-slate-700">
@@ -279,7 +309,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         {(f.rules || []).map((r, ri) => (
                           <div key={ri} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border">
                             <input
-                              className="schedule-select col-span-4"
+                              className="schedule-select col-span-3"
                               value={r.label}
                               onChange={(e) => updRule(i, ri, { label: e.target.value })}
                               placeholder="تسمية الخيار"
@@ -294,9 +324,9 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             {r.op === 'contains_any' ? (
                               <input
                                 className="schedule-select col-span-4"
-                                value={(r.values || []).join(',')}
-                                onChange={(e) => updRule(i, ri, { values: e.target.value.split(',').map((v) => v.trim()).filter(Boolean) })}
-                                placeholder="قيم بفواصل"
+                                value={(r.values || []).join(', ')}
+                                onChange={(e) => updRule(i, ri, { values: splitMulti(e.target.value) })}
+                                placeholder="قيم مفصولة (,  ،  -  |  أو سطر جديد)"
                               />
                             ) : NEEDS_VALUE[r.op] ? (
                               <input
@@ -308,7 +338,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             ) : (
                               <div className="col-span-4 text-[11px] text-slate-400 text-center">— لا قيمة —</div>
                             )}
-                            <button onClick={() => delRule(i, ri)} className="col-span-1 text-red-600 font-black">✕</button>
+                            <div className="col-span-2 flex items-center justify-end gap-1">
+                              <button onClick={() => moveRule(i, ri, -1)} disabled={ri === 0} className="px-1.5 py-1 rounded border text-[10px] font-black disabled:opacity-30" title="نقل لأعلى">▲</button>
+                              <button onClick={() => moveRule(i, ri, 1)} disabled={ri === (f.rules || []).length - 1} className="px-1.5 py-1 rounded border text-[10px] font-black disabled:opacity-30" title="نقل لأسفل">▼</button>
+                              <button onClick={() => delRule(i, ri)} className="text-red-600 font-black text-lg px-1" title="حذف">✕</button>
+                            </div>
                           </div>
                         ))}
                         <button
@@ -351,9 +385,9 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     </select>
                     {c.op === 'contains_any' ? (
                       <input className="schedule-select col-span-5"
-                        value={(c.values || []).join(',')}
-                        onChange={(e) => updCondition(i, { values: e.target.value.split(',').map((v) => v.trim()).filter(Boolean) })}
-                        placeholder="قيم مفصولة بفواصل: استاذ,أستاذ" />
+                        value={(c.values || []).join(', ')}
+                        onChange={(e) => updCondition(i, { values: splitMulti(e.target.value) })}
+                        placeholder="قيم مفصولة بأي من (, ، - | سطر جديد): مثل استاذ، أستاذ" />
                     ) : NEEDS_VALUE[c.op] ? (
                       <input className="schedule-select col-span-5" value={String(c.value ?? '')} onChange={(e) => updCondition(i, { value: e.target.value })} placeholder="القيمة" />
                     ) : (
