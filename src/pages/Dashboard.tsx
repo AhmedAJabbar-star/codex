@@ -9,8 +9,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 import { listCustomSystems, CUSTOM_SYSTEMS_UPDATED_EVENT } from '@/data/customSystemsRegistry';
 import {
-  fetchSheetByGid,
+  fetchSheetByGid, parseSheetDate, currentAcademicCutoff,
   SUPERVISION_GID, POSTGRADUATE_GID, CHECK_GID, PROJECT_GID, STUDENTS_GID, CHECKALLHR_GID,
+  type SheetFetchResult,
 } from '@/data/supervisionData';
 
 const systemCards = [
@@ -306,14 +307,86 @@ const Dashboard = () => {
       retry: 1,
     })),
   });
-  const gidRowCount = useMemo(() => {
-    const map: Record<string, number> = {};
-    uniqueGids.forEach((gid, i) => {
-      const data = sheetQueries[i]?.data;
-      if (data) map[gid] = data.rows.length;
-    });
+  const gidSheet = useMemo(() => {
+    const map: Record<string, SheetFetchResult | undefined> = {};
+    uniqueGids.forEach((gid, i) => { map[gid] = sheetQueries[i]?.data; });
     return map;
   }, [uniqueGids, sheetQueries]);
+
+  const countFilteredSupervision = (id: string): number => {
+    const sup = supervisionGids.find((s) => s.id === id);
+    if (!sup) return 0;
+    const sheet = gidSheet[sup.gid];
+    if (!sheet) return 0;
+    const rows = sheet.rows;
+    const h = sheet.headers;
+    const trim = (v: any) => String(v || '').trim();
+    const normalizeAr = (s: string) => s.replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').trim();
+    const num = (v: string) => parseFloat(String(v || '').replace(/[^\d.\-]/g, ''));
+
+    switch (id) {
+      case 'expiredSupervision': {
+        const colE = h[4]; if (!colE) return 0;
+        const cutoffMs = currentAcademicCutoff().getTime();
+        return rows.filter((r) => {
+          const d = parseSheetDate(r[colE] || '');
+          return d !== null && d.getTime() <= cutoffMs;
+        }).length;
+      }
+      case 'studentsWithoutSupervisor': {
+        const colI = h[8]; if (!colI) return rows.length;
+        return rows.filter((r) => trim(r[colI]) === '0').length;
+      }
+      case 'projectsAssignmentsAudit': {
+        const colI = h[8]; if (!colI) return rows.length;
+        const isSafe = (v: string) => {
+          const t = (v || '').replace(/\s+/g, '').trim();
+          return t === '' || t.includes('سليم');
+        };
+        return rows.filter((r) => !isSafe(r[colI] || '')).length;
+      }
+      case 'projectSupervisionExceeded': {
+        const colI = h[8]; if (!colI) return 0;
+        return rows.filter((r) => {
+          const n = num(r[colI] || '');
+          return !isNaN(n) && n > 4;
+        }).length;
+      }
+      case 'teachersWithoutTheory': {
+        const cKey = h[2], eKey = h[4], sKey = h[18], tKey = h[19];
+        if (!cKey || !eKey) return 0;
+        const isZero = (v: string) => {
+          const t = trim(v);
+          if (!t) return false;
+          const n = num(t);
+          return !isNaN(n) && n === 0;
+        };
+        let count = 0;
+        rows.forEach((r) => {
+          if (trim(r[cKey]) === 'مجاز') return;
+          if (trim(r[eKey]) === 'مدرس مساعد') return;
+          if (sKey && isZero(r[sKey] || '')) count += 1;
+          if (tKey && isZero(r[tKey] || '')) count += 1;
+        });
+        return count;
+      }
+      case 'unassignedSupervisors': {
+        const cKey = h[2], eKey = h[4], nKey = h[13];
+        if (!cKey || !eKey || !nKey) return 0;
+        return rows.filter((r) => {
+          const e = normalizeAr(r[eKey] || '');
+          const c = trim(r[cKey]);
+          const nRaw = trim(r[nKey]);
+          const nNum = num(nRaw);
+          const nIsZero = nRaw === '' || nRaw === '0' || (!isNaN(nNum) && nNum === 0);
+          return e.includes('استاذ') && c !== 'مجاز' && nIsZero;
+        }).length;
+      }
+      default:
+        return rows.length;
+    }
+  };
+
 
   useEffect(() => {
     void syncRulesFromRemote().then((r) => { setRules(r); setGroups(getGroups()); });
@@ -366,15 +439,15 @@ const Dashboard = () => {
     }
     if (id === 'charts') return 0;
     if (liveMap[id] !== undefined) return liveMap[id]!;
-    // Supervision-style systems
+    // Supervision-style systems (with per-system filter logic)
     const sup = supervisionGids.find((s) => s.id === id);
-    if (sup) return gidRowCount[sup.gid] || 0;
+    if (sup) return countFilteredSupervision(id);
     // Custom systems: id is `custom_<defId>`
     if (id.startsWith('custom_')) {
       const defId = id.slice('custom_'.length);
       const def = (customSystems || []).find((s) => s.id === defId);
-      if (def?.sheet_gid) return gidRowCount[def.sheet_gid] || 0;
-      return 0;
+      const sheet = def?.sheet_gid ? gidSheet[def.sheet_gid] : undefined;
+      return sheet?.rows.length || 0;
     }
     const sys = SYSTEMS.find(s => s.id === id);
     return sys?.rows.length || 0;
