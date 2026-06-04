@@ -1,13 +1,17 @@
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { SYSTEMS } from '@/data/scheduleData';
 import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 import { listCustomSystems, CUSTOM_SYSTEMS_UPDATED_EVENT } from '@/data/customSystemsRegistry';
+import {
+  fetchSheetByGid,
+  SUPERVISION_GID, POSTGRADUATE_GID, CHECK_GID, PROJECT_GID, STUDENTS_GID, CHECKALLHR_GID,
+} from '@/data/supervisionData';
 
 const systemCards = [
   {
@@ -272,6 +276,45 @@ const Dashboard = () => {
     retry: 1,
   });
 
+  // Fetch supervision-style sheets so cards can show record counts too.
+  const supervisionGids = useMemo(() => ([
+    { id: 'supervisionReport', gid: SUPERVISION_GID },
+    { id: 'expiredSupervision', gid: SUPERVISION_GID },
+    { id: 'researchPhaseStudents', gid: POSTGRADUATE_GID },
+    { id: 'studentsWithoutSupervisor', gid: POSTGRADUATE_GID },
+    { id: 'supervisionCap', gid: CHECK_GID },
+    { id: 'projects', gid: PROJECT_GID },
+    { id: 'fourthStageStudents', gid: STUDENTS_GID },
+    { id: 'projectsAssignmentsAudit', gid: STUDENTS_GID },
+    { id: 'supervisionWorkload', gid: CHECKALLHR_GID },
+    { id: 'projectSupervisionExceeded', gid: CHECKALLHR_GID },
+    { id: 'teachersWithoutTheory', gid: CHECKALLHR_GID },
+    { id: 'unassignedSupervisors', gid: CHECKALLHR_GID },
+  ]), []);
+  const uniqueGids = useMemo(() => {
+    const set = new Set<string>(supervisionGids.map((s) => s.gid));
+    (customSystems || []).forEach((s) => { if (s.sheet_gid) set.add(s.sheet_gid); });
+    return Array.from(set);
+  }, [supervisionGids, customSystems]);
+  const sheetQueries = useQueries({
+    queries: uniqueGids.map((gid) => ({
+      queryKey: ['sheet-count', gid],
+      queryFn: () => fetchSheetByGid(gid),
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchInterval: 5 * 60 * 1000,
+      retry: 1,
+    })),
+  });
+  const gidRowCount = useMemo(() => {
+    const map: Record<string, number> = {};
+    uniqueGids.forEach((gid, i) => {
+      const data = sheetQueries[i]?.data;
+      if (data) map[gid] = data.rows.length;
+    });
+    return map;
+  }, [uniqueGids, sheetQueries]);
+
   useEffect(() => {
     void syncRulesFromRemote().then((r) => { setRules(r); setGroups(getGroups()); });
 
@@ -323,6 +366,16 @@ const Dashboard = () => {
     }
     if (id === 'charts') return 0;
     if (liveMap[id] !== undefined) return liveMap[id]!;
+    // Supervision-style systems
+    const sup = supervisionGids.find((s) => s.id === id);
+    if (sup) return gidRowCount[sup.gid] || 0;
+    // Custom systems: id is `custom_<defId>`
+    if (id.startsWith('custom_')) {
+      const defId = id.slice('custom_'.length);
+      const def = (customSystems || []).find((s) => s.id === defId);
+      if (def?.sheet_gid) return gidRowCount[def.sheet_gid] || 0;
+      return 0;
+    }
     const sys = SYSTEMS.find(s => s.id === id);
     return sys?.rows.length || 0;
   };
