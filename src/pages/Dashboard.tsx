@@ -439,15 +439,15 @@ const Dashboard = () => {
     }
     if (id === 'charts') return 0;
     if (liveMap[id] !== undefined) return liveMap[id]!;
-    // Supervision-style systems
+    // Supervision-style systems (with per-system filter logic)
     const sup = supervisionGids.find((s) => s.id === id);
-    if (sup) return gidRowCount[sup.gid] || 0;
+    if (sup) return countFilteredSupervision(id);
     // Custom systems: id is `custom_<defId>`
     if (id.startsWith('custom_')) {
       const defId = id.slice('custom_'.length);
       const def = (customSystems || []).find((s) => s.id === defId);
-      if (def?.sheet_gid) return gidRowCount[def.sheet_gid] || 0;
-      return 0;
+      const sheet = def?.sheet_gid ? gidSheet[def.sheet_gid] : undefined;
+      return sheet?.rows.length || 0;
     }
     const sys = SYSTEMS.find(s => s.id === id);
     return sys?.rows.length || 0;
