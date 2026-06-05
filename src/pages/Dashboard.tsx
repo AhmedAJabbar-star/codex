@@ -8,6 +8,7 @@ import universityLogo from '@/assets/university-logo.jpg';
 import { useEffect, useMemo, useState } from 'react';
 import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 import { listCustomSystems, CUSTOM_SYSTEMS_UPDATED_EVENT } from '@/data/customSystemsRegistry';
+import { evaluateCondition, applyDerivedColumns } from '@/lib/conditionEngine';
 import {
   fetchSheetByGid, parseSheetDate, currentAcademicCutoff,
   SUPERVISION_GID, POSTGRADUATE_GID, CHECK_GID, PROJECT_GID, STUDENTS_GID, CHECKALLHR_GID,
