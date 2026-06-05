@@ -279,11 +279,11 @@ const ControlPanel = () => {
           {/* Per-system visibility/passwords */}
           <div className="space-y-4">
             {systems.map((s) => {
-              const r = rules[s.id];
+              const r = rules[s.id] as any;
               return (
                 <div key={s.id} className="border rounded-xl p-4 bg-white/70">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <strong>{s.title}</strong>
+                    <strong>{r.title || s.title}</strong>
                     <span className="text-xs text-[var(--schedule-muted)]">{s.path}</span>
                   </div>
                   <div className="mt-3 grid md:grid-cols-3 gap-3">
@@ -301,6 +301,52 @@ const ControlPanel = () => {
                       onChange={(e) => update(s.id, { password: e.target.value })}
                     />
                   </div>
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-xs font-black text-[var(--schedule-accent-blue)]">
+                      🎨 تخصيص عرض البطاقة (العنوان/الوصف/الأيقونة/اللون/الترتيب)
+                    </summary>
+                    <div className="mt-3 grid md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="schedule-filter-label mb-1">العنوان المعروض</label>
+                        <input className="schedule-select w-full" type="text"
+                          placeholder={s.title}
+                          value={r.title || ''}
+                          onChange={(e) => update(s.id, { title: e.target.value } as any)} />
+                      </div>
+                      <div>
+                        <label className="schedule-filter-label mb-1">الوصف</label>
+                        <input className="schedule-select w-full" type="text"
+                          value={r.description || ''}
+                          onChange={(e) => update(s.id, { description: e.target.value } as any)} />
+                      </div>
+                      <div>
+                        <label className="schedule-filter-label mb-1">الأيقونة (إيموجي)</label>
+                        <input className="schedule-select w-full" type="text"
+                          placeholder="مثل: 📋"
+                          value={r.icon || ''}
+                          onChange={(e) => update(s.id, { icon: e.target.value } as any)} />
+                      </div>
+                      <div>
+                        <label className="schedule-filter-label mb-1">اللون (Hex)</label>
+                        <div className="flex items-center gap-2">
+                          <input type="color"
+                            value={(r.color && /^#[0-9a-fA-F]{6}$/.test(r.color)) ? r.color : '#475569'}
+                            onChange={(e) => update(s.id, { color: e.target.value } as any)}
+                            className="w-12 h-10 rounded border" />
+                          <input className="schedule-select flex-1" type="text" placeholder="#475569"
+                            value={r.color || ''}
+                            onChange={(e) => update(s.id, { color: e.target.value } as any)} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="schedule-filter-label mb-1">ترتيب الظهور (1 = الأول)</label>
+                        <input className="schedule-select w-full" type="number" min={1}
+                          placeholder="100"
+                          value={typeof r.sort_order === 'number' ? r.sort_order : ''}
+                          onChange={(e) => update(s.id, { sort_order: e.target.value === '' ? undefined : Number(e.target.value) } as any)} />
+                      </div>
+                    </div>
+                  </details>
                 </div>
               );
             })}
