@@ -10,6 +10,12 @@ export type SystemAccessRule = {
   visible: boolean;
   protected: boolean;
   password: string;
+  /** Optional presentation overrides for the dashboard card. */
+  title?: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  sort_order?: number;
 };
 
 export type SystemGroup = {
