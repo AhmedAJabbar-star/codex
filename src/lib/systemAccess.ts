@@ -94,11 +94,17 @@ const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule>
   SYSTEMS_REGISTRY.forEach((s) => {
     const r = (parsed?.[s.id] as Partial<SystemAccessRule>) || {};
     const fallback = defaultRule(s.id);
-    out[s.id] = {
+    const rule: SystemAccessRule = {
       visible: typeof r.visible === 'boolean' ? r.visible : fallback.visible,
       protected: typeof r.protected === 'boolean' ? r.protected : fallback.protected,
       password: typeof r.password === 'string' ? r.password : fallback.password,
     };
+    if (typeof r.title === 'string' && r.title.trim()) rule.title = r.title;
+    if (typeof r.description === 'string') rule.description = r.description;
+    if (typeof r.icon === 'string' && r.icon.trim()) rule.icon = r.icon;
+    if (typeof r.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(r.color.trim())) rule.color = r.color.trim();
+    if (typeof r.sort_order === 'number' && !isNaN(r.sort_order)) rule.sort_order = r.sort_order;
+    out[s.id] = rule;
   });
   return out;
 };
