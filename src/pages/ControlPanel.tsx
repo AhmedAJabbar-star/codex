@@ -10,8 +10,8 @@ import {
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog';
 
-const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖'];
-const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207'];
+const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖','📝','📌','🔔','🗓️','🕒','👨‍🏫','👥','🏫','🧮','🔍','✅','⚠️','🚦','💡','🧾','📑','🗒️','📐','🧱','🔧'];
+const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1d4ed8','#9333ea','#0d9488','#be185d','#ea580c','#65a30d'];
 
 const newId = () => `g-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
 
@@ -320,14 +320,34 @@ const ControlPanel = () => {
                           onChange={(e) => update(s.id, { description: e.target.value } as any)} />
                       </div>
                       <div>
-                        <label className="schedule-filter-label mb-1">الأيقونة (إيموجي)</label>
+                        <label className="schedule-filter-label mb-1">الأيقونة</label>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {PRESET_ICONS.map(ic => (
+                            <button key={ic} type="button" onClick={() => update(s.id, { icon: ic } as any)}
+                              className="w-10 h-10 rounded-lg border text-xl"
+                              style={{
+                                borderColor: r.icon === ic ? (r.color || '#475569') : 'var(--schedule-border)',
+                                background: r.icon === ic ? `${r.color || '#475569'}20` : 'white',
+                              }}
+                            >{ic}</button>
+                          ))}
+                        </div>
                         <input className="schedule-select w-full" type="text"
-                          placeholder="مثل: 📋"
+                          placeholder="أو أدخل إيموجي مخصّص"
                           value={r.icon || ''}
                           onChange={(e) => update(s.id, { icon: e.target.value } as any)} />
                       </div>
                       <div>
-                        <label className="schedule-filter-label mb-1">اللون (Hex)</label>
+                        <label className="schedule-filter-label mb-1">اللون</label>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {PRESET_COLORS.map(c => (
+                            <button key={c} type="button" onClick={() => update(s.id, { color: c } as any)}
+                              className="w-8 h-8 rounded-full border-2"
+                              style={{ background: c, borderColor: r.color === c ? '#111' : 'transparent' }}
+                              title={c}
+                            />
+                          ))}
+                        </div>
                         <div className="flex items-center gap-2">
                           <input type="color"
                             value={(r.color && /^#[0-9a-fA-F]{6}$/.test(r.color)) ? r.color : '#475569'}
