@@ -468,12 +468,26 @@ const Dashboard = () => {
   };
 
   const groupedSystemIds = new Set<string>(groups.flatMap(g => g.systemIds));
-  const baseVisibleCards = systemCards.filter(
-    (c) => (c.id === 'controlPanel' || rules[c.id]?.visible !== false) && !groupedSystemIds.has(c.id),
-  );
+  const applyOverrides = (c: typeof systemCards[number]) => {
+    const r = rules[c.id] as any;
+    if (!r) return { ...c, _sortOrder: 100 };
+    const color = r.color || c.color;
+    const gradient = r.color ? `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)` : c.gradient;
+    return {
+      ...c,
+      title: r.title || c.title,
+      description: typeof r.description === 'string' && r.description ? r.description : c.description,
+      icon: r.icon || c.icon,
+      color,
+      gradient,
+      _sortOrder: typeof r.sort_order === 'number' ? r.sort_order : 100,
+    };
+  };
+  const baseVisibleCards = systemCards
+    .filter((c) => (c.id === 'controlPanel' || rules[c.id]?.visible !== false) && !groupedSystemIds.has(c.id))
+    .map(applyOverrides);
   const customCards = [...(customSystems || [])]
     .filter((sys) => sys.enabled !== false)
-    .sort((a, b) => ((a.sort_order ?? 100) - (b.sort_order ?? 100)))
     .map((sys) => ({
       id: `custom_${sys.id}`,
       title: sys.title,
@@ -484,12 +498,10 @@ const Dashboard = () => {
       gradient: `linear-gradient(135deg, ${sys.color || '#0891b2'} 0%, ${sys.color || '#0891b2'}cc 100%)`,
       _sortOrder: sys.sort_order ?? 100,
     }));
-  // Insert each custom card at its sort_order position (1-indexed) within the visible list.
-  const visibleCards: any[] = [...baseVisibleCards];
-  customCards.forEach((c) => {
-    const pos = Math.max(1, Math.min(c._sortOrder, visibleCards.length + 1));
-    visibleCards.splice(pos - 1, 0, c);
-  });
+  // Merge built-in (with overrides) + custom, then sort by _sortOrder (stable for equal values).
+  const visibleCards: any[] = [...baseVisibleCards, ...customCards]
+    .map((c, i) => ({ ...c, _idx: i }))
+    .sort((a, b) => (a._sortOrder - b._sortOrder) || (a._idx - b._idx));
 
   const groupRowCount = (g: SystemGroup) =>
     g.systemIds.reduce((sum, id) => sum + (getSystemRowCount(id) || 0), 0);
