@@ -447,7 +447,20 @@ const Dashboard = () => {
       const defId = id.slice('custom_'.length);
       const def = (customSystems || []).find((s) => s.id === defId);
       const sheet = def?.sheet_gid ? gidSheet[def.sheet_gid] : undefined;
-      return sheet?.rows.length || 0;
+      if (!sheet || !def) return 0;
+      const conds = def.conditions || [];
+      const logic = def.conditions_logic || 'AND';
+      const passConds = (row: Record<string, string>) => {
+        if (conds.length === 0) return true;
+        if (logic === 'OR') return conds.some((c) => evaluateCondition(c, row, sheet.headers));
+        return conds.every((c) => evaluateCondition(c, row, sheet.headers));
+      };
+      const filtered = sheet.rows.filter(passConds);
+      if (!def.derived_columns || def.derived_columns.length === 0) return filtered.length;
+      // Expand via derived columns (same as page rendering)
+      let total = 0;
+      filtered.forEach((r) => { total += applyDerivedColumns(def.derived_columns, r, sheet.headers).length; });
+      return total;
     }
     const sys = SYSTEMS.find(s => s.id === id);
     return sys?.rows.length || 0;
