@@ -165,7 +165,9 @@ const GenericSystem = () => {
   if (!def) return <Navigate to="/" replace />;
   if (!def.sheet_gid) return <LiveLoadingShell error={new Error('لم يتم تحديد GID للورقة المصدر')} />;
 
-  return <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} build={build} />;
+  const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
+  return <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />;
+
 };
 
 export default GenericSystem;
