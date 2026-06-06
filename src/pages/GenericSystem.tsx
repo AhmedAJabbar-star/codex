@@ -143,12 +143,26 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
 const PUB_BASE =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub';
 
-function compactText(v: string, joiner = '\n') {
-  return v.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n').map((p) => p.trim()).filter(Boolean).join(joiner).trim();
+/** Build a CSV URL for a sheet GID from either the project's published sheet or an external Google Sheets URL. */
+export function buildSheetCsvUrl(gid: string, externalUrl?: string): string {
+  const bust = Date.now();
+  const url = (externalUrl || '').trim();
+  if (!url) return `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
+
+  // Published-to-web link: https://docs.google.com/spreadsheets/d/e/<KEY>/pubhtml or /pub
+  const pubMatch = url.match(/\/spreadsheets\/d\/e\/([^/?#]+)/);
+  if (pubMatch) {
+    return `https://docs.google.com/spreadsheets/d/e/${pubMatch[1]}/pub?gid=${gid}&single=true&output=csv&_=${bust}`;
+  }
+  // Regular edit/view link: https://docs.google.com/spreadsheets/d/<ID>/edit
+  const idMatch = url.match(/\/spreadsheets\/d\/([^/?#]+)/);
+  if (idMatch) {
+    return `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv&gid=${gid}&_=${bust}`;
+  }
+  // Fallback: treat the input as a raw spreadsheet id
+  return `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=${gid}&_=${bust}`;
 }
-function compactHeader(v: string) {
-  return v.replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n').map((p) => p.trim()).filter(Boolean).join(' ').trim();
-}
+
 function parseCsv(text: string): string[][] {
   const rows: string[][] = []; let row: string[] = []; let v = ''; let q = false;
   for (let i = 0; i < text.length; i += 1) {
