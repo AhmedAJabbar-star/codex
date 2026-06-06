@@ -217,10 +217,36 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
 
           {step === 2 && (
             <div className="space-y-4">
+              <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                <strong className="text-sm">مصدر البيانات</strong>
+                <div className="flex flex-wrap gap-3">
+                  <label className="flex items-center gap-2 text-sm font-bold cursor-pointer">
+                    <input type="radio" name="sheet_source" checked={(s.sheet_source || 'current') === 'current'}
+                      onChange={() => patch({ sheet_source: 'current', sheet_url: '' })} />
+                    الجدول الحالي للمشروع (عبر GID فقط)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-bold cursor-pointer">
+                    <input type="radio" name="sheet_source" checked={s.sheet_source === 'external'}
+                      onChange={() => patch({ sheet_source: 'external' })} />
+                    جدول Google Sheets خارجي (رابط + GID)
+                  </label>
+                </div>
+                {s.sheet_source === 'external' && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-black">رابط ملف Google Sheets *</label>
+                    <input className="schedule-select w-full" value={s.sheet_url || ''}
+                      onChange={(e) => patch({ sheet_url: e.target.value })}
+                      placeholder="https://docs.google.com/spreadsheets/d/<ID>/edit" />
+                    <p className="text-[11px] text-slate-500">
+                      تأكد أن الملف مشارَك بـ «أي شخص لديه الرابط - مشاهد» أو منشور للويب لتمكين القراءة بصيغة CSV.
+                    </p>
+                  </div>
+                )}
+              </div>
               <div>
                 <label className="block text-sm font-black mb-1">GID الورقة المصدر *</label>
                 <input className="schedule-select w-full" value={s.sheet_gid} onChange={(e) => patch({ sheet_gid: e.target.value })} placeholder="مثال: 1081297434" />
-                <p className="text-xs text-slate-500 mt-1">رقم GID للورقة من نفس الجدول المنشور.</p>
+                <p className="text-xs text-slate-500 mt-1">رقم GID للورقة داخل الملف المختار أعلاه.</p>
               </div>
               <div>
                 <label className="block text-sm font-black mb-1">نطاق الأعمدة المعروضة *</label>
@@ -244,6 +270,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
               )}
             </div>
           )}
+
 
           {step === 3 && (
             <div className="space-y-3">
