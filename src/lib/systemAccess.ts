@@ -107,6 +107,8 @@ const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule>
     if (typeof r.icon === 'string' && r.icon.trim()) rule.icon = r.icon;
     if (typeof r.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(r.color.trim())) rule.color = r.color.trim();
     if (typeof r.sort_order === 'number' && !isNaN(r.sort_order)) rule.sort_order = r.sort_order;
+    if (typeof r.require_teacher_auth === 'boolean') rule.require_teacher_auth = r.require_teacher_auth;
+
     out[s.id] = rule;
   });
   return out;
