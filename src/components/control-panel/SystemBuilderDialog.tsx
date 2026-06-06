@@ -495,7 +495,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 className="schedule-btn"
                 disabled={busy}
                 onClick={() => {
-                  setS({ ...s, id: '', title: `${s.title} (نسخة)`, created_at: undefined as any });
+                  setS({ ...s, id: '', title: `${s.title} (نسخة)` });
                   setStep(1);
                   toast.success('تم تجهيز نسخة جديدة — عدّل العنوان ثم احفظ كنظام مستقل.');
                 }}
