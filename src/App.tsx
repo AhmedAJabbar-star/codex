@@ -9,6 +9,8 @@ import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
 import { getRuleByPath, syncRulesFromRemote, SYSTEM_ACCESS_RULES_UPDATED_EVENT } from "@/lib/systemAccess";
+import TeacherAuthGate from "@/components/shared/TeacherAuthGate";
+
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
@@ -111,10 +113,12 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 
   if (!rule) return children;
   if (rule.visible === false) return <Navigate to="/" replace />;
-  if (!rule.protected || ok) return children;
+  const gated = rule.require_teacher_auth ? <TeacherAuthGate>{children}</TeacherAuthGate> : children;
+  if (!rule.protected || ok) return gated;
 
   return <PasswordGate pathname={pathname} expected={rule.password || ''} onSuccess={() => setOk(true)} />;
 };
+
 
 // Gate for /custom/:id routes — fetches the system def and checks its `protected/password`.
 const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
@@ -122,8 +126,8 @@ const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
   const rawId = pathname.replace(/^\/custom\//, '').replace(/\/$/, '');
   let id = rawId;
   try { id = decodeURIComponent(rawId); } catch { /* keep raw */ }
-  const [state, setState] = useState<{ loading: boolean; protected: boolean; password: string; visible: boolean }>(
-    { loading: true, protected: false, password: '', visible: true },
+  const [state, setState] = useState<{ loading: boolean; protected: boolean; password: string; visible: boolean; requireTeacherAuth: boolean }>(
+    { loading: true, protected: false, password: '', visible: true, requireTeacherAuth: false },
   );
   const [ok, setOk] = useState(() => sessionOk(pathname));
 
@@ -133,18 +137,20 @@ const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
       .then((all) => {
         if (!alive) return;
         const s = all.find((x) => x.id === id);
-        if (!s) { setState({ loading: false, protected: false, password: '', visible: false }); return; }
-        setState({ loading: false, protected: !!s.protected, password: s.password || '', visible: s.enabled !== false });
+        if (!s) { setState({ loading: false, protected: false, password: '', visible: false, requireTeacherAuth: false }); return; }
+        setState({ loading: false, protected: !!s.protected, password: s.password || '', visible: s.enabled !== false, requireTeacherAuth: !!s.require_teacher_auth });
       })
-      .catch(() => alive && setState({ loading: false, protected: false, password: '', visible: false }));
+      .catch(() => alive && setState({ loading: false, protected: false, password: '', visible: false, requireTeacherAuth: false }));
     return () => { alive = false; };
   }, [id]);
 
   if (state.loading) return <Loading />;
   if (!state.visible) return <Navigate to="/" replace />;
-  if (!state.protected || ok || sessionOk(pathname)) return children;
+  const gated = state.requireTeacherAuth ? <TeacherAuthGate>{children}</TeacherAuthGate> : children;
+  if (!state.protected || ok || sessionOk(pathname)) return gated;
   return <PasswordGate pathname={pathname} expected={state.password} onSuccess={() => setOk(true)} />;
 };
+
 
 const Loading = () => (
   <div className="schedule-body flex items-center justify-center min-h-screen" dir="rtl">
