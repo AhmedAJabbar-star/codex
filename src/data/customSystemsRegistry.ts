@@ -29,6 +29,10 @@ export interface CustomSystemDef {
   description: string;
   icon: string;
   color: string;
+  /** 'current' = use the project's published sheet (default), 'external' = use a separate Google Sheet via URL. */
+  sheet_source?: 'current' | 'external';
+  /** Full Google Sheets URL when sheet_source = 'external' (e.g., https://docs.google.com/spreadsheets/d/<ID>/edit). */
+  sheet_url?: string;
   sheet_gid: string;
   columns_range: string;
   filter_columns: string;
@@ -44,6 +48,8 @@ export interface CustomSystemDef {
   password: string;
   hint: string;
   enabled: boolean;
+  /** When true, only authenticated teachers (Individual Assignments login) may access this system. */
+  require_teacher_auth?: boolean;
 }
 
 export const EMPTY_SYSTEM: CustomSystemDef = {
@@ -52,6 +58,8 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   description: '',
   icon: '📋',
   color: '#0891b2',
+  sheet_source: 'current',
+  sheet_url: '',
   sheet_gid: '',
   columns_range: 'F:N',
   filter_columns: '',
@@ -66,7 +74,9 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   password: '',
   hint: '',
   enabled: true,
+  require_teacher_auth: false,
 };
+
 
 export async function listCustomSystems(): Promise<CustomSystemDef[]> {
   const { data, error } = await supabase.functions.invoke('custom-systems', {

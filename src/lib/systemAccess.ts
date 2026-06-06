@@ -16,7 +16,10 @@ export type SystemAccessRule = {
   icon?: string;
   color?: string;
   sort_order?: number;
+  /** When true, requires Individual-Assignments teacher login (name + password) before access. */
+  require_teacher_auth?: boolean;
 };
+
 
 export type SystemGroup = {
   id: string;
