@@ -8,14 +8,16 @@ import type { SystemConfig, ScheduleRow } from '@/data/scheduleData';
 interface Props {
   queryKey: string;
   gid: string;
+  /** Optional external Google Sheets URL — when provided, data is fetched from that spreadsheet instead of the project's published sheet. */
+  externalUrl?: string;
   /** Build the SystemConfig given the fetched sheet. Return rows to display (already filtered if needed). */
   build: (sheet: SheetFetchResult) => SystemConfig;
 }
 
-const SupervisionBasePage = ({ queryKey, gid, build }: Props) => {
+const SupervisionBasePage = ({ queryKey, gid, externalUrl, build }: Props) => {
   const { data, error, isLoading } = useQuery({
-    queryKey: [queryKey, gid],
-    queryFn: () => fetchSheetByGid(gid),
+    queryKey: [queryKey, gid, externalUrl || ''],
+    queryFn: () => fetchSheetByGid(gid, externalUrl),
     staleTime: 0,
     gcTime: 30 * 60 * 1000,
     refetchOnMount: 'always',
@@ -24,6 +26,7 @@ const SupervisionBasePage = ({ queryKey, gid, build }: Props) => {
     refetchIntervalInBackground: false,
     retry: 1,
   });
+
 
   const systemsOverride = useMemo<SystemConfig[] | undefined>(() => {
     if (!data) return undefined;
