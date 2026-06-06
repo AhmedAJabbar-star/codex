@@ -320,6 +320,20 @@ const ControlPanel = () => {
                       onChange={(e) => update(s.id, { password: e.target.value })}
                     />
                   </div>
+                  <label className="mt-3 flex items-start gap-2 text-sm font-bold border-2 border-amber-300 rounded-lg p-2 bg-amber-50/60 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!r.require_teacher_auth}
+                      onChange={(e) => update(s.id, { require_teacher_auth: e.target.checked } as any)}
+                    />
+                    <span>
+                      🔐 اشتراط دخول التدريسي (كما في «التكليفات الفردية»)
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        عند التفعيل: يجب على التدريسي اختيار اسمه وكتابة كلمة مروره من التكليفات الفردية للوصول إلى هذا النظام.
+                      </span>
+                    </span>
+                  </label>
+
                   <details className="mt-3">
                     <summary className="cursor-pointer text-xs font-black text-[var(--schedule-accent-blue)]">
                       🎨 تخصيص عرض البطاقة (العنوان/الوصف/الأيقونة/اللون/الترتيب)
