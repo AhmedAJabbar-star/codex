@@ -465,6 +465,22 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 <input type="checkbox" checked={s.enabled !== false} onChange={(e) => patch({ enabled: e.target.checked })} />
                 تفعيل النظام (إظهاره في الواجهة الرئيسية)
               </label>
+
+              <div className="border-2 border-amber-300 rounded-lg p-3 bg-amber-50/60 mt-3">
+                <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!s.require_teacher_auth}
+                    onChange={(e) => patch({ require_teacher_auth: e.target.checked })}
+                  />
+                  <span>
+                    اشتراط دخول التدريسي (كما في «التكليفات الفردية»)
+                    <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                      عند التفعيل، لن يستطيع أي تدريسي فتح هذا النظام إلا باختيار اسمه وكتابة كلمة المرور الخاصة به في نظام التكليفات الفردية — لا تُستخدم كلمة سر مستقلة.
+                    </span>
+                  </span>
+                </label>
+              </div>
             </div>
           )}
         </div>
@@ -474,12 +490,25 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
             <button className="schedule-btn" disabled={busy} onClick={handleDelete} style={{ color: '#b91c1c' }}>🗑️ حذف النظام</button>
           ) : <span />}
           <div className="flex gap-2">
+            {initial?.id && (
+              <button
+                className="schedule-btn"
+                disabled={busy}
+                onClick={() => {
+                  setS({ ...s, id: '', title: `${s.title} (نسخة)`, created_at: undefined as any });
+                  setStep(1);
+                  toast.success('تم تجهيز نسخة جديدة — عدّل العنوان ثم احفظ كنظام مستقل.');
+                }}
+                title="إنشاء نسخة بنفس الإعدادات وحفظها كنظام جديد"
+              >📄 إنشاء نسخة</button>
+            )}
             <button className="schedule-btn" onClick={onClose}>إلغاء</button>
             <button className="schedule-btn schedule-btn-primary" disabled={busy} onClick={handleSave}>
               {busy ? '⏳ جاري الحفظ...' : '💾 حفظ النظام'}
             </button>
           </div>
         </footer>
+
       </div>
     </div>
   );
