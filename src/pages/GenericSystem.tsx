@@ -140,59 +140,9 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
   };
 }
 
-const PUB_BASE =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub';
+// Sheet fetching is centralized in `@/data/supervisionData`. This file no longer needs
+// its own CSV fetcher — `SupervisionBasePage` calls `fetchSheetByGid(gid, externalUrl?)`.
 
-/** Build a CSV URL for a sheet GID from either the project's published sheet or an external Google Sheets URL. */
-export function buildSheetCsvUrl(gid: string, externalUrl?: string): string {
-  const bust = Date.now();
-  const url = (externalUrl || '').trim();
-  if (!url) return `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
-
-  // Published-to-web link: https://docs.google.com/spreadsheets/d/e/<KEY>/pubhtml or /pub
-  const pubMatch = url.match(/\/spreadsheets\/d\/e\/([^/?#]+)/);
-  if (pubMatch) {
-    return `https://docs.google.com/spreadsheets/d/e/${pubMatch[1]}/pub?gid=${gid}&single=true&output=csv&_=${bust}`;
-  }
-  // Regular edit/view link: https://docs.google.com/spreadsheets/d/<ID>/edit
-  const idMatch = url.match(/\/spreadsheets\/d\/([^/?#]+)/);
-  if (idMatch) {
-    return `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv&gid=${gid}&_=${bust}`;
-  }
-  // Fallback: treat the input as a raw spreadsheet id
-  return `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=${gid}&_=${bust}`;
-}
-
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = []; let row: string[] = []; let v = ''; let q = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const c = text[i];
-    if (q) { if (c === '"') { if (text[i+1] === '"') { v += '"'; i += 1; } else q = false; } else v += c; }
-    else if (c === '"') q = true;
-    else if (c === ',') { row.push(v); v = ''; }
-    else if (c === '\n') { row.push(v); rows.push(row); row = []; v = ''; }
-    else if (c !== '\r') v += c;
-  }
-  if (v.length > 0 || row.length > 0) { row.push(v); rows.push(row); }
-  return rows;
-}
-async function fetchSheetByGid(gid: string): Promise<SheetFetchResult> {
-  const bust = Date.now();
-  const url = `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`تعذر جلب الورقة (HTTP ${res.status})`);
-  const text = (await res.text()).replace(/^\uFEFF/, '');
-  const [head = [], ...data] = parseCsv(text);
-  const headers = head.map(compactHeader);
-  const rows = data
-    .filter((cells) => cells.some((c) => compactText(c).length > 0))
-    .map((cells) => {
-      const r: Record<string, string> = {};
-      headers.forEach((h, i) => { r[h] = compactText(cells[i] ?? ''); });
-      return r;
-    });
-  return { headers, rows };
-}
 
 const GenericSystem = () => {
   const { id = '' } = useParams<{ id: string }>();

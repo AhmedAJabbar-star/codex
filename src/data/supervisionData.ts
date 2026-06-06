@@ -10,10 +10,22 @@ export const PROJECT_GID = '2145658694';
 export const STUDENTS_GID = '1210995176';
 export const CHECKALLHR_GID = '1081297434';
 
-function buildCsvUrl(gid: string): string {
+/** Build a CSV URL for a sheet GID. If `externalUrl` is provided, use that spreadsheet instead of the project's published sheet. */
+export function buildCsvUrl(gid: string, externalUrl?: string): string {
   const bust = Date.now();
-  return `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
+  const url = (externalUrl || '').trim();
+  if (!url) return `${PUB_BASE}?gid=${gid}&single=true&output=csv&_=${bust}`;
+  const pubMatch = url.match(/\/spreadsheets\/d\/e\/([^/?#]+)/);
+  if (pubMatch) {
+    return `https://docs.google.com/spreadsheets/d/e/${pubMatch[1]}/pub?gid=${gid}&single=true&output=csv&_=${bust}`;
+  }
+  const idMatch = url.match(/\/spreadsheets\/d\/([^/?#]+)/);
+  if (idMatch) {
+    return `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv&gid=${gid}&_=${bust}`;
+  }
+  return `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=${gid}&_=${bust}`;
 }
+
 
 function compactText(value: string, joiner = '\n'): string {
   return value
@@ -55,8 +67,8 @@ export interface SheetFetchResult {
   rows: ScheduleRow[];
 }
 
-export async function fetchSheetByGid(gid: string): Promise<SheetFetchResult> {
-  const response = await fetch(buildCsvUrl(gid), { cache: 'no-store' });
+export async function fetchSheetByGid(gid: string, externalUrl?: string): Promise<SheetFetchResult> {
+  const response = await fetch(buildCsvUrl(gid, externalUrl), { cache: 'no-store' });
   if (!response.ok) throw new Error(`تعذر جلب بيانات Google Sheets (HTTP ${response.status})`);
   const text = (await response.text()).replace(/^\uFEFF/, '');
   const [headerRow = [], ...dataRows] = parseCsv(text);
@@ -70,6 +82,7 @@ export async function fetchSheetByGid(gid: string): Promise<SheetFetchResult> {
     });
   return { headers, rows };
 }
+
 
 /* ───── Date parsing ───── */
 export function parseSheetDate(raw: string): Date | null {
