@@ -259,20 +259,39 @@ const ControlPanel = () => {
             ) : (
               <div className="grid sm:grid-cols-2 gap-2">
                 {customSystems.map((cs) => (
-                  <button key={cs.id}
-                    onClick={() => { setBuilderInitial(cs); setBuilderOpen(true); }}
-                    className="text-right border rounded-lg p-3 bg-white hover:shadow-md transition flex items-center gap-3"
+                  <div key={cs.id}
+                    className="text-right border rounded-lg p-3 bg-white hover:shadow-md transition flex items-center gap-2"
                     style={{ borderColor: `${cs.color}66` }}
                   >
-                    <div className="text-2xl">{cs.icon || '📋'}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-black text-sm truncate">{cs.title}</div>
-                      <div className="text-[11px] text-slate-500 truncate">GID: {cs.sheet_gid} · {cs.columns_range}</div>
-                    </div>
-                    {cs.enabled === false && <span className="text-[10px] font-black text-amber-600">معطّل</span>}
-                  </button>
+                    <button
+                      onClick={() => { setBuilderInitial(cs); setBuilderOpen(true); }}
+                      className="flex-1 flex items-center gap-3 text-right min-w-0"
+                    >
+                      <div className="text-2xl">{cs.icon || '📋'}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-black text-sm truncate">{cs.title}</div>
+                        <div className="text-[11px] text-slate-500 truncate">
+                          GID: {cs.sheet_gid} · {cs.columns_range}
+                          {cs.sheet_source === 'external' ? ' · 🌐 خارجي' : ''}
+                          {cs.require_teacher_auth ? ' · 🔐 تدريسي' : ''}
+                        </div>
+                      </div>
+                      {cs.enabled === false && <span className="text-[10px] font-black text-amber-600">معطّل</span>}
+                    </button>
+                    <button
+                      onClick={() => {
+                        const copy: CustomSystemDef = { ...cs, id: '', title: `${cs.title} (نسخة)` };
+                        setBuilderInitial(copy);
+                        setBuilderOpen(true);
+                        toast.info('تم تجهيز نسخة من النظام — عدّل العنوان ثم احفظ كنظام جديد.');
+                      }}
+                      title="إنشاء نسخة من هذا النظام"
+                      className="text-lg px-2 py-1 rounded border hover:bg-slate-100"
+                    >📄</button>
+                  </div>
                 ))}
               </div>
+
             )}
           </div>
 
