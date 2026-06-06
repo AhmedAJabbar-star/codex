@@ -31,7 +31,10 @@ const HEADERS = [
   "filters_config_json", "conditions_logic", "header_labels_json", "signatures_json",
   // v3 additions:
   "sort_order",
+  // v4 additions:
+  "sheet_source", "sheet_url", "require_teacher_auth",
 ];
+
 const SHEET_TITLE = "systems_registry";
 
 function clean(s: any) { return (s ?? "").toString().replace(/^\uFEFF/, "").trim(); }
@@ -178,8 +181,12 @@ function rowToSystem(r: Record<string, string>) {
     hint: clean(r.hint),
     enabled: String(r.enabled || "true").toLowerCase() !== "false",
     sort_order: Number.parseInt(clean(r.sort_order) || "100", 10) || 100,
+    sheet_source: (clean(r.sheet_source).toLowerCase() === "external") ? "external" : "current",
+    sheet_url: clean(r.sheet_url),
+    require_teacher_auth: String(r.require_teacher_auth || "").toLowerCase() === "true",
   };
 }
+
 
 async function systemToRow(s: any): Promise<string[]> {
   const now = new Date().toISOString();
@@ -206,9 +213,13 @@ async function systemToRow(s: any): Promise<string[]> {
     header_labels_json: JSON.stringify(s.header_labels || {}),
     signatures_json: JSON.stringify(s.signatures || []),
     sort_order: String(Number.isFinite(Number(s.sort_order)) ? Number(s.sort_order) : 100),
+    sheet_source: (s.sheet_source === "external") ? "external" : "current",
+    sheet_url: String(s.sheet_url || ""),
+    require_teacher_auth: String(!!s.require_teacher_auth),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
+
 
 async function validatePassword(password: string): Promise<boolean> {
   let expected = FALLBACK_PASSWORD;
