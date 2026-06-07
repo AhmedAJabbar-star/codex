@@ -324,6 +324,119 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === "sheet-write") {
+      const op = String(body?.op || "");
+      const gid = String(body?.gid || "");
+      const externalUrl = String(body?.sheet_url || "").trim();
+      const valuesByLetter = (body?.values || {}) as Record<string, string>;
+      const matchByLetter = (body?.match || {}) as Record<string, string>;
+      if (!gid) return json({ error: "GID مطلوب" }, 400);
+      if (!["append", "update", "delete"].includes(op)) return json({ error: "op غير مدعوم" }, 400);
+
+      // Resolve spreadsheet ID (external link OR project sheet)
+      let spreadsheetId = SHEET_ID;
+      if (externalUrl) {
+        const m = externalUrl.match(/\/spreadsheets\/d\/([^/?#]+)/);
+        if (m) spreadsheetId = m[1];
+        else return json({ error: "رابط Google Sheets غير صالح (يجب أن يحتوي /spreadsheets/d/<ID>)" }, 400);
+      }
+
+      const gapiX = async (path: string, init: RequestInit = {}) => {
+        const token = await getAccessToken();
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`, {
+          ...init,
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
+        });
+        const text = await res.text();
+        let data: any = null;
+        try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+        if (!res.ok) throw new Error(`Sheets API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+        return data;
+      };
+
+      // Map gid -> sheet title (and numeric sheetId for delete)
+      const meta = await gapiX("?fields=sheets(properties(sheetId,title))");
+      const sheetMeta = (meta.sheets || []).find((s: any) => String(s.properties?.sheetId) === gid);
+      if (!sheetMeta) return json({ error: `الورقة (gid=${gid}) غير موجودة في الملف` }, 404);
+      const sheetTitle: string = sheetMeta.properties.title;
+      const numericSheetId: number = sheetMeta.properties.sheetId;
+
+      const letterToIdx = (L: string) => {
+        let n = 0; const s = (L || "").toUpperCase();
+        for (let i = 0; i < s.length; i++) n = n * 26 + (s.charCodeAt(i) - 64);
+        return n - 1;
+      };
+      const idxToLetter = (i1: number) => {
+        let n = i1; let s = "";
+        while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+        return s;
+      };
+
+      // Read header row + all rows to determine width / find target row
+      const data = await gapiX(`/values/${encodeURIComponent(sheetTitle)}!A1:ZZ`);
+      const allRows: string[][] = (data.values || []).map((r: any[]) => (r || []).map((c) => String(c ?? "")));
+      if (allRows.length === 0) return json({ error: "الورقة فارغة (لا توجد ترويسة)" }, 400);
+      const header = allRows[0];
+      const width = Math.max(header.length, ...Array.from(Object.keys(valuesByLetter)).map((L) => letterToIdx(L) + 1));
+      const lastLetter = idxToLetter(width);
+
+      const buildRowFromLetters = (base: string[], values: Record<string, string>): string[] => {
+        const out: string[] = [];
+        for (let i = 0; i < width; i++) out[i] = base[i] ?? "";
+        Object.entries(values || {}).forEach(([L, v]) => {
+          const idx = letterToIdx(L);
+          if (idx >= 0 && idx < width) out[idx] = String(v ?? "");
+        });
+        return out;
+      };
+
+      if (op === "append") {
+        const row = buildRowFromLetters([], valuesByLetter);
+        await gapiX(`/values/${encodeURIComponent(sheetTitle)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
+          method: "POST",
+          body: JSON.stringify({ values: [row] }),
+        });
+        return json({ ok: true });
+      }
+
+      // Locate target row by matching `match` snapshot against original sheet rows.
+      const matchLetters = Object.keys(matchByLetter);
+      if (matchLetters.length === 0) return json({ error: "يلزم بيانات لتحديد الصف (match)" }, 400);
+      let targetIdx = -1; // 0-based among data rows (after header)
+      for (let i = 1; i < allRows.length; i++) {
+        const row = allRows[i];
+        let ok = true;
+        for (const L of matchLetters) {
+          const idx = letterToIdx(L);
+          const cell = String(row[idx] ?? "").trim();
+          const expected = String(matchByLetter[L] ?? "").trim();
+          if (cell !== expected) { ok = false; break; }
+        }
+        if (ok) { targetIdx = i - 1; break; }
+      }
+      if (targetIdx < 0) return json({ error: "لم يُعثر على الصف المطلوب (قد يكون عُدِّل من جانب آخر — أعد التحميل وحاول مجدداً)" }, 404);
+
+      if (op === "delete") {
+        await gapiX(":batchUpdate", { method: "POST", body: JSON.stringify({
+          requests: [{ deleteDimension: { range: {
+            sheetId: numericSheetId, dimension: "ROWS",
+            startIndex: targetIdx + 1, endIndex: targetIdx + 2,
+          }}}],
+        })});
+        return json({ ok: true });
+      }
+
+      // update
+      const base = allRows[targetIdx + 1] || [];
+      const newRow = buildRowFromLetters(base, valuesByLetter);
+      const range = `${sheetTitle}!A${targetIdx + 2}:${lastLetter}${targetIdx + 2}`;
+      await gapiX(`/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`, {
+        method: "PUT",
+        body: JSON.stringify({ values: [newRow] }),
+      });
+      return json({ ok: true });
+    }
+
     return json({ error: "إجراء غير معروف" }, 400);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
