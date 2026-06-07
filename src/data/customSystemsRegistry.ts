@@ -129,3 +129,35 @@ export async function deleteCustomSystem(id: string, password: string): Promise<
 }
 
 export const CUSTOM_SYSTEMS_UPDATED_EVENT = 'custom-systems-updated';
+
+/** CRUD against the source Google Sheet for a custom system. Admin password required. */
+export type SheetWriteOp = 'append' | 'update' | 'delete';
+export interface SheetWritePayload {
+  op: SheetWriteOp;
+  gid: string;
+  /** Optional external sheet URL (when system.sheet_source === 'external'). */
+  sheet_url?: string;
+  /** Map of column letter -> value for the new/updated row. */
+  values?: Record<string, string>;
+  /** Snapshot of the original row (letter -> value) used to locate the row on the server. */
+  match?: Record<string, string>;
+  password: string;
+}
+export async function sheetWrite(payload: SheetWritePayload): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('custom-systems', {
+    body: { action: 'sheet-write', ...payload },
+  });
+  if (error) {
+    const ctx: any = (error as any).context;
+    let msg = error.message;
+    if (ctx?.body) {
+      try {
+        const txt = typeof ctx.body === 'string' ? ctx.body : await new Response(ctx.body).text();
+        const j = JSON.parse(txt);
+        if (j?.error) msg = j.error;
+      } catch { /* ignore */ }
+    }
+    throw new Error(msg || 'فشل تنفيذ العملية');
+  }
+  if ((data as any)?.error) throw new Error((data as any).error);
+}
