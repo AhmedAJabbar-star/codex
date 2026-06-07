@@ -3,9 +3,11 @@ import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
+import CrudPanel from '@/components/custom-systems/CrudPanel';
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import type { SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig } from '@/data/scheduleData';
+import { getSession } from '@/lib/teacherAuth';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
   evaluateAll, evaluateCondition, applyDerivedColumns,
