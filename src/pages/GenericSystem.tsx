@@ -3,9 +3,11 @@ import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
+import CrudPanel from '@/components/custom-systems/CrudPanel';
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import type { SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig } from '@/data/scheduleData';
+import { getSession } from '@/lib/teacherAuth';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
   evaluateAll, evaluateCondition, applyDerivedColumns,
@@ -99,9 +101,26 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
       : evaluateAll(conds, r, sheet.headers);
   };
 
+  // Teacher row-filter: when require_teacher_auth + teacher_column are set, restrict to the logged-in teacher's rows.
+  let teacherFilter: ((r: Record<string, string>) => boolean) | null = null;
+  if (def.require_teacher_auth && def.teacher_column) {
+    try {
+      const session = getSession();
+      const name = (session?.user?.full_name || '').trim();
+      if (name) {
+        const ti = colLetterToIndex(def.teacher_column);
+        if (ti >= 0) {
+          const realKey = sheet.headers[ti];
+          teacherFilter = (r) => ((r[realKey] || '').trim() === name);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
   const rows: Record<string, string>[] = [];
   sheet.rows.forEach((r) => {
     if (!passes(r)) return;
+    if (teacherFilter && !teacherFilter(r)) return;
     const expanded = applyDerivedColumns(def.derived_columns || [], r, sheet.headers);
     expanded.forEach((row) => {
       const out: Record<string, string> = {};
@@ -166,6 +185,14 @@ const GenericSystem = () => {
   if (!def.sheet_gid) return <LiveLoadingShell error={new Error('لم يتم تحديد GID للورقة المصدر')} />;
 
   const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
+  if (def.crud_enabled) {
+    return (
+      <div>
+        <div className="px-4 pt-4" dir="rtl"><CrudPanel def={def} /></div>
+        <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />
+      </div>
+    );
+  }
   return <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />;
 
 };
