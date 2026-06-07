@@ -186,6 +186,10 @@ function rowToSystem(r: Record<string, string>) {
     sheet_source: (clean(r.sheet_source).toLowerCase() === "external") ? "external" : "current",
     sheet_url: clean(r.sheet_url),
     require_teacher_auth: String(r.require_teacher_auth || "").toLowerCase() === "true",
+    teacher_column: clean(r.teacher_column).toUpperCase(),
+    crud_enabled: String(r.crud_enabled || "").toLowerCase() === "true",
+    column_types: parseJson(r.column_types_json || "{}", {}),
+    column_options: parseJson(r.column_options_json || "{}", {}),
   };
 }
 
