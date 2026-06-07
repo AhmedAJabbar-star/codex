@@ -99,9 +99,27 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
       : evaluateAll(conds, r, sheet.headers);
   };
 
+  // Teacher row-filter: when require_teacher_auth + teacher_column are set, restrict to the logged-in teacher's rows.
+  let teacherFilter: ((r: Record<string, string>) => boolean) | null = null;
+  if (def.require_teacher_auth && def.teacher_column) {
+    try {
+      // Lazy import to avoid SSR/test issues
+      const session = (typeof window !== 'undefined' ? require('@/lib/teacherAuth').getSession() : null) as { user?: { full_name?: string } } | null;
+      const name = (session?.user?.full_name || '').trim();
+      if (name) {
+        const ti = colLetterToIndex(def.teacher_column);
+        if (ti >= 0) {
+          const realKey = sheet.headers[ti];
+          teacherFilter = (r) => ((r[realKey] || '').trim() === name);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
   const rows: Record<string, string>[] = [];
   sheet.rows.forEach((r) => {
     if (!passes(r)) return;
+    if (teacherFilter && !teacherFilter(r)) return;
     const expanded = applyDerivedColumns(def.derived_columns || [], r, sheet.headers);
     expanded.forEach((row) => {
       const out: Record<string, string> = {};
