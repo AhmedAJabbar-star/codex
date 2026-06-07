@@ -50,6 +50,16 @@ export interface CustomSystemDef {
   enabled: boolean;
   /** When true, only authenticated teachers (Individual Assignments login) may access this system. */
   require_teacher_auth?: boolean;
+  /** Excel letter (e.g. "F") of the column containing the teacher's full name.
+   *  When set together with require_teacher_auth, the table is filtered to rows whose
+   *  cell in this column equals the logged-in teacher's name. */
+  teacher_column?: string;
+  /** Enables Add / Edit / Delete on the source Google Sheet (admin password required). */
+  crud_enabled?: boolean;
+  /** Per-column input type for the CRUD form. Key = Excel letter, value = type. */
+  column_types?: Record<string, 'text' | 'number' | 'date' | 'select' | 'readonly'>;
+  /** Comma-separated select options per column letter (used when column_types[letter] === 'select'). */
+  column_options?: Record<string, string>;
 }
 
 export const EMPTY_SYSTEM: CustomSystemDef = {
@@ -75,6 +85,10 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   hint: '',
   enabled: true,
   require_teacher_auth: false,
+  teacher_column: '',
+  crud_enabled: false,
+  column_types: {},
+  column_options: {},
 };
 
 
