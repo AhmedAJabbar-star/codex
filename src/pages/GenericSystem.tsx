@@ -185,6 +185,14 @@ const GenericSystem = () => {
   if (!def.sheet_gid) return <LiveLoadingShell error={new Error('لم يتم تحديد GID للورقة المصدر')} />;
 
   const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
+  if (def.crud_enabled) {
+    return (
+      <div>
+        <div className="px-4 pt-4" dir="rtl"><CrudPanel def={def} /></div>
+        <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />
+      </div>
+    );
+  }
   return <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />;
 
 };
