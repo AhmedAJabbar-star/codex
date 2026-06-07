@@ -222,6 +222,10 @@ async function systemToRow(s: any): Promise<string[]> {
     sheet_source: (s.sheet_source === "external") ? "external" : "current",
     sheet_url: String(s.sheet_url || ""),
     require_teacher_auth: String(!!s.require_teacher_auth),
+    teacher_column: String(s.teacher_column || "").toUpperCase(),
+    crud_enabled: String(!!s.crud_enabled),
+    column_types_json: JSON.stringify(s.column_types || {}),
+    column_options_json: JSON.stringify(s.column_options || {}),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
