@@ -105,8 +105,7 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
   let teacherFilter: ((r: Record<string, string>) => boolean) | null = null;
   if (def.require_teacher_auth && def.teacher_column) {
     try {
-      // Lazy import to avoid SSR/test issues
-      const session = (typeof window !== 'undefined' ? require('@/lib/teacherAuth').getSession() : null) as { user?: { full_name?: string } } | null;
+      const session = getSession();
       const name = (session?.user?.full_name || '').trim();
       if (name) {
         const ti = colLetterToIndex(def.teacher_column);
