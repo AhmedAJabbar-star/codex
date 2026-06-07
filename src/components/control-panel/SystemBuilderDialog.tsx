@@ -466,7 +466,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 تفعيل النظام (إظهاره في الواجهة الرئيسية)
               </label>
 
-              <div className="border-2 border-amber-300 rounded-lg p-3 bg-amber-50/60 mt-3">
+              <div className="border-2 border-amber-300 rounded-lg p-3 bg-amber-50/60 mt-3 space-y-2">
                 <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
                   <input
                     type="checkbox"
@@ -480,6 +480,77 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     </span>
                   </span>
                 </label>
+                {s.require_teacher_auth && (
+                  <div>
+                    <label className="block text-xs font-black mb-1">عمود اسم التدريسي (حرف Excel، اختياري)</label>
+                    <input
+                      className="schedule-select w-full"
+                      value={s.teacher_column || ''}
+                      onChange={(e) => patch({ teacher_column: e.target.value.toUpperCase().trim() })}
+                      placeholder="مثال: F"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      عند تحديده، يرى التدريسي بعد دخوله الصفوف التي تطابق اسمه فقط في هذا العمود.
+                      اتركه فارغاً ليرى جميع الصفوف.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* CRUD section */}
+              <div className="border-2 border-cyan-300 rounded-lg p-3 bg-cyan-50/40 mt-3 space-y-2">
+                <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!s.crud_enabled}
+                    onChange={(e) => patch({ crud_enabled: e.target.checked })}
+                  />
+                  <span>
+                    ✏️ تفعيل الإضافة/التعديل/الحذف/البحث على البيانات
+                    <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                      تُكتب التعديلات مباشرة في ورقة Google Sheets المصدر. يتطلب كل تعديل كلمة مرور لوحة التحكم.
+                      للأوراق الخارجية، تأكد من منح صلاحية «محرّر» لحساب الخدمة المرتبط بالمشروع.
+                    </span>
+                  </span>
+                </label>
+                {s.crud_enabled && colLetters.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs font-black text-slate-700">
+                      أنواع حقول الإدخال لكل عمود ({colLetters.length})
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      {colLetters.map((L) => {
+                        const ct = (s.column_types || {})[L] || 'text';
+                        const opts = (s.column_options || {})[L] || '';
+                        return (
+                          <div key={L} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border">
+                            <span className="col-span-1 text-xs font-black text-center bg-slate-100 rounded py-1.5">{L}</span>
+                            <span className="col-span-4 text-xs font-bold truncate">{labels[L] || `عمود ${L}`}</span>
+                            <select
+                              className="schedule-select col-span-3"
+                              value={ct}
+                              onChange={(e) => patch({ column_types: { ...(s.column_types || {}), [L]: e.target.value as any } })}
+                            >
+                              <option value="text">نص</option>
+                              <option value="number">رقم</option>
+                              <option value="date">تاريخ</option>
+                              <option value="select">قائمة</option>
+                              <option value="readonly">قراءة فقط</option>
+                            </select>
+                            {ct === 'select' ? (
+                              <input
+                                className="schedule-select col-span-4"
+                                value={opts}
+                                onChange={(e) => patch({ column_options: { ...(s.column_options || {}), [L]: e.target.value } })}
+                                placeholder="خيارات مفصولة بفاصلة"
+                              />
+                            ) : <span className="col-span-4" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </details>
+                )}
               </div>
             </div>
           )}
