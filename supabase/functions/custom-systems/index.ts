@@ -33,6 +33,8 @@ const HEADERS = [
   "sort_order",
   // v4 additions:
   "sheet_source", "sheet_url", "require_teacher_auth",
+  // v5 additions:
+  "teacher_column", "crud_enabled", "column_types_json", "column_options_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
