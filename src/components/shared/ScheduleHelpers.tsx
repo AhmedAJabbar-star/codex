@@ -110,7 +110,9 @@ tr.odd{background:#fff}
 }
 </style></head><body>
 <div class="preview-bar">
-  <span class="pv-title">📄 معاينة قبل الطباعة — ${title}</span>
+  <span class="pv-title">📄 معاينة —</span>
+  <input id="pv-title-input" value="${title.replace(/"/g, '&quot;')}" style="flex:1;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px"/>
+  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px;cursor:pointer"/> إظهار تاريخ الإصدار</label>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
@@ -127,13 +129,23 @@ tr.odd{background:#fff}
   <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education &amp; Scientific Research<br/>University of Technology</div>
 </div>
 
-<div class="doc-title"><h1>${title}</h1></div>
+<div class="doc-title"><h1 id="doc-h1">${title}</h1></div>
 
 <div class="info-band">
-  <div class="info-cell"><strong>تاريخ الإصدار</strong>${today}</div>
+  <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong>${today}</div>
   <div class="info-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
   <div class="info-cell"><strong>عدد السجلات</strong>${rows.length}</div>
 </div>
+<script>
+  (function(){
+    var ti=document.getElementById('pv-title-input');
+    var h1=document.getElementById('doc-h1');
+    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
+    var cb=document.getElementById('pv-show-date');
+    var dc=document.getElementById('issue-date-cell');
+    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+  })();
+</script>
 
 ${(filtersInfo && filtersInfo.length > 0) ? `
 <div class="filters-band">
