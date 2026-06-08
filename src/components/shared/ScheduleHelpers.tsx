@@ -398,10 +398,12 @@ tr:hover{background:#e3edfa !important}
   .print-header{border-bottom-color:#000}
   .footer{border-top-color:#000}
 }
-<style>.preview-bar-sr{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}.preview-bar-sr .pv-title{font-weight:800;font-size:13px;margin-inline-end:auto}.preview-bar-sr button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px}.preview-bar-sr .btn-print{background:#fff;color:#0f4c81}.preview-bar-sr .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}body{padding-top:54px}@media print{.preview-bar-sr{display:none!important}body{padding-top:0!important}}</style>
+<style>.preview-bar-sr{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}.preview-bar-sr .pv-title{font-weight:800;font-size:13px}.preview-bar-sr input[type="text"]{flex:1;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px}.preview-bar-sr label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer}.preview-bar-sr button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px}.preview-bar-sr .btn-print{background:#fff;color:#0f4c81}.preview-bar-sr .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}body{padding-top:54px}@media print{.preview-bar-sr{display:none!important}body{padding-top:0!important}}</style>
 </style></head><body>
 <div class="preview-bar-sr">
-  <span class="pv-title">📄 معاينة قبل الطباعة — ${title}</span>
+  <span class="pv-title">📄 معاينة —</span>
+  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
+  <label><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px"/> إظهار تاريخ الإصدار</label>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
@@ -409,9 +411,19 @@ tr:hover{background:#e3edfa !important}
 <div class="print-header">
 <img src="${universityLogo}" alt="شعار الجامعة"/>
 <h1>كلية الهندسة المدنية - الجامعة التكنولوجية</h1>
-<h2>${title}</h2>
-<div class="subtitle">عدد السجلات: ${rows.length}</div>
+<h2 id="doc-h1">${title}</h2>
+<div class="subtitle">عدد السجلات: ${rows.length} <span id="issue-date-cell"> | تاريخ الإصدار: ${new Date().toLocaleDateString('ar-IQ')}</span></div>
 </div>
+<script>
+  (function(){
+    var ti=document.getElementById('pv-title-input');
+    var h1=document.getElementById('doc-h1');
+    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
+    var cb=document.getElementById('pv-show-date');
+    var dc=document.getElementById('issue-date-cell');
+    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+  })();
+</script>
 ${infoHtml ? `<div class="info-section">${infoHtml}</div>` : ''}
 <div class="stats-bar">
 <div class="stat">📊 إجمالي: ${rows.length}</div>
