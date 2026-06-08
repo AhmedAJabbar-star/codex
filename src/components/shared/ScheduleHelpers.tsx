@@ -285,7 +285,7 @@ body{padding-top:54px}
   <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education<br/>University of Technology</div>
 </div>
 
-<div class="doc-title"><h1>${title}</h1></div>
+<div class="doc-title"><h1 id="doc-h1">${title}</h1></div>
 
 <div class="info-band">
   <div class="info-cell"><strong>اسم التدريسي</strong>${teacherName || '—'}</div>
