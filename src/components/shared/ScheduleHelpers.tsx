@@ -110,7 +110,9 @@ tr.odd{background:#fff}
 }
 </style></head><body>
 <div class="preview-bar">
-  <span class="pv-title">📄 معاينة قبل الطباعة — ${title}</span>
+  <span class="pv-title">📄 معاينة —</span>
+  <input id="pv-title-input" value="${title.replace(/"/g, '&quot;')}" style="flex:1;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px"/>
+  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px;cursor:pointer"/> إظهار تاريخ الإصدار</label>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
@@ -127,13 +129,23 @@ tr.odd{background:#fff}
   <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education &amp; Scientific Research<br/>University of Technology</div>
 </div>
 
-<div class="doc-title"><h1>${title}</h1></div>
+<div class="doc-title"><h1 id="doc-h1">${title}</h1></div>
 
 <div class="info-band">
-  <div class="info-cell"><strong>تاريخ الإصدار</strong>${today}</div>
+  <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong>${today}</div>
   <div class="info-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
   <div class="info-cell"><strong>عدد السجلات</strong>${rows.length}</div>
 </div>
+<script>
+  (function(){
+    var ti=document.getElementById('pv-title-input');
+    var h1=document.getElementById('doc-h1');
+    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
+    var cb=document.getElementById('pv-show-date');
+    var dc=document.getElementById('issue-date-cell');
+    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+  })();
+</script>
 
 ${(filtersInfo && filtersInfo.length > 0) ? `
 <div class="filters-band">
@@ -245,10 +257,15 @@ tr.odd{background:#fff}
 .stamp-box{position:relative;min-height:70px}
 .stamp-circle{display:inline-block;width:65px;height:65px;border:2px dashed #0f4c81;border-radius:50%;font-size:8px;color:#0f4c81;font-weight:800;line-height:65px;margin:2px auto;opacity:.7}
 .doc-meta{margin-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#555;padding:4px 10px;border-top:1px solid #c5d3e3}
-.screen-actions{position:fixed;left:16px;bottom:16px;z-index:10}.screen-actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 18px;cursor:pointer;box-shadow:0 10px 25px rgba(15,76,129,.25)}
+.screen-actions{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;box-shadow:0 6px 20px rgba(15,76,129,.3)}
+.screen-actions .pv-title{font-weight:800;font-size:13px}
+.screen-actions input[type="text"]{flex:1;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px}
+.screen-actions label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;color:#fff}
+.screen-actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#fff;color:#0f4c81;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px}
+body{padding-top:54px}
 @page{size:A4 portrait;margin:5mm}
 @media print{
-  body{padding:0}
+  body{padding:0;padding-top:0}
   tr,td,th{page-break-inside:avoid}
   .signatures{page-break-inside:avoid}
   .pledge{page-break-inside:avoid}
@@ -268,7 +285,7 @@ tr.odd{background:#fff}
   <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education<br/>University of Technology</div>
 </div>
 
-<div class="doc-title"><h1>${title}</h1></div>
+<div class="doc-title"><h1 id="doc-h1">${title}</h1></div>
 
 <div class="info-band">
   <div class="info-cell"><strong>اسم التدريسي</strong>${teacherName || '—'}</div>
@@ -303,12 +320,28 @@ tr.odd{background:#fff}
 </div>
 
 <div class="doc-meta">
-  <span>تاريخ الإصدار : ${today}</span>
+  <span id="issue-date-cell">تاريخ الإصدار : ${today}</span>
   <span>عدد التكليفات : ${rows.length}</span>
 </div>
 
 </div></div>
-<div class="screen-actions"><button onclick="window.print()">🖨️ طباعة / حفظ PDF</button></div>
+<div class="screen-actions">
+  <span class="pv-title">📄 معاينة —</span>
+  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
+  <label><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px"/> إظهار تاريخ الإصدار</label>
+  <button onclick="window.print()">🖨️ طباعة</button>
+  <button onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)">✕ إغلاق</button>
+</div>
+<script>
+  (function(){
+    var ti=document.getElementById('pv-title-input');
+    var h1=document.getElementById('doc-h1');
+    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
+    var cb=document.getElementById('pv-show-date');
+    var dc=document.getElementById('issue-date-cell');
+    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+  })();
+</script>
 
 </body></html>`);
   w.document.close();
@@ -365,10 +398,12 @@ tr:hover{background:#e3edfa !important}
   .print-header{border-bottom-color:#000}
   .footer{border-top-color:#000}
 }
-<style>.preview-bar-sr{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}.preview-bar-sr .pv-title{font-weight:800;font-size:13px;margin-inline-end:auto}.preview-bar-sr button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px}.preview-bar-sr .btn-print{background:#fff;color:#0f4c81}.preview-bar-sr .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}body{padding-top:54px}@media print{.preview-bar-sr{display:none!important}body{padding-top:0!important}}</style>
+<style>.preview-bar-sr{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}.preview-bar-sr .pv-title{font-weight:800;font-size:13px}.preview-bar-sr input[type="text"]{flex:1;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px}.preview-bar-sr label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer}.preview-bar-sr button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px}.preview-bar-sr .btn-print{background:#fff;color:#0f4c81}.preview-bar-sr .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}body{padding-top:54px}@media print{.preview-bar-sr{display:none!important}body{padding-top:0!important}}</style>
 </style></head><body>
 <div class="preview-bar-sr">
-  <span class="pv-title">📄 معاينة قبل الطباعة — ${title}</span>
+  <span class="pv-title">📄 معاينة —</span>
+  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
+  <label><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px"/> إظهار تاريخ الإصدار</label>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
@@ -376,9 +411,19 @@ tr:hover{background:#e3edfa !important}
 <div class="print-header">
 <img src="${universityLogo}" alt="شعار الجامعة"/>
 <h1>كلية الهندسة المدنية - الجامعة التكنولوجية</h1>
-<h2>${title}</h2>
-<div class="subtitle">عدد السجلات: ${rows.length}</div>
+<h2 id="doc-h1">${title}</h2>
+<div class="subtitle">عدد السجلات: ${rows.length} <span id="issue-date-cell"> | تاريخ الإصدار: ${new Date().toLocaleDateString('ar-IQ')}</span></div>
 </div>
+<script>
+  (function(){
+    var ti=document.getElementById('pv-title-input');
+    var h1=document.getElementById('doc-h1');
+    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
+    var cb=document.getElementById('pv-show-date');
+    var dc=document.getElementById('issue-date-cell');
+    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+  })();
+</script>
 ${infoHtml ? `<div class="info-section">${infoHtml}</div>` : ''}
 <div class="stats-bar">
 <div class="stat">📊 إجمالي: ${rows.length}</div>
@@ -454,7 +499,10 @@ export function exportToPDF(title: string, headers: string[], rows: ScheduleRow[
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:10mm}
 @page{size:landscape;margin:6mm}
-.actions{text-align:center;margin-bottom:12px}.actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 22px;cursor:pointer}
+.actions{display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.actions input[type="text"]{flex:1;max-width:380px;padding:7px 10px;border-radius:8px;border:1px solid #c5d3e3;color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px}
+.actions label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#0f4c81;cursor:pointer}
+.actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 22px;cursor:pointer}
 h1{text-align:center;font-size:18px;color:#0f4c81;margin-bottom:4px;font-weight:900}
 h2{text-align:center;font-size:14px;color:#333;margin-bottom:8px;font-weight:700}
 .info{text-align:center;font-size:11px;color:#555;margin-bottom:12px}
@@ -467,10 +515,24 @@ tr.odd{background:#fff}
 .footer strong{color:#0f4c81}
 @media print{body{padding:0}tr,td,th{page-break-inside:avoid}.actions{display:none!important}}
 </style></head><body>
-<div class="actions"><button onclick="window.print()">🖨️ طباعة / حفظ PDF</button></div>
-<h1>${title}</h1>
+<div class="actions">
+  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
+  <label><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px"/> إظهار تاريخ التقرير</label>
+  <button onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+</div>
+<h1 id="doc-h1">${title}</h1>
 <h2>كلية الهندسة المدنية - الجامعة التكنولوجية</h2>
-<div class="info">عدد السجلات: ${rows.length} | تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</div>
+<div class="info">عدد السجلات: ${rows.length}<span id="issue-date-cell"> | تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</span></div>
+<script>
+  (function(){
+    var ti=document.getElementById('pv-title-input');
+    var h1=document.getElementById('doc-h1');
+    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
+    var cb=document.getElementById('pv-show-date');
+    var dc=document.getElementById('issue-date-cell');
+    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+  })();
+</script>
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 <div class="footer">
