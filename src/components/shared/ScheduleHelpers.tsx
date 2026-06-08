@@ -257,10 +257,15 @@ tr.odd{background:#fff}
 .stamp-box{position:relative;min-height:70px}
 .stamp-circle{display:inline-block;width:65px;height:65px;border:2px dashed #0f4c81;border-radius:50%;font-size:8px;color:#0f4c81;font-weight:800;line-height:65px;margin:2px auto;opacity:.7}
 .doc-meta{margin-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#555;padding:4px 10px;border-top:1px solid #c5d3e3}
-.screen-actions{position:fixed;left:16px;bottom:16px;z-index:10}.screen-actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 18px;cursor:pointer;box-shadow:0 10px 25px rgba(15,76,129,.25)}
+.screen-actions{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;box-shadow:0 6px 20px rgba(15,76,129,.3)}
+.screen-actions .pv-title{font-weight:800;font-size:13px}
+.screen-actions input[type="text"]{flex:1;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px}
+.screen-actions label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;color:#fff}
+.screen-actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#fff;color:#0f4c81;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px}
+body{padding-top:54px}
 @page{size:A4 portrait;margin:5mm}
 @media print{
-  body{padding:0}
+  body{padding:0;padding-top:0}
   tr,td,th{page-break-inside:avoid}
   .signatures{page-break-inside:avoid}
   .pledge{page-break-inside:avoid}
