@@ -320,12 +320,28 @@ body{padding-top:54px}
 </div>
 
 <div class="doc-meta">
-  <span>تاريخ الإصدار : ${today}</span>
+  <span id="issue-date-cell">تاريخ الإصدار : ${today}</span>
   <span>عدد التكليفات : ${rows.length}</span>
 </div>
 
 </div></div>
-<div class="screen-actions"><button onclick="window.print()">🖨️ طباعة / حفظ PDF</button></div>
+<div class="screen-actions">
+  <span class="pv-title">📄 معاينة —</span>
+  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
+  <label><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px"/> إظهار تاريخ الإصدار</label>
+  <button onclick="window.print()">🖨️ طباعة</button>
+  <button onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)">✕ إغلاق</button>
+</div>
+<script>
+  (function(){
+    var ti=document.getElementById('pv-title-input');
+    var h1=document.getElementById('doc-h1');
+    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
+    var cb=document.getElementById('pv-show-date');
+    var dc=document.getElementById('issue-date-cell');
+    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+  })();
+</script>
 
 </body></html>`);
   w.document.close();
