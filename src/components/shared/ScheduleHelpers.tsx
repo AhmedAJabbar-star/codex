@@ -499,7 +499,10 @@ export function exportToPDF(title: string, headers: string[], rows: ScheduleRow[
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:10mm}
 @page{size:landscape;margin:6mm}
-.actions{text-align:center;margin-bottom:12px}.actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 22px;cursor:pointer}
+.actions{display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.actions input[type="text"]{flex:1;max-width:380px;padding:7px 10px;border-radius:8px;border:1px solid #c5d3e3;color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px}
+.actions label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#0f4c81;cursor:pointer}
+.actions button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;background:#0f4c81;color:#fff;font-weight:800;padding:10px 22px;cursor:pointer}
 h1{text-align:center;font-size:18px;color:#0f4c81;margin-bottom:4px;font-weight:900}
 h2{text-align:center;font-size:14px;color:#333;margin-bottom:8px;font-weight:700}
 .info{text-align:center;font-size:11px;color:#555;margin-bottom:12px}
@@ -512,10 +515,24 @@ tr.odd{background:#fff}
 .footer strong{color:#0f4c81}
 @media print{body{padding:0}tr,td,th{page-break-inside:avoid}.actions{display:none!important}}
 </style></head><body>
-<div class="actions"><button onclick="window.print()">🖨️ طباعة / حفظ PDF</button></div>
-<h1>${title}</h1>
+<div class="actions">
+  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
+  <label><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px"/> إظهار تاريخ التقرير</label>
+  <button onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+</div>
+<h1 id="doc-h1">${title}</h1>
 <h2>كلية الهندسة المدنية - الجامعة التكنولوجية</h2>
-<div class="info">عدد السجلات: ${rows.length} | تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</div>
+<div class="info">عدد السجلات: ${rows.length}<span id="issue-date-cell"> | تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')}</span></div>
+<script>
+  (function(){
+    var ti=document.getElementById('pv-title-input');
+    var h1=document.getElementById('doc-h1');
+    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
+    var cb=document.getElementById('pv-show-date');
+    var dc=document.getElementById('issue-date-cell');
+    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+  })();
+</script>
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 <div class="footer">
