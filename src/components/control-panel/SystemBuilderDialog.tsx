@@ -514,37 +514,78 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   </span>
                 </label>
                 {s.crud_enabled && colLetters.length > 0 && (
-                  <details className="mt-2">
+                  <details className="mt-2" open>
                     <summary className="cursor-pointer text-xs font-black text-slate-700">
-                      أنواع حقول الإدخال لكل عمود ({colLetters.length})
+                      ⚙️ أنواع حقول الإدخال لكل عمود ({colLetters.length})
                     </summary>
                     <div className="mt-2 space-y-2">
                       {colLetters.map((L) => {
                         const ct = (s.column_types || {})[L] || 'text';
                         const opts = (s.column_options || {})[L] || '';
+                        const src = (s.column_select_source || {})[L] || 'manual';
+                        const allowCustom = !!(s.column_select_allow_custom || {})[L];
                         return (
-                          <div key={L} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border">
-                            <span className="col-span-1 text-xs font-black text-center bg-slate-100 rounded py-1.5">{L}</span>
-                            <span className="col-span-4 text-xs font-bold truncate">{labels[L] || `عمود ${L}`}</span>
-                            <select
-                              className="schedule-select col-span-3"
-                              value={ct}
-                              onChange={(e) => patch({ column_types: { ...(s.column_types || {}), [L]: e.target.value as any } })}
-                            >
-                              <option value="text">نص</option>
-                              <option value="number">رقم</option>
-                              <option value="date">تاريخ</option>
-                              <option value="select">قائمة</option>
-                              <option value="readonly">قراءة فقط</option>
-                            </select>
-                            {ct === 'select' ? (
-                              <input
+                          <div key={L} className="bg-white p-2.5 rounded-lg border space-y-2">
+                            <div className="grid grid-cols-12 gap-2 items-center">
+                              <span className="col-span-1 text-xs font-black text-center bg-slate-100 rounded py-1.5">{L}</span>
+                              <span className="col-span-7 text-xs font-bold truncate">{labels[L] || `عمود ${L}`}</span>
+                              <select
                                 className="schedule-select col-span-4"
-                                value={opts}
-                                onChange={(e) => patch({ column_options: { ...(s.column_options || {}), [L]: e.target.value } })}
-                                placeholder="خيارات مفصولة بفاصلة"
-                              />
-                            ) : <span className="col-span-4" />}
+                                value={ct}
+                                onChange={(e) => patch({ column_types: { ...(s.column_types || {}), [L]: e.target.value as any } })}
+                              >
+                                <option value="text">✏️ نص</option>
+                                <option value="number">🔢 رقم</option>
+                                <option value="date">📅 تاريخ</option>
+                                <option value="select">📋 قائمة منسدلة</option>
+                                <option value="readonly">🔒 قراءة فقط</option>
+                              </select>
+                            </div>
+                            {ct === 'select' && (
+                              <div className="space-y-2 pt-1 border-t border-dashed">
+                                <div className="flex flex-wrap gap-3 text-[11px] font-bold">
+                                  <label className="flex items-center gap-1.5 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`src-${L}`}
+                                      checked={src === 'manual'}
+                                      onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'manual' } })}
+                                    />
+                                    خيارات يدوية
+                                  </label>
+                                  <label className="flex items-center gap-1.5 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`src-${L}`}
+                                      checked={src === 'column'}
+                                      onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'column' } })}
+                                    />
+                                    القيم الفريدة من نفس العمود
+                                  </label>
+                                  <label className="flex items-center gap-1.5 cursor-pointer mr-auto bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                    <input
+                                      type="checkbox"
+                                      checked={allowCustom}
+                                      onChange={(e) => patch({ column_select_allow_custom: { ...(s.column_select_allow_custom || {}), [L]: e.target.checked } })}
+                                    />
+                                    السماح بإدخال قيمة جديدة غير موجودة
+                                  </label>
+                                </div>
+                                {src === 'manual' && (
+                                  <input
+                                    className="schedule-select w-full text-xs"
+                                    value={opts}
+                                    onChange={(e) => patch({ column_options: { ...(s.column_options || {}), [L]: e.target.value } })}
+                                    placeholder="الخيارات مفصولة بفاصلة (,) أو سطر جديد — مثال: نشِط، متوقف، مؤجل"
+                                  />
+                                )}
+                                {src === 'column' && (
+                                  <p className="text-[11px] text-slate-500 bg-slate-50 p-1.5 rounded">
+                                    💡 ستُجمع الخيارات تلقائياً من القيم الفريدة الموجودة في عمود <strong>{L}</strong> داخل ورقة Google Sheets.
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

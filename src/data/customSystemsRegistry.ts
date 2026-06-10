@@ -58,8 +58,12 @@ export interface CustomSystemDef {
   crud_enabled?: boolean;
   /** Per-column input type for the CRUD form. Key = Excel letter, value = type. */
   column_types?: Record<string, 'text' | 'number' | 'date' | 'select' | 'readonly'>;
-  /** Comma-separated select options per column letter (used when column_types[letter] === 'select'). */
+  /** Comma-separated select options per column letter (used when column_types[letter] === 'select' AND source = 'manual'). */
   column_options?: Record<string, string>;
+  /** Source of the dropdown options: 'manual' (default, from column_options) or 'column' (unique values from the column itself). */
+  column_select_source?: Record<string, 'manual' | 'column'>;
+  /** When true, the select also accepts values not in the list (renders as combobox/datalist). */
+  column_select_allow_custom?: Record<string, boolean>;
 }
 
 export const EMPTY_SYSTEM: CustomSystemDef = {
@@ -89,6 +93,8 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   crud_enabled: false,
   column_types: {},
   column_options: {},
+  column_select_source: {},
+  column_select_allow_custom: {},
 };
 
 
