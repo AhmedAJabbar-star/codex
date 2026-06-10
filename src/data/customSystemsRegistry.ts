@@ -93,6 +93,8 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   crud_enabled: false,
   column_types: {},
   column_options: {},
+  column_select_source: {},
+  column_select_allow_custom: {},
 };
 
 
