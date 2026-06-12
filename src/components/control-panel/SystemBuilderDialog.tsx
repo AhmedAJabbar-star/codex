@@ -313,6 +313,14 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         placeholder="نص الإيضاح داخل مربع البحث (مثال: ابحث عن قسم، رقم، أو اسم...)"
                       />
                     )}
+                    <label className="flex items-center gap-2 text-xs font-black bg-amber-50 border border-amber-200 rounded px-2 py-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!f.required}
+                        onChange={(e) => updFilter(i, { required: e.target.checked })}
+                      />
+                      <span>⛔ فلتر إجباري — لا يتم عرض أي بيانات قبل اختياره (مثل «الفصل الدراسي» في تكليفات التدريسي)</span>
+                    </label>
 
                     <details>
                       <summary className="cursor-pointer text-xs font-black text-slate-700">
