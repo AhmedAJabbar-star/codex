@@ -169,6 +169,7 @@ export async function login(full_name: string, password: string): Promise<Sessio
 export async function logout() {
   try { await call('logout'); } catch { /* ignore */ }
   setSession(null);
+  try { sessionStorage.removeItem('admin_pw_session_v1'); } catch { /* ignore */ }
 }
 
 export async function refreshMe(): Promise<TeacherUser | null> {
