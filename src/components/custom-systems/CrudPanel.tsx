@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { CustomSystemDef } from '@/data/customSystemsRegistry';
-import { sheetWrite, getCrudPerms, isCrudActive } from '@/data/customSystemsRegistry';
+import { sheetWrite, isCrudActive } from '@/data/customSystemsRegistry';
 import { fetchSheetByGid } from '@/data/supervisionData';
 import { parseColumnsRange, colIndexToLetter, colLetterToIndex } from '@/lib/conditionEngine';
-import { getSession } from '@/lib/teacherAuth';
+import { getSession, getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
+import { getEffectivePerms } from '@/lib/permissions';
 
 interface Props {
   def: CustomSystemDef;
