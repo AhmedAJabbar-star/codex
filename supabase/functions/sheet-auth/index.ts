@@ -523,13 +523,16 @@ async function getSessionUser(token: string | null) {
 }
 
 function publicUser(u: Record<string,string>) {
+  let permissions: any = null;
+  try { permissions = u.permissions_json ? JSON.parse(u.permissions_json) : null; } catch { permissions = null; }
   return {
     id: u.id,
     full_name: u.full_name,
     department: u.department || "",
     college: u.college || "",
-    role: (u.role === "admin" ? "admin" : "user") as "admin" | "user",
+    role: normalizeRole(u.role) as "admin" | "editor" | "viewer" | "user",
     must_change_password: String(u.must_change_password).toLowerCase() === "true",
+    permissions,
   };
 }
 function teacherNamesFromUsers(all: Record<string, string>[]) {
