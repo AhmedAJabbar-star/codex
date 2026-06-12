@@ -51,7 +51,7 @@ const UsersAdminSection = () => {
           <input
             type="password"
             className="schedule-select flex-1 min-w-[200px]"
-            placeholder="كلمة مرور المدير (الافتراضي: aa)"
+            placeholder="كلمة مرور المدير"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
           />
