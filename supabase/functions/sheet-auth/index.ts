@@ -236,20 +236,28 @@ async function ensureSheet(title: string, headers: string[]) {
         requests: [{ addSheet: { properties: { title } } }],
       }),
     });
-    // Write headers
     await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
       method: "PUT",
       body: JSON.stringify({ values: [headers] }),
     });
-  } else {
-    // Make sure headers exist (row 1 not empty)
-    const r = await gapi(`/values/${encodeURIComponent(title)}!A1:Z1`);
-    if (!r.values || r.values.length === 0 || (r.values[0] || []).length === 0) {
-      await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
-        method: "PUT",
-        body: JSON.stringify({ values: [headers] }),
-      });
-    }
+    return;
+  }
+  // Make sure headers exist and include all expected columns (extend if needed).
+  const r = await gapi(`/values/${encodeURIComponent(title)}!A1:Z1`);
+  const current: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "")) : [];
+  if (current.length === 0) {
+    await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
+      method: "PUT",
+      body: JSON.stringify({ values: [headers] }),
+    });
+    return;
+  }
+  const missing = headers.filter((h) => !current.includes(h));
+  if (missing.length > 0) {
+    await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
+      method: "PUT",
+      body: JSON.stringify({ values: [[...current, ...missing]] }),
+    });
   }
 }
 
