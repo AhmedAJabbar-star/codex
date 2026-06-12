@@ -216,7 +216,15 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     setStatFilter(prev => prev === value ? null : value);
   };
 
-  const clearFilters = () => { setFilters({}); setComboQuery(''); setStatFilter(null); };
+  const toggleQuickFilter = (key: string) => {
+    setActiveQuickFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const clearFilters = () => { setFilters({}); setComboQuery(''); setStatFilter(null); setActiveQuickFilters(new Set()); };
 
   const addBooking = () => {
     if (!bookingForm.room || !bookingForm.day || !bookingForm.date || !bookingForm.fromTime || !bookingForm.toTime) return;
