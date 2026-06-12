@@ -780,7 +780,37 @@ Deno.serve(async (req) => {
       return json({ archive });
     }
 
+    if (action === "admin-set-role") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً." }, 503);
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const { user_id, role } = body;
+      const found = await findUserById(user_id);
+      if (!found) return json({ error: "المستخدم غير موجود" }, 404);
+      if (found.user.full_name === "aa") return json({ error: "لا يمكن تعديل دور المدير الافتراضي" }, 400);
+      await updateRowByIndex("users", USERS_HEADERS, found.index, {
+        ...found.user, role: normalizeRole(role), updated_at: new Date().toISOString(),
+      });
+      await archive("admin_set_role", found.user.full_name, a.full_name, user_id);
+      return json({ ok: true });
+    }
+
+    if (action === "admin-set-permissions") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً." }, 503);
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const { user_id, permissions } = body;
+      const found = await findUserById(user_id);
+      if (!found) return json({ error: "المستخدم غير موجود" }, 404);
+      await updateRowByIndex("users", USERS_HEADERS, found.index, {
+        ...found.user,
+        permissions_json: JSON.stringify(permissions || {}),
+        updated_at: new Date().toISOString(),
+      });
+      await archive("admin_set_permissions", found.user.full_name, a.full_name, user_id);
+      return json({ ok: true });
+    }
+
     return json({ error: "إجراء غير معروف" }, 400);
+
   } catch (e) {
     console.error("sheet-auth error:", e);
     return json({ error: (e as Error).message }, 500);
