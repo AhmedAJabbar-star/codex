@@ -127,11 +127,21 @@ const CrudPanel = ({ def }: Props) => {
     setEditing({ mode: 'edit', values: { ...snapshot }, snapshot });
   };
 
-  const askPassword = () => window.prompt('🔐 أدخل كلمة مرور لوحة التحكم لتأكيد العملية:') || '';
+  const ensurePassword = (forDelete: boolean): string | null => {
+    const cached = getCachedAdminPassword();
+    if (cached) return cached;
+    const promptMsg = forDelete
+      ? '🔐 أدخل كلمة مرور المدير لتأكيد الحذف (تُحفظ لباقي الجلسة):'
+      : '🔐 أدخل كلمة مرور المدير لتفعيل عمليات الإدارة (تُحفظ لباقي الجلسة):';
+    const pw = window.prompt(promptMsg) || '';
+    if (!pw) return null;
+    setCachedAdminPassword(pw);
+    return pw;
+  };
 
   const submit = async () => {
     if (!editing) return;
-    const password = askPassword();
+    const password = ensurePassword(false);
     if (!password) return;
     setBusy(true);
     try {
@@ -153,13 +163,16 @@ const CrudPanel = ({ def }: Props) => {
       await refetch();
       qc.invalidateQueries({ queryKey: [`custom-${def.id}`] });
     } catch (e) {
-      toast.error((e as Error).message);
+      // If password was wrong, clear cache so user is prompted again next time.
+      const msg = (e as Error).message || '';
+      if (/كلمة المرور/.test(msg)) setCachedAdminPassword(null);
+      toast.error(msg);
     } finally { setBusy(false); }
   };
 
   const remove = async (snapshot: Record<string, string>) => {
     if (!confirm('⚠️ حذف هذا السجل من ورقة Google Sheets نهائياً؟\nلا يمكن التراجع عن هذا الإجراء.')) return;
-    const password = askPassword();
+    const password = ensurePassword(true);
     if (!password) return;
     setBusy(true);
     try {
@@ -168,12 +181,18 @@ const CrudPanel = ({ def }: Props) => {
       await refetch();
       qc.invalidateQueries({ queryKey: [`custom-${def.id}`] });
     } catch (e) {
-      toast.error((e as Error).message);
+      const msg = (e as Error).message || '';
+      if (/كلمة المرور/.test(msg)) setCachedAdminPassword(null);
+      toast.error(msg);
     } finally { setBusy(false); }
   };
 
-  if (!isCrudActive(def)) return null;
-  const perms = getCrudPerms(def);
+  // Effective perms = system perms ∩ user perms (role + per-system override).
+  const perms = useMemo(
+    () => getEffectivePerms(def, session?.user as any),
+    [def, session?.user],
+  );
+  if (!isCrudActive(def) || !perms.view) return null;
 
   const accent = def.color || '#0891b2';
 
