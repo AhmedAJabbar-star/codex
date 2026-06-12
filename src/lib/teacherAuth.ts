@@ -6,13 +6,16 @@ const STORAGE_KEY = 'teacher_session_v2';
 const CONNECTION_KEY = 'teacher_sheet_connection_v1';
 const FN = 'sheet-auth';
 
+import type { UserPermissions, AppRole } from './permissions';
+
 export interface TeacherUser {
   id: string;
   full_name: string;
   department: string;
   college: string;
-  role: 'user' | 'admin';
+  role: AppRole;
   must_change_password: boolean;
+  permissions?: UserPermissions | null;
 }
 
 export interface AdminUser extends TeacherUser {
@@ -166,6 +169,7 @@ export async function login(full_name: string, password: string): Promise<Sessio
 export async function logout() {
   try { await call('logout'); } catch { /* ignore */ }
   setSession(null);
+  try { sessionStorage.removeItem('admin_pw_session_v1'); } catch { /* ignore */ }
 }
 
 export async function refreshMe(): Promise<TeacherUser | null> {
@@ -195,7 +199,7 @@ export async function adminResetPassword(user_id: string, new_password?: string)
   return call<{ ok: true; new_password: string }>('admin-reset-password', { user_id, new_password });
 }
 export async function adminCreateUser(payload: {
-  full_name: string; department?: string; college?: string; role?: 'user' | 'admin'; password?: string;
+  full_name: string; department?: string; college?: string; role?: AppRole; password?: string;
 }) {
   return call<{ ok: true; password: string }>('admin-create-user', payload);
 }
@@ -212,3 +216,22 @@ export async function adminArchive(): Promise<ArchiveEntry[]> {
   const r = await call<{ archive: ArchiveEntry[] }>('admin-archive');
   return r.archive || [];
 }
+export async function adminSetRole(user_id: string, role: AppRole) {
+  return call<{ ok: true }>('admin-set-role', { user_id, role });
+}
+export async function adminSetPermissions(user_id: string, permissions: UserPermissions) {
+  return call<{ ok: true }>('admin-set-permissions', { user_id, permissions });
+}
+
+/** كلمة مرور المدير لعمليات الحذف — مخزَّنة في sessionStorage بعد إدخالها مرة واحدة. */
+const ADMIN_PW_KEY = 'admin_pw_session_v1';
+export function getCachedAdminPassword(): string | null {
+  try { return sessionStorage.getItem(ADMIN_PW_KEY); } catch { return null; }
+}
+export function setCachedAdminPassword(pw: string | null) {
+  try {
+    if (pw) sessionStorage.setItem(ADMIN_PW_KEY, pw);
+    else sessionStorage.removeItem(ADMIN_PW_KEY);
+  } catch { /* ignore */ }
+}
+

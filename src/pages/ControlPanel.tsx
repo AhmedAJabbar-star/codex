@@ -9,6 +9,7 @@ import {
 } from '@/lib/systemAccess';
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog';
+import UsersAdminSection from '@/components/control-panel/UsersAdminSection';
 
 const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖','📝','📌','🔔','🗓️','🕒','👨‍🏫','👥','🏫','🧮','🔍','✅','⚠️','🚦','💡','🧾','📑','🗒️','📐','🧱','🔧'];
 const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1d4ed8','#9333ea','#0d9488','#be185d','#ea580c','#65a30d'];
@@ -125,6 +126,9 @@ const ControlPanel = () => {
             <button className="schedule-btn" onClick={() => navigate('/')}>🏠 الرئيسية</button>
           </div>
           <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">إظهار/إخفاء الأنظمة، التحكم بكلمات المرور، وتجميع الأنظمة في مجموعات.</p>
+
+          <UsersAdminSection />
+
 
           {/* Control panel password */}
           <div className="border-2 border-amber-400 rounded-xl p-4 bg-amber-50/60 mb-5">

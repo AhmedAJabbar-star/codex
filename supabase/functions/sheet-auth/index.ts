@@ -97,8 +97,13 @@ const DEFAULT_SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "";
 const DEFAULT_ASSIGNMENTS_CSV =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1147039908&single=true&output=csv";
 
-const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at"];
+const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at","permissions_json"];
 const ARCHIVE_HEADERS = ["id","timestamp","user_id","full_name","action","performed_by"];
+const VALID_ROLES = ["admin","editor","viewer","user"] as const;
+function normalizeRole(r: any): string {
+  const v = String(r || "user").toLowerCase();
+  return (VALID_ROLES as readonly string[]).includes(v) ? v : "user";
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -231,20 +236,28 @@ async function ensureSheet(title: string, headers: string[]) {
         requests: [{ addSheet: { properties: { title } } }],
       }),
     });
-    // Write headers
     await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
       method: "PUT",
       body: JSON.stringify({ values: [headers] }),
     });
-  } else {
-    // Make sure headers exist (row 1 not empty)
-    const r = await gapi(`/values/${encodeURIComponent(title)}!A1:Z1`);
-    if (!r.values || r.values.length === 0 || (r.values[0] || []).length === 0) {
-      await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
-        method: "PUT",
-        body: JSON.stringify({ values: [headers] }),
-      });
-    }
+    return;
+  }
+  // Make sure headers exist and include all expected columns (extend if needed).
+  const r = await gapi(`/values/${encodeURIComponent(title)}!A1:Z1`);
+  const current: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "")) : [];
+  if (current.length === 0) {
+    await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
+      method: "PUT",
+      body: JSON.stringify({ values: [headers] }),
+    });
+    return;
+  }
+  const missing = headers.filter((h) => !current.includes(h));
+  if (missing.length > 0) {
+    await gapi(`/values/${encodeURIComponent(title)}!A1?valueInputOption=RAW`, {
+      method: "PUT",
+      body: JSON.stringify({ values: [[...current, ...missing]] }),
+    });
   }
 }
 
@@ -510,13 +523,16 @@ async function getSessionUser(token: string | null) {
 }
 
 function publicUser(u: Record<string,string>) {
+  let permissions: any = null;
+  try { permissions = u.permissions_json ? JSON.parse(u.permissions_json) : null; } catch { permissions = null; }
   return {
     id: u.id,
     full_name: u.full_name,
     department: u.department || "",
     college: u.college || "",
-    role: (u.role === "admin" ? "admin" : "user") as "admin" | "user",
+    role: normalizeRole(u.role) as "admin" | "editor" | "viewer" | "user",
     must_change_password: String(u.must_change_password).toLowerCase() === "true",
+    permissions,
   };
 }
 function teacherNamesFromUsers(all: Record<string, string>[]) {
@@ -764,7 +780,37 @@ Deno.serve(async (req) => {
       return json({ archive });
     }
 
+    if (action === "admin-set-role") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً." }, 503);
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const { user_id, role } = body;
+      const found = await findUserById(user_id);
+      if (!found) return json({ error: "المستخدم غير موجود" }, 404);
+      if (found.user.full_name === "aa") return json({ error: "لا يمكن تعديل دور المدير الافتراضي" }, 400);
+      await updateRowByIndex("users", USERS_HEADERS, found.index, {
+        ...found.user, role: normalizeRole(role), updated_at: new Date().toISOString(),
+      });
+      await archive("admin_set_role", found.user.full_name, a.full_name, user_id);
+      return json({ ok: true });
+    }
+
+    if (action === "admin-set-permissions") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً." }, 503);
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const { user_id, permissions } = body;
+      const found = await findUserById(user_id);
+      if (!found) return json({ error: "المستخدم غير موجود" }, 404);
+      await updateRowByIndex("users", USERS_HEADERS, found.index, {
+        ...found.user,
+        permissions_json: JSON.stringify(permissions || {}),
+        updated_at: new Date().toISOString(),
+      });
+      await archive("admin_set_permissions", found.user.full_name, a.full_name, user_id);
+      return json({ ok: true });
+    }
+
     return json({ error: "إجراء غير معروف" }, 400);
+
   } catch (e) {
     console.error("sheet-auth error:", e);
     return json({ error: (e as Error).message }, 500);
