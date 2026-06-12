@@ -209,14 +209,16 @@ const CrudPanel = ({ def }: Props) => {
         <div className="p-4 space-y-3 border-t" style={{ borderColor: `${accent}25` }}>
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={openAdd}
-              disabled={isLoading || busy}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg font-black text-sm text-white shadow-sm transition-all hover:shadow-md disabled:opacity-50"
-              style={{ background: accent }}
-            >
-              <span className="text-lg leading-none">＋</span> إضافة سجل
-            </button>
+            {perms.add && (
+              <button
+                onClick={openAdd}
+                disabled={isLoading || busy}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-black text-sm text-white shadow-sm transition-all hover:shadow-md disabled:opacity-50"
+                style={{ background: accent }}
+              >
+                <span className="text-lg leading-none">＋</span> إضافة سجل
+              </button>
+            )}
 
             <div className="relative flex-1 min-w-[200px]">
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
