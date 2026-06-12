@@ -1,53 +1,64 @@
-## الهدف
-رفع منشئ الأنظمة بدون كود إلى مستوى الأنظمة الأصلية مع 5 تحسينات جوهرية.
+# خطة تنفيذ نظام الصلاحيات وإعادة هيكلة لوحة التحكم
 
-## الميزات المطلوبة
+## 1) نقل واجهة إدارة المدير إلى لوحة التحكم
+- إنشاء قسم جديد في `ControlPanel.tsx` باسم **«المستخدمون والصلاحيات»**.
+- نقل تبويبات «المستخدمون / الأرشيف / إعدادات الاتصال» من `IndividualAssignments.tsx` إلى هذا القسم.
+- في صفحة التكليفات الفردية: تبقى فقط شاشة دخول التدريسي + عرض بياناته (بدون لوحة إدارة).
+- وصول قسم «المستخدمون والصلاحيات» محمي بكلمة مرور المدير الحالية (`aa/aa`) لمرة واحدة لكل جلسة لوحة التحكم.
 
-### 1) شريط جلسة التدريسي في الأنظمة المُنشأة
-- عند تفعيل `require_teacher_auth`، تُضاف شارة علوية تعرض: «👤 اسم التدريسي» + زر «🚪 تسجيل الخروج» + زر «🔑 تغيير كلمة المرور» (نفس تجربة صفحة التكليفات الفردية).
-- ينفذ هذا في `GenericSystem.tsx` عبر مكوّن جديد `TeacherSessionBar` يستخدم `getSession/logout` من `teacherAuth`.
+## 2) نظام الأدوار + الصلاحيات لكل نظام
+- إضافة حقول جديدة لكل مستخدم في جدول `users` على Google Sheets:
+  - `role` (موجود) — يُوسَّع إلى: `admin` / `editor` / `viewer` / `user`.
+  - `permissions_json` (جديد) — JSON يحوي:
+    ```json
+    {
+      "systems": {
+        "<system_id>": { "view": true, "add": true, "edit": false, "delete": false }
+      }
+    }
+    ```
+- **الأدوار الجاهزة** (افتراضي عند غياب التخصيص):
+  - `admin`: كل شيء + إدارة المستخدمين.
+  - `editor`: عرض + إضافة + تعديل (لا حذف).
+  - `viewer`: عرض فقط.
+  - `user`: حسب صلاحيات النظام نفسه (الوضع الحالي).
+- **التخصيص لكل نظام**: في واجهة المستخدم، جدول يعرض كل أنظمة منشئ الأنظمة، مع 4 مفاتيح (عرض/إضافة/تعديل/حذف) لتجاوز الدور.
 
-### 2) نظام صلاحيات CRUD متكامل
-- استبدال `crud_enabled: boolean` بـ `crud_permissions: { view, add, edit, delete }` (4 مفاتيح مستقلة).
-- تحديث `SystemBuilderDialog` (الخطوة 5) لعرض 4 مفاتيح Switch بدلاً من مفتاح واحد.
-- تحديث `CrudPanel.tsx` لإخفاء/إظهار أزرار «إضافة / تعديل / حذف» حسب الصلاحيات.
-- التحقق من الصلاحيات أيضاً في `custom-systems` Edge Function (`sheet-write`) قبل تنفيذ العملية → رفض 403 إذا كانت العملية غير مسموحة.
-- توافق رجعي: إذا وُجد `crud_enabled: true` قديم بدون `crud_permissions`، يُعامَل كأن الأربعة مفعلة.
+## 3) واجهة الصلاحيات الجديدة (داخل لوحة التحكم)
+- جدول المستخدمين الحاليين مع عمود **الدور** (Select)، وزر **«تخصيص لكل نظام»** يفتح حوار:
+  - يُسرد كل الأنظمة المخصّصة (من `customSystemsRegistry`).
+  - 4 Switches لكل نظام.
+  - زر «استخدام افتراضي الدور».
+- زر **«تطبيق على عدة مستخدمين»** لاختيار قائمة وتطبيق صلاحيات/دور دفعة واحدة.
 
-### 3) فلاتر إجبارية (Required Filters)
-- إضافة حقل `required_filters: string[]` (قائمة بحروف الأعمدة الإجبارية) إلى `CustomSystemDef`.
-- في `SystemBuilderDialog` (خطوة الفلاتر): Checkbox «إجباري» بجانب كل فلتر.
-- في `GenericSystem.tsx`: قبل بناء `systemConfig`، تحويل الحروف إلى `requiredFilters` (مفاتيح/تسميات) لتمريرها إلى `SingleSystemPage` الذي يدعمها أصلاً.
+## 4) تطبيق الصلاحيات على واجهة الأنظمة المخصّصة
+- في `GenericSystem.tsx` و `CrudPanel.tsx`: قراءة صلاحيات المستخدم الحالي من جلسة التدريسي عبر دالة جديدة `getEffectivePerms(systemId)`:
+  - دمج: `crud_permissions` للنظام ∩ صلاحيات المستخدم.
+  - إذا لم يكن المستخدم مُسجّلاً في النظام: يستخدم الدور الافتراضي.
 
-### 4) فلترة حسب قسم التدريسي
-- توسيع `teacher_column` لتقبل أيضاً `teacher_department_column` (حرف عمود قسم التدريسي).
-- في خطوة المصادقة بالبناء: إضافة قائمة منسدلة جديدة «عمود قسم التدريسي» + مفتاح «نطاق التصفية: حسب الاسم فقط / حسب القسم فقط / الاسم أو القسم».
-- في `GenericSystem.tsx`: عند تطبيق `require_teacher_auth`، فلترة الصفوف حسب الإعداد المختار (يستخدم `user.full_name` و`user.department` من جلسة التدريسي).
+## 5) إلغاء كلمة المرور لكل عملية
+- `CrudPanel.tsx`:
+  - **إضافة / تعديل**: تُنفَّذ مباشرة دون أي إدخال كلمة سر (الجلسة + صلاحية المستخدم كافيتان).
+  - **حذف**: يبقى يطلب تأكيد + كلمة مرور المدير (`aa`) لمرة واحدة، تُخزَّن في `sessionStorage` وتُستخدم تلقائيًا لباقي عمليات الحذف ضمن نفس الجلسة (لا إعادة إدخال).
+- في `sheet-write` على Edge Function:
+  - قبول `token` (جلسة التدريسي) بدل كلمة مدير العمليات غير الحساسة (append/update).
+  - التحقق من صلاحيات المستخدم خادميًا.
+  - `delete` يبقى يتطلب كلمة المدير.
 
-### 5) إكمال التكافؤ مع الأنظمة الأصلية + أزرار الفلترة السريعة
-- **أزرار فلاتر سريعة (Quick Filters)**: إضافة حقل `quick_filters: QuickFilter[]` حيث:
-  ```
-  QuickFilter = { label, icon?, color?, column (letter), op, value | values }
-  ```
-  - يدعم نفس `ConditionOp` (يساوي / يحتوي / مستوفي / ≠ مستوفي…).
-  - تُرسم كأزرار قابلة للتفعيل أعلى الجدول داخل بطاقة «شريط الفلاتر السريعة» (نفس شكل بطاقات الإحصائيات في `SystemStatistics`).
-  - يُسمح بأكثر من زر نشط (Toggle) — السلوك مطابق لـ `متابعة سير التدريسات` و«غير مستوفي» في تدقيق النصاب.
-- **خطوة جديدة في `SystemBuilderDialog`** لإدارة هذه الأزرار (إضافة/حذف/ترتيب + ألوان + أيقونات).
-- **تنفيذ التطبيق** داخل `GenericSystem.tsx`: يُمرّر `quickFilters` إلى `SingleSystemPage` عبر `SystemConfig` موسّع (`__quickFilters`)، ويُعرض شريط الأزرار قبل الجدول.
-- **مراجعة شاملة**: مرور سريع على ميزات الأنظمة الأصلية (التوقيعات، تسميات الأعمدة، الإحصائيات، التصدير، الطباعة، شريط الفلاتر، الفلاتر الإجبارية، أزرار التكليفات الفردية، إلخ) للتأكد من أنها كلها متاحة في المنشئ.
+## 6) ملفات ستُعدَّل / تُنشأ
+**إنشاء**
+- `src/components/control-panel/UsersPermissionsPanel.tsx` — الواجهة الموحّدة.
+- `src/components/control-panel/UserPermissionsDialog.tsx` — حوار التخصيص لكل نظام.
+- `src/lib/permissions.ts` — `getEffectivePerms`, `roleDefaults`, …
 
-## الملفات المتأثرة
-- `src/data/customSystemsRegistry.ts` — إضافة الحقول الجديدة + توافق رجعي.
-- `src/components/control-panel/SystemBuilderDialog.tsx` — UI للصلاحيات + الفلاتر الإجبارية + قسم التدريسي + الأزرار السريعة.
-- `src/components/custom-systems/CrudPanel.tsx` — احترام `crud_permissions`.
-- `src/pages/GenericSystem.tsx` — شريط الجلسة + فلترة القسم + تمرير `requiredFilters` و`quickFilters`.
-- `src/components/shared/SingleSystemPage.tsx` — تمرير/عرض شريط الأزرار السريعة (إضافة بسيطة).
-- `src/components/shared/TeacherSessionBar.tsx` — مكوّن جديد.
-- `supabase/functions/custom-systems/index.ts` — التحقق من `crud_permissions` في `sheet-write`.
+**تعديل**
+- `supabase/functions/sheet-auth/index.ts` — حفظ/قراءة `permissions_json`، توسيع `role`، endpoints: `admin-set-role`, `admin-set-permissions`.
+- `supabase/functions/custom-systems/index.ts` — قبول `token` بدل كلمة المدير للعمليات غير الحساسة، فحص الصلاحيات.
+- `src/lib/teacherAuth.ts` — تعريف `permissions` في `TeacherUser`، دوال `adminSetRole`, `adminSetPermissions`.
+- `src/components/custom-systems/CrudPanel.tsx` — تطبيق `getEffectivePerms`، إزالة طلب كلمة السر للإضافة/التعديل، تخزين كلمة الحذف في الجلسة.
+- `src/pages/IndividualAssignments.tsx` — إزالة تبويبات الإدارة.
+- `src/pages/ControlPanel.tsx` — تضمين `UsersPermissionsPanel`.
 
-## ملاحظات تنفيذية
-- لا تغييرات في قاعدة البيانات (الأنظمة المخصصة مُخزّنة في الـ Edge Function/Sheet).
-- التوافق الرجعي مضمون: الأنظمة القديمة تستمر بالعمل كما هي.
-- بعد التنفيذ سأنشر `custom-systems` Edge Function.
-
-هل أبدأ التنفيذ؟
+## 7) الأمان
+- جميع فحوصات الصلاحيات تُكرَّر **خادميًا** في الـ Edge Functions (لا يكفي العميل).
+- `permissions_json` يُكتب فقط بواسطة من له دور `admin` ومحمي
