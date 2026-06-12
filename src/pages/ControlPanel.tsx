@@ -127,6 +127,9 @@ const ControlPanel = () => {
           </div>
           <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">إظهار/إخفاء الأنظمة، التحكم بكلمات المرور، وتجميع الأنظمة في مجموعات.</p>
 
+          <UsersAdminSection />
+
+
           {/* Control panel password */}
           <div className="border-2 border-amber-400 rounded-xl p-4 bg-amber-50/60 mb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
