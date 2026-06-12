@@ -171,7 +171,8 @@ const CrudPanel = ({ def }: Props) => {
     } finally { setBusy(false); }
   };
 
-  if (!def.crud_enabled) return null;
+  if (!isCrudActive(def)) return null;
+  const perms = getCrudPerms(def);
 
   const accent = def.color || '#0891b2';
 
