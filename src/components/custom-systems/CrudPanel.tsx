@@ -272,17 +272,24 @@ const CrudPanel = ({ def }: Props) => {
                     ))}
                     <td className="px-2 py-2">
                       <div className="flex gap-1 justify-end">
-                        <button
-                          onClick={() => openEdit(row.snapshot)}
-                          className="w-8 h-8 rounded-lg grid place-items-center text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
-                          title="تعديل"
-                        >✏️</button>
-                        <button
-                          onClick={() => remove(row.snapshot)}
-                          disabled={busy}
-                          className="w-8 h-8 rounded-lg grid place-items-center text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-40"
-                          title="حذف"
-                        >🗑️</button>
+                        {perms.edit && (
+                          <button
+                            onClick={() => openEdit(row.snapshot)}
+                            className="w-8 h-8 rounded-lg grid place-items-center text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
+                            title="تعديل"
+                          >✏️</button>
+                        )}
+                        {perms.delete && (
+                          <button
+                            onClick={() => remove(row.snapshot)}
+                            disabled={busy}
+                            className="w-8 h-8 rounded-lg grid place-items-center text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-40"
+                            title="حذف"
+                          >🗑️</button>
+                        )}
+                        {!perms.edit && !perms.delete && (
+                          <span className="text-[10px] text-slate-400">— عرض فقط —</span>
+                        )}
                       </div>
                     </td>
                   </tr>
