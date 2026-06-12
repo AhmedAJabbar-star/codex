@@ -263,6 +263,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     setComboQuery('');
     setComboOpen(false);
     setStatFilter(null);
+    setActiveQuickFilters(new Set());
   };
 
   const checkRequiredFilters = useCallback((): boolean => {
