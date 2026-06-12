@@ -44,6 +44,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [comboOpen, setComboOpen] = useState(false);
   const [comboQuery, setComboQuery] = useState('');
   const [statFilter, setStatFilter] = useState<string | null>(null);
+  const [activeQuickFilters, setActiveQuickFilters] = useState<Set<string>>(new Set());
   const comboRef = useRef<HTMLDivElement>(null);
   const [bookings, setBookings] = useState<Booking[]>(loadBookings);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
