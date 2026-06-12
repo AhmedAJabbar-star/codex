@@ -352,6 +352,25 @@ Deno.serve(async (req) => {
       if (!gid) return json({ error: "GID مطلوب" }, 400);
       if (!["append", "update", "delete"].includes(op)) return json({ error: "op غير مدعوم" }, 400);
 
+      // Enforce per-system CRUD permissions (looks up the system by gid+url within registry).
+      try {
+        const all = await readAll();
+        const candidates = all.map(rowToSystem).filter((s: any) => clean(s.sheet_gid) === gid && (
+          (s.sheet_source === 'external' ? clean(s.sheet_url) === externalUrl : !externalUrl)
+        ));
+        const sys: any = candidates[0];
+        if (sys) {
+          const legacyAll = sys.crud_enabled === true && !sys.crud_permissions;
+          const perms = sys.crud_permissions || {};
+          const allow = {
+            append: perms.add    ?? legacyAll,
+            update: perms.edit   ?? legacyAll,
+            delete: perms.delete ?? legacyAll,
+          } as Record<string, boolean>;
+          if (!allow[op]) return json({ error: "هذه العملية غير مسموح بها لهذا النظام" }, 403);
+        }
+      } catch { /* if registry lookup fails, fall through (password already validated) */ }
+
       // Resolve spreadsheet ID (external link OR project sheet)
       let spreadsheetId = SHEET_ID;
       if (externalUrl) {
