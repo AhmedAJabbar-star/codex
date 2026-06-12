@@ -555,10 +555,25 @@ const IndividualAssignments = () => {
   }
 
   if (user.role === 'admin') {
-    return <AdminPanel admin={user} onLogout={handleLogout} onChangePw={() => setShowChangePw(true)} />;
+    // إدارة المستخدمين/الأدوار/الأرشيف/الربط أصبحت ضمن لوحة التحكم.
+    return (
+      <Shell title="🛡️ المدير" showHomeButton>
+        <div className="text-center space-y-4">
+          <p className="text-sm font-bold">مرحباً، {user.full_name}</p>
+          <p className="text-sm text-[var(--schedule-muted)]">
+            تم نقل إدارة المستخدمين والأدوار والصلاحيات والأرشيف وإعدادات الربط إلى <strong>لوحة التحكم</strong>.
+          </p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <a href="/control" className="schedule-btn schedule-btn-primary">⚙️ فتح لوحة التحكم</a>
+            <button onClick={handleLogout} className="schedule-btn">🚪 خروج</button>
+          </div>
+        </div>
+      </Shell>
+    );
   }
 
   return <TeacherView user={user} onLogout={handleLogout} onChangePw={() => setShowChangePw(true)} />;
+
 };
 
 export default IndividualAssignments;
