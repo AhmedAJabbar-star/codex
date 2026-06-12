@@ -97,8 +97,13 @@ const DEFAULT_SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "";
 const DEFAULT_ASSIGNMENTS_CSV =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1147039908&single=true&output=csv";
 
-const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at"];
+const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at","permissions_json"];
 const ARCHIVE_HEADERS = ["id","timestamp","user_id","full_name","action","performed_by"];
+const VALID_ROLES = ["admin","editor","viewer","user"] as const;
+function normalizeRole(r: any): string {
+  const v = String(r || "user").toLowerCase();
+  return (VALID_ROLES as readonly string[]).includes(v) ? v : "user";
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
