@@ -44,6 +44,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [comboOpen, setComboOpen] = useState(false);
   const [comboQuery, setComboQuery] = useState('');
   const [statFilter, setStatFilter] = useState<string | null>(null);
+  const [activeQuickFilters, setActiveQuickFilters] = useState<Set<string>>(new Set());
   const comboRef = useRef<HTMLDivElement>(null);
   const [bookings, setBookings] = useState<Booking[]>(loadBookings);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
@@ -73,7 +74,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
 
+  const missingRequiredFilters = useMemo(() => {
+    if (!system.requiredFilters || system.requiredFilters.length === 0) return [] as string[];
+    return system.requiredFilters.filter((key) => !filters[key]);
+  }, [system, filters]);
+
   const filteredRows = useMemo(() => {
+    // Block any data rendering until every required filter has a value
+    if (missingRequiredFilters.length > 0) return [] as typeof system.rows;
     let result = system.rows.filter(row => {
       const standardPass = system.filters.every(f => {
         if (f.control === 'time' || f.control === 'timeSelect') return true;
@@ -136,6 +144,16 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       return true;
     });
 
+    // Apply quick-filter toggle buttons (each active key marks rows with row[key] === '1').
+    if (activeQuickFilters.size > 0) {
+      result = result.filter((r) => {
+        for (const k of activeQuickFilters) {
+          if ((r[k] || '') !== '1') return false;
+        }
+        return true;
+      });
+    }
+
     if (statFilter) {
       if (activeSystem === 'report') {
         if (statFilter === 'clean') result = result.filter(r => (!r['نقص البيانات'] || r['نقص البيانات'] === 'سليم') && (!r['التضارب'] || r['التضارب'] === ''));
@@ -155,7 +173,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     }
 
     return result;
-  }, [system, filters, statFilter, activeSystem]);
+  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters]);
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterDef = system.filters.find(f => f.key === filterKey);
@@ -198,7 +216,15 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     setStatFilter(prev => prev === value ? null : value);
   };
 
-  const clearFilters = () => { setFilters({}); setComboQuery(''); setStatFilter(null); };
+  const toggleQuickFilter = (key: string) => {
+    setActiveQuickFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const clearFilters = () => { setFilters({}); setComboQuery(''); setStatFilter(null); setActiveQuickFilters(new Set()); };
 
   const addBooking = () => {
     if (!bookingForm.room || !bookingForm.day || !bookingForm.date || !bookingForm.fromTime || !bookingForm.toTime) return;
@@ -237,6 +263,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     setComboQuery('');
     setComboOpen(false);
     setStatFilter(null);
+    setActiveQuickFilters(new Set());
   };
 
   const checkRequiredFilters = useCallback((): boolean => {

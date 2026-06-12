@@ -21,6 +21,27 @@ export interface FilterConfigItem {
   rules?: FilterRule[];
   /** When true (and rules exist), also include the column's individual values in the dropdown. */
   include_values?: boolean;
+  /** When true, the user MUST choose a value before any data renders (مثل «الفصل الدراسي» في تكليفات التدريسي). */
+  required?: boolean;
+}
+
+/** Quick-filter button (toggle) shown above the table — same UX as «غير مستوفي» in تدقيق النصاب. */
+export interface QuickFilterConfig {
+  label: string;
+  icon?: string;
+  color?: string;
+  column: string; // Excel letter
+  op: ConditionOp;
+  value?: string | number;
+  values?: (string | number)[];
+}
+
+/** CRUD permission flags — each can be toggled independently. */
+export interface CrudPermissions {
+  view?: boolean;   // عرض جدول الإدارة
+  add?: boolean;    // إضافة
+  edit?: boolean;   // تعديل
+  delete?: boolean; // حذف
 }
 
 export interface CustomSystemDef {
@@ -42,6 +63,8 @@ export interface CustomSystemDef {
   derived_columns: DerivedColumn[];
   header_labels?: Record<string, string>;
   signatures?: SignatureItem[];
+  /** Toggle-style buttons rendered above the table (multiple may be active). */
+  quick_filters?: QuickFilterConfig[];
   /** Position on the home dashboard. Lower = earlier. Default 100. */
   sort_order?: number;
   protected: boolean;
@@ -50,12 +73,21 @@ export interface CustomSystemDef {
   enabled: boolean;
   /** When true, only authenticated teachers (Individual Assignments login) may access this system. */
   require_teacher_auth?: boolean;
-  /** Excel letter (e.g. "F") of the column containing the teacher's full name.
-   *  When set together with require_teacher_auth, the table is filtered to rows whose
-   *  cell in this column equals the logged-in teacher's name. */
+  /** Excel letter (e.g. "F") of the column containing the teacher's full name. */
   teacher_column?: string;
-  /** Enables Add / Edit / Delete on the source Google Sheet (admin password required). */
+  /** Excel letter of the column containing the teacher's department (for department-scoped filtering). */
+  teacher_department_column?: string;
+  /** How to scope visible rows when teacher auth is required.
+   *  - 'name' (default): only rows where teacher_column equals the logged-in name
+   *  - 'department': only rows where teacher_department_column equals the user's department
+   *  - 'name_or_department': either match — useful for heads of department
+   *  - 'all': no row-level filter (just gated by login) */
+  teacher_filter_scope?: 'name' | 'department' | 'name_or_department' | 'all';
+  /** Legacy: enables Add / Edit / Delete on the source Google Sheet (admin password required).
+   *  Kept for backwards compatibility — when true and no crud_permissions are set, all four perms apply. */
   crud_enabled?: boolean;
+  /** Fine-grained CRUD permissions (preferred over crud_enabled). */
+  crud_permissions?: CrudPermissions;
   /** Per-column input type for the CRUD form. Key = Excel letter, value = type. */
   column_types?: Record<string, 'text' | 'number' | 'date' | 'select' | 'readonly'>;
   /** Comma-separated select options per column letter (used when column_types[letter] === 'select' AND source = 'manual'). */
@@ -64,6 +96,25 @@ export interface CustomSystemDef {
   column_select_source?: Record<string, 'manual' | 'column'>;
   /** When true, the select also accepts values not in the list (renders as combobox/datalist). */
   column_select_allow_custom?: Record<string, boolean>;
+}
+
+/** Resolve effective CRUD permissions with backward compatibility. */
+export function getCrudPerms(def: Partial<CustomSystemDef>): Required<CrudPermissions> {
+  const p = def.crud_permissions || {};
+  // Legacy: if old crud_enabled was true, default all four to true unless explicitly overridden.
+  const legacyAll = def.crud_enabled === true && !def.crud_permissions;
+  return {
+    view:   p.view   ?? legacyAll,
+    add:    p.add    ?? legacyAll,
+    edit:   p.edit   ?? legacyAll,
+    delete: p.delete ?? legacyAll,
+  };
+}
+
+/** True when at least one CRUD permission is enabled (governs whether the CRUD panel renders). */
+export function isCrudActive(def: Partial<CustomSystemDef>): boolean {
+  const p = getCrudPerms(def);
+  return !!(p.view || p.add || p.edit || p.delete);
 }
 
 export const EMPTY_SYSTEM: CustomSystemDef = {
@@ -83,6 +134,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   derived_columns: [],
   header_labels: {},
   signatures: [],
+  quick_filters: [],
   sort_order: 100,
   protected: false,
   password: '',
@@ -90,12 +142,16 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   enabled: true,
   require_teacher_auth: false,
   teacher_column: '',
+  teacher_department_column: '',
+  teacher_filter_scope: 'name',
   crud_enabled: false,
+  crud_permissions: { view: false, add: false, edit: false, delete: false },
   column_types: {},
   column_options: {},
   column_select_source: {},
   column_select_allow_custom: {},
 };
+
 
 
 export async function listCustomSystems(): Promise<CustomSystemDef[]> {

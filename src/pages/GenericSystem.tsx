@@ -4,9 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import CrudPanel from '@/components/custom-systems/CrudPanel';
-import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
+import TeacherSessionBar from '@/components/shared/TeacherSessionBar';
+import { listCustomSystems, isCrudActive, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import type { SheetFetchResult } from '@/data/supervisionData';
-import type { SystemConfig } from '@/data/scheduleData';
+import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
@@ -41,9 +42,12 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     includeValues: boolean;
   };
   const ruleFilters: RuleFilter[] = [];
+  /** key (in built filter) -> letter (Excel column) — needed to translate `required_filters` letters into row keys. */
+  const filterKeyByLetter: Record<string, string> = {};
   const configList = (def.filters_config && def.filters_config.length > 0)
     ? def.filters_config
     : (def.filter_columns || '').split(/[,\s]+/).filter(Boolean).map((c) => ({ column: c } as any));
+  const requiredFilterKeys: string[] = [];
   configList.forEach((fc: any, fIdx: number) => {
     const i = colLetterToIndex(fc.column);
     if (i < 0 || !sheet.headers[i]) return;
@@ -52,9 +56,9 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     const displayLabel = (fc.label && String(fc.label).trim()) || labelMap[letter] || realKey;
     const visibleIdx = sourceHeaders.indexOf(realKey);
     const outKey = visibleIdx >= 0 ? displayHeaders[visibleIdx] : realKey;
+    let registeredKey = outKey;
 
     if (Array.isArray(fc.rules) && fc.rules.length > 0) {
-      // Rule-based filter. If include_values is set, mix in the column's individual values too.
       const synthKey = `__rule_${fIdx}_${letter}`;
       const includeValues = !!fc.include_values;
       ruleFilters.push({ synthKey, column: letter, rules: fc.rules, includeValues });
@@ -76,6 +80,7 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
         matchMode: 'token',
         searchPlaceholder: fc.search_placeholder,
       } as any);
+      registeredKey = synthKey;
     } else {
       builtFilters.push({
         label: displayLabel,
@@ -84,6 +89,16 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
         searchPlaceholder: fc.search_placeholder,
       } as any);
     }
+    filterKeyByLetter[letter] = registeredKey;
+    if (fc.required) requiredFilterKeys.push(registeredKey);
+  });
+
+  // Legacy `required_filters` list (Excel letters) for any filter that hasn't been flagged inline.
+  ((def as any).required_filters as string[] | undefined)?.forEach?.((rawLetter) => {
+    const L = (rawLetter || '').toUpperCase().trim();
+    if (!L) return;
+    const k = filterKeyByLetter[L];
+    if (k && !requiredFilterKeys.includes(k)) requiredFilterKeys.push(k);
   });
 
   (def.derived_columns || []).forEach((d) => {
@@ -101,21 +116,34 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
       : evaluateAll(conds, r, sheet.headers);
   };
 
-  // Teacher row-filter: when require_teacher_auth + teacher_column are set, restrict to the logged-in teacher's rows.
+  // Teacher row-filter (name / department / both) — only when require_teacher_auth is on.
   let teacherFilter: ((r: Record<string, string>) => boolean) | null = null;
-  if (def.require_teacher_auth && def.teacher_column) {
+  if (def.require_teacher_auth) {
     try {
       const session = getSession();
       const name = (session?.user?.full_name || '').trim();
-      if (name) {
-        const ti = colLetterToIndex(def.teacher_column);
-        if (ti >= 0) {
-          const realKey = sheet.headers[ti];
-          teacherFilter = (r) => ((r[realKey] || '').trim() === name);
-        }
-      }
+      const dept = (session?.user?.department || '').trim();
+      const scope = def.teacher_filter_scope || 'name';
+      const ni = def.teacher_column ? colLetterToIndex(def.teacher_column) : -1;
+      const di = def.teacher_department_column ? colLetterToIndex(def.teacher_department_column) : -1;
+      const nameKey = ni >= 0 ? sheet.headers[ni] : '';
+      const deptKey = di >= 0 ? sheet.headers[di] : '';
+      const matchName = (r: Record<string, string>) => !!name && !!nameKey && (r[nameKey] || '').trim() === name;
+      const matchDept = (r: Record<string, string>) => !!dept && !!deptKey && (r[deptKey] || '').trim() === dept;
+      if (scope === 'name' && nameKey && name) teacherFilter = matchName;
+      else if (scope === 'department' && deptKey && dept) teacherFilter = matchDept;
+      else if (scope === 'name_or_department' && (nameKey || deptKey)) teacherFilter = (r) => matchName(r) || matchDept(r);
+      // scope === 'all' → no filter
     } catch { /* ignore */ }
   }
+
+  // Pre-compute synthetic keys for quick-filter buttons.
+  const quickFilterDefs: QuickFilterDef[] = (def.quick_filters || []).map((qf, idx) => ({
+    key: `__qf_${idx}`,
+    label: qf.label,
+    icon: qf.icon,
+    color: qf.color,
+  }));
 
   const rows: Record<string, string>[] = [];
   sheet.rows.forEach((r) => {
@@ -126,7 +154,6 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
       const out: Record<string, string> = {};
       sourceHeaders.forEach((real, idx) => { out[displayHeaders[idx]] = row[real] || ''; });
       derivedNames.forEach((dn) => { out[dn] = row[dn] || ''; });
-      // Populate rule-filter synthetic keys (use raw sheet row + headers so evaluateCondition resolves by Excel letter)
       ruleFilters.forEach((rf) => {
         const tokens: string[] = [];
         rf.rules.forEach((rule) => {
@@ -140,6 +167,15 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
           cell.split('\n').forEach((t) => { const v = t.trim(); if (v) tokens.push(v); });
         }
         out[rf.synthKey] = tokens.join('\n');
+      });
+      // Quick-filter synthetic flags (raw sheet row evaluated by Excel letter).
+      (def.quick_filters || []).forEach((qf, idx) => {
+        const ok = evaluateCondition(
+          { column: qf.column, op: qf.op, value: qf.value, values: qf.values } as any,
+          r,
+          sheet.headers,
+        );
+        out[`__qf_${idx}`] = ok ? '1' : '';
       });
       rows.push(out);
     });
@@ -156,12 +192,10 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     filters: builtFilters,
     rows,
     customSignatures: (def.signatures && def.signatures.length > 0) ? def.signatures : undefined,
+    requiredFilters: requiredFilterKeys.length > 0 ? requiredFilterKeys : undefined,
+    quickFilters: quickFilterDefs.length > 0 ? quickFilterDefs : undefined,
   };
 }
-
-// Sheet fetching is centralized in `@/data/supervisionData`. This file no longer needs
-// its own CSV fetcher — `SupervisionBasePage` calls `fetchSheetByGid(gid, externalUrl?)`.
-
 
 const GenericSystem = () => {
   const { id = '' } = useParams<{ id: string }>();
@@ -180,21 +214,25 @@ const GenericSystem = () => {
     [def],
   );
 
+  const session = getSession();
+
   if (loadingSystems) return <LiveLoadingShell />;
   if (!def) return <Navigate to="/" replace />;
   if (!def.sheet_gid) return <LiveLoadingShell error={new Error('لم يتم تحديد GID للورقة المصدر')} />;
 
   const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
-  if (def.crud_enabled) {
-    return (
-      <div>
-        <div className="px-4 pt-4" dir="rtl"><CrudPanel def={def} /></div>
-        <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />
-      </div>
-    );
-  }
-  return <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />;
+  const crudOn = isCrudActive(def);
+  const showSessionBar = !!(def.require_teacher_auth && session?.user);
 
+  return (
+    <div>
+      {showSessionBar && <TeacherSessionBar user={session!.user} />}
+      {crudOn && (
+        <div className="px-4 pt-4" dir="rtl"><CrudPanel def={def} /></div>
+      )}
+      <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />
+    </div>
+  );
 };
 
 export default GenericSystem;

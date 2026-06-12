@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { CustomSystemDef } from '@/data/customSystemsRegistry';
-import { sheetWrite } from '@/data/customSystemsRegistry';
+import { sheetWrite, getCrudPerms, isCrudActive } from '@/data/customSystemsRegistry';
 import { fetchSheetByGid } from '@/data/supervisionData';
 import { parseColumnsRange, colIndexToLetter, colLetterToIndex } from '@/lib/conditionEngine';
 import { getSession } from '@/lib/teacherAuth';
@@ -171,7 +171,8 @@ const CrudPanel = ({ def }: Props) => {
     } finally { setBusy(false); }
   };
 
-  if (!def.crud_enabled) return null;
+  if (!isCrudActive(def)) return null;
+  const perms = getCrudPerms(def);
 
   const accent = def.color || '#0891b2';
 
@@ -208,14 +209,16 @@ const CrudPanel = ({ def }: Props) => {
         <div className="p-4 space-y-3 border-t" style={{ borderColor: `${accent}25` }}>
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={openAdd}
-              disabled={isLoading || busy}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg font-black text-sm text-white shadow-sm transition-all hover:shadow-md disabled:opacity-50"
-              style={{ background: accent }}
-            >
-              <span className="text-lg leading-none">＋</span> إضافة سجل
-            </button>
+            {perms.add && (
+              <button
+                onClick={openAdd}
+                disabled={isLoading || busy}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-black text-sm text-white shadow-sm transition-all hover:shadow-md disabled:opacity-50"
+                style={{ background: accent }}
+              >
+                <span className="text-lg leading-none">＋</span> إضافة سجل
+              </button>
+            )}
 
             <div className="relative flex-1 min-w-[200px]">
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
@@ -269,17 +272,24 @@ const CrudPanel = ({ def }: Props) => {
                     ))}
                     <td className="px-2 py-2">
                       <div className="flex gap-1 justify-end">
-                        <button
-                          onClick={() => openEdit(row.snapshot)}
-                          className="w-8 h-8 rounded-lg grid place-items-center text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
-                          title="تعديل"
-                        >✏️</button>
-                        <button
-                          onClick={() => remove(row.snapshot)}
-                          disabled={busy}
-                          className="w-8 h-8 rounded-lg grid place-items-center text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-40"
-                          title="حذف"
-                        >🗑️</button>
+                        {perms.edit && (
+                          <button
+                            onClick={() => openEdit(row.snapshot)}
+                            className="w-8 h-8 rounded-lg grid place-items-center text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
+                            title="تعديل"
+                          >✏️</button>
+                        )}
+                        {perms.delete && (
+                          <button
+                            onClick={() => remove(row.snapshot)}
+                            disabled={busy}
+                            className="w-8 h-8 rounded-lg grid place-items-center text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-40"
+                            title="حذف"
+                          >🗑️</button>
+                        )}
+                        {!perms.edit && !perms.delete && (
+                          <span className="text-[10px] text-slate-400">— عرض فقط —</span>
+                        )}
                       </div>
                     </td>
                   </tr>
