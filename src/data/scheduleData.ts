@@ -12,6 +12,14 @@ export interface ShortReportConfig {
   header?: string;
 }
 
+export interface QuickFilterDef {
+  /** Synthetic row key (auto-populated as '1' when this quick filter matches). */
+  key: string;
+  label: string;
+  icon?: string;
+  color?: string;
+}
+
 export interface SystemConfig {
   id: string;
   title: string;
@@ -30,6 +38,8 @@ export interface SystemConfig {
     mode?: 'overlap' | 'containment';
   };
   customSignatures?: { label: string; name?: string }[];
+  /** Toggle-style buttons rendered above the table (e.g. «غير مستوفي»). */
+  quickFilters?: QuickFilterDef[];
 }
 
 const teacherRows: ScheduleRow[] = [
