@@ -35,6 +35,11 @@ const HEADERS = [
   "sheet_source", "sheet_url", "require_teacher_auth",
   // v5 additions:
   "teacher_column", "crud_enabled", "column_types_json", "column_options_json",
+  // v6 additions:
+  "column_select_source_json", "column_select_allow_custom_json",
+  "crud_permissions_json",
+  "teacher_department_column", "teacher_filter_scope",
+  "required_filters_json", "quick_filters_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
@@ -187,9 +192,16 @@ function rowToSystem(r: Record<string, string>) {
     sheet_url: clean(r.sheet_url),
     require_teacher_auth: String(r.require_teacher_auth || "").toLowerCase() === "true",
     teacher_column: clean(r.teacher_column).toUpperCase(),
+    teacher_department_column: clean(r.teacher_department_column).toUpperCase(),
+    teacher_filter_scope: (["name","department","name_or_department","all"].includes(clean(r.teacher_filter_scope)) ? clean(r.teacher_filter_scope) : "name"),
     crud_enabled: String(r.crud_enabled || "").toLowerCase() === "true",
+    crud_permissions: parseJson(r.crud_permissions_json || "null", null),
     column_types: parseJson(r.column_types_json || "{}", {}),
     column_options: parseJson(r.column_options_json || "{}", {}),
+    column_select_source: parseJson(r.column_select_source_json || "{}", {}),
+    column_select_allow_custom: parseJson(r.column_select_allow_custom_json || "{}", {}),
+    required_filters: parseJson(r.required_filters_json || "[]", []),
+    quick_filters: parseJson(r.quick_filters_json || "[]", []),
   };
 }
 
@@ -223,9 +235,16 @@ async function systemToRow(s: any): Promise<string[]> {
     sheet_url: String(s.sheet_url || ""),
     require_teacher_auth: String(!!s.require_teacher_auth),
     teacher_column: String(s.teacher_column || "").toUpperCase(),
+    teacher_department_column: String(s.teacher_department_column || "").toUpperCase(),
+    teacher_filter_scope: (["name","department","name_or_department","all"].includes(String(s.teacher_filter_scope || "")) ? String(s.teacher_filter_scope) : "name"),
     crud_enabled: String(!!s.crud_enabled),
+    crud_permissions_json: JSON.stringify(s.crud_permissions ?? null),
     column_types_json: JSON.stringify(s.column_types || {}),
     column_options_json: JSON.stringify(s.column_options || {}),
+    column_select_source_json: JSON.stringify(s.column_select_source || {}),
+    column_select_allow_custom_json: JSON.stringify(s.column_select_allow_custom || {}),
+    required_filters_json: JSON.stringify(s.required_filters || []),
+    quick_filters_json: JSON.stringify(s.quick_filters || []),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
