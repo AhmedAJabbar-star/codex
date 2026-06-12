@@ -485,125 +485,197 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   <span>
                     اشتراط دخول التدريسي (كما في «التكليفات الفردية»)
                     <span className="block text-[11px] font-normal text-slate-600 mt-1">
-                      عند التفعيل، لن يستطيع أي تدريسي فتح هذا النظام إلا باختيار اسمه وكتابة كلمة المرور الخاصة به في نظام التكليفات الفردية — لا تُستخدم كلمة سر مستقلة.
+                      عند التفعيل، يظهر شريط علوي باسم المستخدم وزر تسجيل خروج. اختياره يُحدد كيف تُصفّى الصفوف للتدريسي.
                     </span>
                   </span>
                 </label>
                 {s.require_teacher_auth && (
-                  <div>
-                    <label className="block text-xs font-black mb-1">عمود اسم التدريسي (حرف Excel، اختياري)</label>
-                    <input
-                      className="schedule-select w-full"
-                      value={s.teacher_column || ''}
-                      onChange={(e) => patch({ teacher_column: e.target.value.toUpperCase().trim() })}
-                      placeholder="مثال: F"
-                    />
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      عند تحديده، يرى التدريسي بعد دخوله الصفوف التي تطابق اسمه فقط في هذا العمود.
-                      اتركه فارغاً ليرى جميع الصفوف.
-                    </p>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-black mb-1">عمود اسم التدريسي (حرف Excel)</label>
+                        <input
+                          className="schedule-select w-full"
+                          value={s.teacher_column || ''}
+                          onChange={(e) => patch({ teacher_column: e.target.value.toUpperCase().trim() })}
+                          placeholder="مثال: F"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black mb-1">عمود قسم التدريسي (حرف Excel)</label>
+                        <input
+                          className="schedule-select w-full"
+                          value={s.teacher_department_column || ''}
+                          onChange={(e) => patch({ teacher_department_column: e.target.value.toUpperCase().trim() })}
+                          placeholder="مثال: P"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black mb-1">نطاق تصفية الصفوف للتدريسي</label>
+                      <select
+                        className="schedule-select w-full"
+                        value={s.teacher_filter_scope || 'name'}
+                        onChange={(e) => patch({ teacher_filter_scope: e.target.value as any })}
+                      >
+                        <option value="name">حسب الاسم فقط</option>
+                        <option value="department">حسب القسم فقط</option>
+                        <option value="name_or_department">الاسم أو القسم (مناسب لرئيس القسم)</option>
+                        <option value="all">بدون تصفية (يرى كل الصفوف بعد الدخول)</option>
+                      </select>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* CRUD section */}
-              <div className="border-2 border-cyan-300 rounded-lg p-3 bg-cyan-50/40 mt-3 space-y-2">
-                <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!s.crud_enabled}
-                    onChange={(e) => patch({ crud_enabled: e.target.checked })}
-                  />
-                  <span>
-                    ✏️ تفعيل الإضافة/التعديل/الحذف/البحث على البيانات
-                    <span className="block text-[11px] font-normal text-slate-600 mt-1">
-                      تُكتب التعديلات مباشرة في ورقة Google Sheets المصدر. يتطلب كل تعديل كلمة مرور لوحة التحكم.
-                      للأوراق الخارجية، تأكد من منح صلاحية «محرّر» لحساب الخدمة المرتبط بالمشروع.
-                    </span>
-                  </span>
-                </label>
-                {s.crud_enabled && colLetters.length > 0 && (
-                  <details className="mt-2" open>
-                    <summary className="cursor-pointer text-xs font-black text-slate-700">
-                      ⚙️ أنواع حقول الإدخال لكل عمود ({colLetters.length})
-                    </summary>
-                    <div className="mt-2 space-y-2">
-                      {colLetters.map((L) => {
-                        const ct = (s.column_types || {})[L] || 'text';
-                        const opts = (s.column_options || {})[L] || '';
-                        const src = (s.column_select_source || {})[L] || 'manual';
-                        const allowCustom = !!(s.column_select_allow_custom || {})[L];
-                        return (
-                          <div key={L} className="bg-white p-2.5 rounded-lg border space-y-2">
-                            <div className="grid grid-cols-12 gap-2 items-center">
-                              <span className="col-span-1 text-xs font-black text-center bg-slate-100 rounded py-1.5">{L}</span>
-                              <span className="col-span-7 text-xs font-bold truncate">{labels[L] || `عمود ${L}`}</span>
-                              <select
-                                className="schedule-select col-span-4"
-                                value={ct}
-                                onChange={(e) => patch({ column_types: { ...(s.column_types || {}), [L]: e.target.value as any } })}
-                              >
-                                <option value="text">✏️ نص</option>
-                                <option value="number">🔢 رقم</option>
-                                <option value="date">📅 تاريخ</option>
-                                <option value="select">📋 قائمة منسدلة</option>
-                                <option value="readonly">🔒 قراءة فقط</option>
-                              </select>
-                            </div>
-                            {ct === 'select' && (
-                              <div className="space-y-2 pt-1 border-t border-dashed">
-                                <div className="flex flex-wrap gap-3 text-[11px] font-bold">
-                                  <label className="flex items-center gap-1.5 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      name={`src-${L}`}
-                                      checked={src === 'manual'}
-                                      onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'manual' } })}
-                                    />
-                                    خيارات يدوية
-                                  </label>
-                                  <label className="flex items-center gap-1.5 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      name={`src-${L}`}
-                                      checked={src === 'column'}
-                                      onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'column' } })}
-                                    />
-                                    القيم الفريدة من نفس العمود
-                                  </label>
-                                  <label className="flex items-center gap-1.5 cursor-pointer mr-auto bg-amber-50 px-2 py-1 rounded border border-amber-200">
-                                    <input
-                                      type="checkbox"
-                                      checked={allowCustom}
-                                      onChange={(e) => patch({ column_select_allow_custom: { ...(s.column_select_allow_custom || {}), [L]: e.target.checked } })}
-                                    />
-                                    السماح بإدخال قيمة جديدة غير موجودة
-                                  </label>
+              {/* CRUD section — granular permissions */}
+              {(() => {
+                const perms = (s.crud_permissions || {}) as any;
+                const legacyAll = s.crud_enabled === true && !s.crud_permissions;
+                const cur = {
+                  view:   perms.view   ?? legacyAll,
+                  add:    perms.add    ?? legacyAll,
+                  edit:   perms.edit   ?? legacyAll,
+                  delete: perms.delete ?? legacyAll,
+                };
+                const setPerm = (k: 'view'|'add'|'edit'|'delete', v: boolean) => {
+                  const next = { ...cur, [k]: v };
+                  patch({ crud_permissions: next, crud_enabled: !!(next.view || next.add || next.edit || next.delete) });
+                };
+                const anyOn = !!(cur.view || cur.add || cur.edit || cur.delete);
+                const PermToggle = ({ k, label, icon }: { k: 'view'|'add'|'edit'|'delete'; label: string; icon: string }) => (
+                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer text-sm font-bold transition-all ${cur[k] ? 'border-cyan-500 bg-cyan-50' : 'border-slate-200 bg-white'}`}>
+                    <input type="checkbox" checked={cur[k]} onChange={(e) => setPerm(k, e.target.checked)} />
+                    <span>{icon} {label}</span>
+                  </label>
+                );
+                return (
+                  <div className="border-2 border-cyan-300 rounded-lg p-3 bg-cyan-50/40 mt-3 space-y-3">
+                    <div>
+                      <strong className="text-sm">🛠️ صلاحيات إدارة البيانات (CRUD)</strong>
+                      <p className="text-[11px] text-slate-600 mt-1">
+                        فعّل ما تريد إتاحته في لوحة الإدارة. يُكتب التغيير مباشرة في ورقة Google Sheets المصدر ويتطلب كلمة مرور لوحة التحكم.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <PermToggle k="view"   label="عرض/بحث"   icon="👁️" />
+                      <PermToggle k="add"    label="إضافة"      icon="➕" />
+                      <PermToggle k="edit"   label="تعديل"      icon="✏️" />
+                      <PermToggle k="delete" label="حذف"        icon="🗑️" />
+                    </div>
+                    {anyOn && colLetters.length > 0 && (
+                      <details className="mt-2" open>
+                        <summary className="cursor-pointer text-xs font-black text-slate-700">
+                          ⚙️ أنواع حقول الإدخال لكل عمود ({colLetters.length})
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                          {colLetters.map((L) => {
+                            const ct = (s.column_types || {})[L] || 'text';
+                            const opts = (s.column_options || {})[L] || '';
+                            const src = (s.column_select_source || {})[L] || 'manual';
+                            const allowCustom = !!(s.column_select_allow_custom || {})[L];
+                            return (
+                              <div key={L} className="bg-white p-2.5 rounded-lg border space-y-2">
+                                <div className="grid grid-cols-12 gap-2 items-center">
+                                  <span className="col-span-1 text-xs font-black text-center bg-slate-100 rounded py-1.5">{L}</span>
+                                  <span className="col-span-7 text-xs font-bold truncate">{labels[L] || `عمود ${L}`}</span>
+                                  <select
+                                    className="schedule-select col-span-4"
+                                    value={ct}
+                                    onChange={(e) => patch({ column_types: { ...(s.column_types || {}), [L]: e.target.value as any } })}
+                                  >
+                                    <option value="text">✏️ نص</option>
+                                    <option value="number">🔢 رقم</option>
+                                    <option value="date">📅 تاريخ</option>
+                                    <option value="select">📋 قائمة منسدلة</option>
+                                    <option value="readonly">🔒 قراءة فقط</option>
+                                  </select>
                                 </div>
-                                {src === 'manual' && (
-                                  <input
-                                    className="schedule-select w-full text-xs"
-                                    value={opts}
-                                    onChange={(e) => patch({ column_options: { ...(s.column_options || {}), [L]: e.target.value } })}
-                                    placeholder="الخيارات مفصولة بفاصلة (,) أو سطر جديد — مثال: نشِط، متوقف، مؤجل"
-                                  />
-                                )}
-                                {src === 'column' && (
-                                  <p className="text-[11px] text-slate-500 bg-slate-50 p-1.5 rounded">
-                                    💡 ستُجمع الخيارات تلقائياً من القيم الفريدة الموجودة في عمود <strong>{L}</strong> داخل ورقة Google Sheets.
-                                  </p>
+                                {ct === 'select' && (
+                                  <div className="space-y-2 pt-1 border-t border-dashed">
+                                    <div className="flex flex-wrap gap-3 text-[11px] font-bold">
+                                      <label className="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name={`src-${L}`} checked={src === 'manual'}
+                                          onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'manual' } })} />
+                                        خيارات يدوية
+                                      </label>
+                                      <label className="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name={`src-${L}`} checked={src === 'column'}
+                                          onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'column' } })} />
+                                        القيم الفريدة من نفس العمود
+                                      </label>
+                                      <label className="flex items-center gap-1.5 cursor-pointer mr-auto bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                        <input type="checkbox" checked={allowCustom}
+                                          onChange={(e) => patch({ column_select_allow_custom: { ...(s.column_select_allow_custom || {}), [L]: e.target.checked } })} />
+                                        السماح بإدخال قيمة جديدة غير موجودة
+                                      </label>
+                                    </div>
+                                    {src === 'manual' && (
+                                      <input className="schedule-select w-full text-xs" value={opts}
+                                        onChange={(e) => patch({ column_options: { ...(s.column_options || {}), [L]: e.target.value } })}
+                                        placeholder="الخيارات مفصولة بفاصلة (,) أو سطر جديد — مثال: نشِط، متوقف، مؤجل" />
+                                    )}
+                                    {src === 'column' && (
+                                      <p className="text-[11px] text-slate-500 bg-slate-50 p-1.5 rounded">
+                                        💡 ستُجمع الخيارات تلقائياً من القيم الفريدة الموجودة في عمود <strong>{L}</strong> داخل ورقة Google Sheets.
+                                      </p>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </details>
-                )}
-              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
+
+          {step === 6 && (() => {
+            const qfs = s.quick_filters || [];
+            const updQF = (i: number, p: any) => patch({ quick_filters: qfs.map((q, idx) => idx === i ? { ...q, ...p } : q) });
+            const delQF = (i: number) => patch({ quick_filters: qfs.filter((_, idx) => idx !== i) });
+            const addQF = () => patch({ quick_filters: [...qfs, { label: '', column: 'A', op: 'is_not_empty', icon: '⚡', color: '#dc2626' }] });
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong className="text-sm">⚡ أزرار فلترة سريعة فوق الجدول</strong>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      تظهر فوق الجدول كأزرار قابلة للتفعيل/الإلغاء — مثل زر «غير مستوفي» في تدقيق النصاب و«تضارب/سليم» في متابعة سير التدريسات.
+                    </p>
+                  </div>
+                  <button className="schedule-btn schedule-btn-primary" onClick={addQF} style={{ minHeight: 32, padding: '4px 10px' }}>➕ زر</button>
+                </div>
+                {qfs.length === 0 && <p className="text-xs text-slate-500 text-center py-4 bg-slate-50 rounded border border-dashed">لا توجد أزرار سريعة بعد.</p>}
+                {qfs.map((q: any, i) => (
+                  <div key={i} className="bg-slate-50 border rounded-lg p-3 space-y-2">
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <input className="schedule-select col-span-1 text-center" value={q.icon || ''} onChange={(e) => updQF(i, { icon: e.target.value })} placeholder="⚡" maxLength={2} />
+                      <input className="schedule-select col-span-4" value={q.label || ''} onChange={(e) => updQF(i, { label: e.target.value })} placeholder="تسمية الزر (مثال: غير مستوفي)" />
+                      <input className="schedule-select col-span-2 text-center font-mono" value={q.column || ''} onChange={(e) => updQF(i, { column: e.target.value.toUpperCase() })} placeholder="عمود" />
+                      <select className="schedule-select col-span-3" value={q.op || 'eq'} onChange={(e) => updQF(i, { op: e.target.value, value: '', values: [] })}>
+                        {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
+                      </select>
+                      <input type="color" className="col-span-1 h-10 w-full rounded border cursor-pointer" value={q.color || '#dc2626'} onChange={(e) => updQF(i, { color: e.target.value })} />
+                      <button onClick={() => delQF(i)} className="col-span-1 text-red-600 font-black text-lg">✕</button>
+                    </div>
+                    {q.op === 'contains_any' ? (
+                      <input className="schedule-select w-full" value={(q.values || []).join(', ')}
+                        onChange={(e) => updQF(i, { values: splitMulti(e.target.value) })}
+                        placeholder="قيم مفصولة (,  ،  -  |  أو سطر جديد)" />
+                    ) : NEEDS_VALUE[q.op as ConditionOp] ? (
+                      <input className="schedule-select w-full" value={String(q.value ?? '')}
+                        onChange={(e) => updQF(i, { value: e.target.value })} placeholder="القيمة المراد المطابقة عليها" />
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         <footer className="px-5 py-3 border-t flex items-center justify-between gap-2 bg-slate-50">
