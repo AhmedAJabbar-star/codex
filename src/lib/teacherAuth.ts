@@ -6,13 +6,16 @@ const STORAGE_KEY = 'teacher_session_v2';
 const CONNECTION_KEY = 'teacher_sheet_connection_v1';
 const FN = 'sheet-auth';
 
+import type { UserPermissions, AppRole } from './permissions';
+
 export interface TeacherUser {
   id: string;
   full_name: string;
   department: string;
   college: string;
-  role: 'user' | 'admin';
+  role: AppRole;
   must_change_password: boolean;
+  permissions?: UserPermissions | null;
 }
 
 export interface AdminUser extends TeacherUser {
