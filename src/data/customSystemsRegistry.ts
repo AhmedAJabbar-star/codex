@@ -63,6 +63,8 @@ export interface CustomSystemDef {
   derived_columns: DerivedColumn[];
   header_labels?: Record<string, string>;
   signatures?: SignatureItem[];
+  /** Excel letters of filters that the user MUST choose before any data renders. */
+  required_filters?: string[];
   /** Toggle-style buttons rendered above the table (multiple may be active). */
   quick_filters?: QuickFilterConfig[];
   /** Position on the home dashboard. Lower = earlier. Default 100. */
@@ -134,6 +136,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   derived_columns: [],
   header_labels: {},
   signatures: [],
+  required_filters: [],
   quick_filters: [],
   sort_order: 100,
   protected: false,

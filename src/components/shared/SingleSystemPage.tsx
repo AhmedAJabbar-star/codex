@@ -610,6 +610,37 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             </div>
           )}
 
+          {/* Quick-filter toggle buttons */}
+          {system.quickFilters && system.quickFilters.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-3 pt-1 pb-2" dir="rtl">
+              {system.quickFilters.map((qf) => {
+                const active = activeQuickFilters.has(qf.key);
+                const count = system.rows.filter(r => (r[qf.key] || '') === '1').length;
+                const color = qf.color || '#dc2626';
+                return (
+                  <button
+                    key={qf.key}
+                    onClick={() => toggleQuickFilter(qf.key)}
+                    className="schedule-btn"
+                    style={{
+                      minHeight: 42,
+                      padding: '6px 14px',
+                      borderRadius: 999,
+                      background: active ? color : 'transparent',
+                      color: active ? '#fff' : color,
+                      border: `2px solid ${color}`,
+                      fontWeight: 900,
+                      boxShadow: active ? `0 8px 18px ${color}44` : 'none',
+                    }}
+                    title={active ? 'إلغاء التصفية' : 'تفعيل التصفية'}
+                  >
+                    {qf.icon || '⚡'} {qf.label} <span style={{ opacity: .85 }}>({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Statistics */}
           <SystemStatistics rows={filteredRows} allRows={system.rows} systemId={activeSystem} onFilterApply={handleStatFilter} activeStatFilter={statFilter} />
 
