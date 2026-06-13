@@ -85,6 +85,14 @@ function toNumber(v: string): number | null {
   return isNaN(n) ? null : n;
 }
 
+/** Split a cell on newlines / common separators so multi-value cells are checked per token. */
+function splitCellTokens(raw: string): string[] {
+  const t = (raw || '').trim();
+  if (!t) return [''];
+  const parts = t.split(/[\n\r،,;|]+/).map((x) => x.trim()).filter((x) => x.length > 0);
+  return parts.length > 0 ? parts : [t];
+}
+
 export function evaluateCondition(
   cond: Condition,
   row: Record<string, string>,
@@ -92,11 +100,13 @@ export function evaluateCondition(
 ): boolean {
   const raw = getCellByLetter(row, headers, cond.column);
   const t = raw.trim();
+  const tokens = splitCellTokens(raw);
+  const target = String(cond.value ?? '').trim();
   switch (cond.op) {
-    case 'eq': return t === String(cond.value ?? '');
-    case 'neq': return t !== String(cond.value ?? '');
-    case 'contains': return normalizeAr(t).includes(normalizeAr(String(cond.value ?? '')));
-    case 'not_contains': return !normalizeAr(t).includes(normalizeAr(String(cond.value ?? '')));
+    case 'eq': return tokens.some((x) => x === target);
+    case 'neq': return !tokens.some((x) => x === target);
+    case 'contains': return normalizeAr(t).includes(normalizeAr(target));
+    case 'not_contains': return !normalizeAr(t).includes(normalizeAr(target));
     case 'contains_any': {
       const list = (cond.values || []).map((v) => normalizeAr(String(v)));
       const nt = normalizeAr(t);
@@ -105,17 +115,18 @@ export function evaluateCondition(
     case 'is_empty': return t === '';
     case 'is_not_empty': return t !== '';
     case 'eq_number': {
-      const n = toNumber(t);
-      const target = Number(cond.value);
-      if (isNaN(target)) return false;
-      // Treat empty as zero when target is 0
-      if (n === null) return target === 0;
-      return n === target;
+      const num = Number(cond.value);
+      if (isNaN(num)) return false;
+      if (t === '') return num === 0;
+      return tokens.some((x) => {
+        const n = toNumber(x);
+        return n !== null && n === num;
+      });
     }
-    case 'gt': { const n = toNumber(t); return n !== null && n > Number(cond.value); }
-    case 'lt': { const n = toNumber(t); return n !== null && n < Number(cond.value); }
-    case 'gte': { const n = toNumber(t); return n !== null && n >= Number(cond.value); }
-    case 'lte': { const n = toNumber(t); return n !== null && n <= Number(cond.value); }
+    case 'gt': return tokens.some((x) => { const n = toNumber(x); return n !== null && n > Number(cond.value); });
+    case 'lt': return tokens.some((x) => { const n = toNumber(x); return n !== null && n < Number(cond.value); });
+    case 'gte': return tokens.some((x) => { const n = toNumber(x); return n !== null && n >= Number(cond.value); });
+    case 'lte': return tokens.some((x) => { const n = toNumber(x); return n !== null && n <= Number(cond.value); });
     case 'regex': {
       try { return new RegExp(String(cond.value ?? ''), 'iu').test(t); } catch { return false; }
     }
