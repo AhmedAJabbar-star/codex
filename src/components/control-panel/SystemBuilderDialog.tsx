@@ -654,8 +654,14 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 {qfs.map((q: any, i) => (
                   <div key={i} className="bg-slate-50 border rounded-lg p-3 space-y-2">
                     <div className="grid grid-cols-12 gap-2 items-center">
-                      <input className="schedule-select col-span-1 text-center" value={q.icon || ''} onChange={(e) => updQF(i, { icon: e.target.value })} placeholder="⚡" maxLength={2} />
-                      <input className="schedule-select col-span-4" value={q.label || ''} onChange={(e) => updQF(i, { label: e.target.value })} placeholder="تسمية الزر (مثال: غير مستوفي)" />
+                      <div className="col-span-2 flex gap-1">
+                        <input className="schedule-select w-12 text-center" value={q.icon || ''} onChange={(e) => updQF(i, { icon: e.target.value })} placeholder="⚡" maxLength={2} />
+                        <select className="schedule-select flex-1" value="" onChange={(e) => { if (e.target.value) updQF(i, { icon: e.target.value }); }} title="اختر أيقونة جاهزة">
+                          <option value="">🎨</option>
+                          {['⚡','🔥','⭐','✅','❌','⚠️','🚫','🔔','📌','📍','🎯','💡','🟢','🟡','🔴','🔵','🟣','🟠','📊','📈','📉','🏆','🎓','📚','📝','🧮','🗓️','⏰','🔍','👤','👥','🏛️','🏫','💼','🧪','🔬','🧰','🛠️','♻️','🆕','🆗','🆙','🆘','💯','🎁','🎉','🌟','💎','🚀','📞','📧','📦','📁','🗂️','🧩','🔐','🔓','🔑','🧭','🗺️'].map(em => <option key={em} value={em}>{em}</option>)}
+                        </select>
+                      </div>
+                      <input className="schedule-select col-span-3" value={q.label || ''} onChange={(e) => updQF(i, { label: e.target.value })} placeholder="تسمية الزر" />
                       <input className="schedule-select col-span-2 text-center font-mono" value={q.column || ''} onChange={(e) => updQF(i, { column: e.target.value.toUpperCase() })} placeholder="عمود" />
                       <select className="schedule-select col-span-3" value={q.op || 'eq'} onChange={(e) => updQF(i, { op: e.target.value, value: '', values: [] })}>
                         {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
