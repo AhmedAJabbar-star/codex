@@ -79,7 +79,7 @@ const SystemGroupPage = () => {
 
   return (
     <div className="schedule-body" dir="rtl">
-      <div className="relative z-[1] w-full max-w-6xl mx-auto my-4 px-3 sm:px-5 pb-7">
+      <div className="relative z-[1] w-full max-w-[1800px] mx-auto my-4 px-3 sm:px-5 lg:px-8 pb-7">
         <div className="schedule-card">
           <header className="schedule-header">
             <div className="flex flex-col items-center gap-3 text-center relative">
