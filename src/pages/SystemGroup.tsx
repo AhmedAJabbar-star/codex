@@ -79,7 +79,7 @@ const SystemGroupPage = () => {
 
   return (
     <div className="schedule-body" dir="rtl">
-      <div className="relative z-[1] w-full max-w-6xl mx-auto my-4 px-3 sm:px-5 pb-7">
+      <div className="relative z-[1] w-full max-w-[1800px] mx-auto my-4 px-3 sm:px-5 lg:px-8 pb-7">
         <div className="schedule-card">
           <header className="schedule-header">
             <div className="flex flex-col items-center gap-3 text-center relative">
@@ -107,7 +107,7 @@ const SystemGroupPage = () => {
             </div>
           </header>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5 p-4 sm:p-6">
             {cards.length === 0 && (
               <div className="col-span-full text-center py-10 text-[var(--schedule-muted)] font-bold">لا توجد أنظمة في هذه المجموعة</div>
             )}

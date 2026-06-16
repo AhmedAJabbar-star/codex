@@ -508,7 +508,7 @@ const Dashboard = () => {
 
   return (
     <div className="schedule-body" dir="rtl">
-      <div className="relative z-[1] w-full max-w-6xl mx-auto my-4 px-3 sm:px-5 pb-7">
+      <div className="relative z-[1] w-full max-w-[1800px] mx-auto my-4 px-3 sm:px-5 lg:px-8 pb-7">
         <div className="schedule-card">
           {/* Header */}
           <header className="schedule-header">
@@ -545,7 +545,7 @@ const Dashboard = () => {
           </header>
 
           {/* System Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5 p-4 sm:p-6">
             {groups.map(group => {
               const count = groupRowCount(group);
               const gradient = `linear-gradient(135deg, ${group.color} 0%, ${group.color}cc 100%)`;
