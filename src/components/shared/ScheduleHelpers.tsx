@@ -45,84 +45,21 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   const singlePageCSS = singlePage ? `
     @page{size:A4 landscape;margin:5mm}
     html,body{height:100vh;overflow:hidden}
-    .page{padding:5mm 6mm}
-  ` : `@page{size:A4 landscape;margin:6mm}`;
+  ` : `@page{size:A4 landscape;margin:8mm}`;
 
-  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title}</title>
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Cairo',sans-serif;color:#000;background:#fff}
-.page{padding:6mm 8mm;position:relative}
-.page::before{content:"";position:absolute;inset:4mm;border:2px double #0f4c81;border-radius:6px;pointer-events:none;z-index:0}
-.content{position:relative;z-index:1}
-.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.045);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
-.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:6px 12px;border-bottom:3px double #0f4c81;background:#fff}
-.official-header img{width:78px;height:78px;object-fit:contain;justify-self:center}
-.header-text{text-align:center}
-.header-text .ar1{font-family:'Amiri',serif;font-size:16px;font-weight:700;color:#0f4c81;margin-bottom:2px}
-.header-text .ar2{font-size:13px;font-weight:800;color:#000;margin-bottom:1px}
-.header-text .ar3{font-size:10.5px;font-weight:700;color:#333}
-.header-side{font-size:9.5px;text-align:center;color:#444;line-height:1.5}
-.header-side strong{color:#0f4c81;display:block;margin-bottom:2px;font-size:10.5px}
-.doc-title{margin:10px auto 6px;text-align:center}
-.doc-title h1{font-family:'Amiri',serif;font-size:20px;color:#0f4c81;font-weight:700;letter-spacing:1px;display:inline-block;padding:6px 26px;border-top:2px solid #0f4c81;border-bottom:2px solid #0f4c81}
-.info-band{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0;padding:6px;background:#f7faff;border:1px solid #c5d3e3;border-radius:6px}
-.info-cell{font-size:10px;font-weight:700;color:#333;padding:4px 8px;border-right:3px solid #0f4c81;background:#fff;border-radius:3px}
-.info-cell strong{color:#0f4c81;display:block;font-size:9px;margin-bottom:2px}
-.filters-band{margin:6px 0 4px;padding:8px 10px;background:linear-gradient(180deg,#fff,#eef4fc);border:1.5px solid #0f4c81;border-radius:8px;position:relative}
-.filters-band-title{position:absolute;top:-9px;right:14px;background:#0f4c81;color:#fff;font-size:9.5px;font-weight:800;padding:2px 10px;border-radius:4px;letter-spacing:.4px}
-.filters-band-grid{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:4px}
-.filter-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c5d3e3;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:700;color:#222}
-.chip-label{color:#0f4c81;font-weight:800}
-.chip-label::after{content:" :"}
-.chip-value{color:#000}
-table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:6px;table-layout:auto}
-  th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;white-space:normal;overflow-wrap:normal;word-break:keep-all;line-height:1.2}
-  td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;white-space:pre-line;overflow-wrap:break-word;word-break:keep-all}
-  .notes-col{min-width:48mm;text-align:center;white-space:pre-line}
-tr.even{background:#f0f6ff}
-tr.odd{background:#fff}
-.signatures{margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid;background:#fff}
-.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:6px}
-.sig-label{font-size:10.5px;font-weight:800;color:#0f4c81;margin-bottom:18px}
-.sig-name{font-size:10px;color:#555;border-bottom:1px dotted #888;min-height:14px;padding-bottom:2px;margin-bottom:4px}
-.sig-sub{font-size:9px;color:#555}
-.doc-meta{margin-top:8px;display:flex;justify-content:space-between;font-size:9.5px;color:#555;padding:5px 10px;border-top:1px solid #c5d3e3;background:#fff}
-.doc-meta strong{color:#0f4c81}
-.footer-note{margin-top:6px;font-size:9.5px;color:#444;line-height:1.7;padding:6px 10px}
-.footer-note strong{color:#0f4c81}
-.preview-bar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}
-.preview-bar .pv-title{font-weight:800;font-size:13px;margin-inline-end:auto}
-.preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
-.preview-bar .btn-print{background:#fff;color:#0f4c81}
-.preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
-.page{margin-top:70px}
-@media print{
-  ${singlePageCSS}
-  body{padding:0}
-  tr,td,th{page-break-inside:avoid}
-  .signatures{page-break-inside:avoid}
-  .preview-bar{display:none!important}
-  .page{margin-top:0}
-}
-</style>
-<style id="repeat-style"></style>
-</head><body>
-<div class="preview-bar">
-  <span class="pv-title">📄 معاينة —</span>
-  <input id="pv-title-input" value="${title.replace(/"/g, '&quot;')}" style="flex:1;min-width:220px;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px"/>
-  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px;cursor:pointer"/> تاريخ الإصدار</label>
-  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-show-docnum" checked style="width:16px;height:16px;cursor:pointer"/> رقم الوثيقة</label>
-  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-repeat" style="width:16px;height:16px;cursor:pointer"/> تكرار العنوان والتواقيع بكل صفحة</label>
-  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
-  <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
-</div>
-<div class="watermark">الجامعة التكنولوجية</div>
-<div class="page"><div class="content">
-<div id="page-header-area">
+  const signaturesHtml = (Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `<div class="signatures" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
+    ${(customSignatures && customSignatures.length > 0
+      ? customSignatures
+      : [{ label: 'مقرر القسم' }, { label: 'رئيس القسم' }, { label: 'مصادقة العميد' }]
+    ).map((s) => `
+    <div class="sig-box">
+      <div class="sig-label">${s.label}</div>
+      <div class="sig-name">${s.name || '............................'}</div>
+      <div class="sig-sub">التوقيع &amp; الختم</div>
+    </div>`).join('')}
+  </div>`;
+
+  const headerBlockHtml = `
 <div class="official-header">
   <div class="header-side"><strong>جمهورية العراق</strong>وزارة التعليم العالي<br/>والبحث العلمي</div>
   <div class="header-text">
@@ -133,73 +70,190 @@ tr.odd{background:#fff}
   </div>
   <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education &amp; Scientific Research<br/>University of Technology</div>
 </div>
-
 <div class="doc-title"><h1 id="doc-h1">${title}</h1></div>
-
-<div class="info-band">
+<div class="info-band" id="info-band">
   <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong>${today}</div>
   <div class="info-cell" id="doc-number-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
-  <div class="info-cell"><strong>عدد السجلات</strong>${rows.length}</div>
-</div>
-</div>
-<script>
-  (function(){
-    var ti=document.getElementById('pv-title-input');
-    var h1=document.getElementById('doc-h1');
-    if(ti&&h1) ti.addEventListener('input',function(){ h1.textContent=ti.value; document.title=ti.value; });
-    var cb=document.getElementById('pv-show-date');
-    var dc=document.getElementById('issue-date-cell');
-    if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
-    var cb2=document.getElementById('pv-show-docnum');
-    var dn=document.getElementById('doc-number-cell');
-    if(cb2&&dn) cb2.addEventListener('change',function(){ dn.style.display=cb2.checked?'':'none'; });
-    var rp=document.getElementById('pv-repeat');
-    var rs=document.getElementById('repeat-style');
-    if(rp&&rs) rp.addEventListener('change',function(){
-      if(rp.checked){
-        rs.textContent='@media print{'+
-          '@page{size:A4 landscape;margin:55mm 6mm 45mm 6mm}'+
-          '#page-header-area{position:fixed;top:0;left:0;right:0;background:#fff;z-index:50;padding:2mm 6mm;border-bottom:2px solid #0f4c81}'+
-          '#page-footer-area{position:fixed;bottom:0;left:0;right:0;background:#fff;z-index:50;padding:2mm 6mm;border-top:2px solid #0f4c81}'+
-          '.page::before{display:none}'+
-          '.page{padding:0 4mm}'+
-        '}';
-      } else { rs.textContent=''; }
-    });
-  })();
-</script>
+  <div class="info-cell" id="record-count-cell"><strong>عدد السجلات</strong>${rows.length}</div>
+</div>`;
 
-${(filtersInfo && filtersInfo.length > 0) ? `
+  const filtersHtml = (filtersInfo && filtersInfo.length > 0) ? `
 <div class="filters-band">
   <div class="filters-band-title">معايير التصفية المطبّقة</div>
   <div class="filters-band-grid">
     ${filtersInfo.map(f => `<div class="filter-chip"><span class="chip-label">${f.label}</span><span class="chip-value">${f.value}</span></div>`).join('')}
   </div>
-</div>` : ''}
+</div>` : '';
 
-<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-<tbody>${tableRows}</tbody></table>
-
-<div id="page-footer-area">
-${(Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `<div class="signatures" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
-  ${(customSignatures && customSignatures.length > 0
-    ? customSignatures
-    : [{ label: 'مقرر القسم' }, { label: 'رئيس القسم' }, { label: 'مصادقة العميد' }]
-  ).map((s) => `
-  <div class="sig-box">
-    <div class="sig-label">${s.label}</div>
-    <div class="sig-name">${s.name || '............................'}</div>
-    <div class="sig-sub">التوقيع &amp; الختم</div>
-  </div>`).join('')}
-</div>`}
-
+  const footerBlockHtml = `${signaturesHtml}
 <div class="doc-meta">
   <span><strong>وثيقة رسمية</strong> صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span>
-  <span>صفحة 1 / 1</span>
-</div>
+</div>`;
+
+  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:0}
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.045);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
+.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:4px 12px;border-bottom:3px double #0f4c81;background:#fff}
+.official-header img{width:60px;height:60px;object-fit:contain;justify-self:center}
+.header-text{text-align:center}
+.header-text .ar1{font-family:'Amiri',serif;font-size:14px;font-weight:700;color:#0f4c81}
+.header-text .ar2{font-size:12px;font-weight:800;color:#000}
+.header-text .ar3{font-size:10px;font-weight:700;color:#333}
+.header-side{font-size:9px;text-align:center;color:#444;line-height:1.4}
+.header-side strong{color:#0f4c81;display:block;font-size:10px}
+.doc-title{margin:6px auto 4px;text-align:center}
+.doc-title h1{font-family:'Amiri',serif;font-size:18px;color:#0f4c81;font-weight:700;display:inline-block;padding:4px 22px;border-top:2px solid #0f4c81;border-bottom:2px solid #0f4c81}
+.info-band{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 6px;padding:4px;background:#f7faff;border:1px solid #c5d3e3;border-radius:6px}
+.info-cell{font-size:10px;font-weight:700;color:#333;padding:3px 8px;border-right:3px solid #0f4c81;background:#fff;border-radius:3px}
+.info-cell strong{color:#0f4c81;display:block;font-size:9px;margin-bottom:2px}
+.filters-band{margin:6px;padding:6px 10px;background:linear-gradient(180deg,#fff,#eef4fc);border:1.5px solid #0f4c81;border-radius:8px;position:relative}
+.filters-band-title{position:absolute;top:-9px;right:14px;background:#0f4c81;color:#fff;font-size:9.5px;font-weight:800;padding:2px 10px;border-radius:4px}
+.filters-band-grid{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:2px}
+.filter-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c5d3e3;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:700;color:#222}
+.chip-label{color:#0f4c81;font-weight:800}
+.chip-label::after{content:" :"}
+.chip-value{color:#000}
+table.data{width:calc(100% - 12px);margin:4px 6px;border-collapse:collapse;font-size:${fontSize};table-layout:auto}
+table.data th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;line-height:1.2;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;white-space:pre-line;overflow-wrap:break-word}
+table.data .notes-col{min-width:48mm;text-align:center;white-space:pre-line}
+table.data tr.even{background:#f0f6ff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+table.data tr.odd{background:#fff}
+.signatures{margin:10px 6px 4px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid;background:#fff}
+.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:6px}
+.sig-label{font-size:10.5px;font-weight:800;color:#0f4c81;margin-bottom:18px}
+.sig-name{font-size:10px;color:#555;border-bottom:1px dotted #888;min-height:14px;padding-bottom:2px;margin-bottom:4px}
+.sig-sub{font-size:9px;color:#555}
+.doc-meta{margin:4px 6px;display:flex;justify-content:center;font-size:9px;color:#555;padding:4px 10px;border-top:1px solid #c5d3e3;background:#fff}
+.doc-meta strong{color:#0f4c81}
+
+/* Repeating header/footer using table thead/tfoot (browser-native) */
+.print-shell{width:100%;border-collapse:collapse}
+.print-shell > thead{display:table-header-group}
+.print-shell > tfoot{display:table-footer-group}
+.print-shell > thead > tr > td,
+.print-shell > tfoot > tr > td,
+.print-shell > tbody > tr > td{padding:0;border:0}
+.shell-header{border-bottom:2px solid #0f4c81;background:#fff}
+.shell-footer{background:#fff}
+
+/* Preview toolbar */
+.preview-bar{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;gap:8px;justify-content:flex-start;align-items:center;flex-wrap:wrap;padding:8px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}
+.preview-bar .pv-title{font-weight:800;font-size:13px}
+.preview-bar input[type="text"]{padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px;min-width:240px}
+.preview-bar label{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.08);padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.18)}
+.preview-bar label input{width:14px;height:14px;cursor:pointer}
+.preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:8px 16px;cursor:pointer;font-size:12.5px;margin-inline-start:auto}
+.preview-bar .btn-print{background:#fff;color:#0f4c81}
+.preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
+body{padding-top:62px}
+.print-area{padding:6px 4px}
+
+@media print{
+  ${singlePageCSS}
+  .preview-bar{display:none!important}
+  body{padding-top:0!important}
+  .print-area{padding:0}
+  tr,td,th{page-break-inside:avoid}
+  .signatures{page-break-inside:avoid}
+  /* Hide normal header block when repeat mode is on (handled via body class) */
+  body.repeat-mode .top-header{display:none}
+  body:not(.repeat-mode) .shell-header,
+  body:not(.repeat-mode) .shell-footer{display:none}
+}
+
+/* Screen preview: show what user expects */
+body.repeat-mode .top-header{display:none}
+body:not(.repeat-mode) .shell-header,
+body:not(.repeat-mode) .shell-footer{display:none}
+</style>
+</head><body class="repeat-mode">
+<div class="preview-bar">
+  <span class="pv-title">📄 المعاينة</span>
+  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
+  <label><input type="checkbox" id="pv-repeat" checked/> تكرار الهيدر/التواقيع بكل صفحة</label>
+  <label><input type="checkbox" id="pv-show-info" checked/> شريط (التاريخ/الرقم/السجلات)</label>
+  <label><input type="checkbox" id="pv-show-date" checked/> التاريخ</label>
+  <label><input type="checkbox" id="pv-show-docnum" checked/> رقم الوثيقة</label>
+  <label><input type="checkbox" id="pv-show-count" checked/> عدد السجلات</label>
+  <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
+  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+  <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
-</div></div>
+<div class="watermark">الجامعة التكنولوجية</div>
+
+<div class="print-area">
+  <!-- Top header (used when repeat mode is OFF) -->
+  <div class="top-header">
+    ${headerBlockHtml}
+    ${filtersHtml}
+  </div>
+
+  <!-- Table shell with repeating thead/tfoot (used when repeat mode is ON) -->
+  <table class="print-shell">
+    <thead><tr><td>
+      <div class="shell-header">
+        ${headerBlockHtml}
+        ${filtersHtml}
+      </div>
+    </td></tr></thead>
+    <tfoot><tr><td>
+      <div class="shell-footer" id="shell-footer">
+        ${footerBlockHtml}
+      </div>
+    </td></tr></tfoot>
+    <tbody><tr><td>
+      <table class="data"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>${tableRows}</tbody></table>
+    </td></tr></tbody>
+  </table>
+
+  <!-- Bottom footer (used when repeat mode is OFF) -->
+  <div class="bottom-footer top-header">
+    ${footerBlockHtml}
+  </div>
+</div>
+
+<script>
+(function(){
+  var body=document.body;
+  var ti=document.getElementById('pv-title-input');
+  document.querySelectorAll('#doc-h1').forEach(function(h){});
+  function syncTitle(){
+    document.querySelectorAll('#doc-h1, [id="doc-h1"]').forEach(function(h){ h.textContent=ti.value; });
+    document.querySelectorAll('h1').forEach(function(h){ if(h.id==='doc-h1') h.textContent=ti.value; });
+    document.title=ti.value;
+  }
+  if(ti) ti.addEventListener('input', syncTitle);
+
+  function bindToggle(id, selector){
+    var cb=document.getElementById(id);
+    if(!cb) return;
+    cb.addEventListener('change', function(){
+      document.querySelectorAll(selector).forEach(function(el){
+        el.style.display = cb.checked ? '' : 'none';
+      });
+    });
+  }
+  bindToggle('pv-show-info', '#info-band, [id="info-band"]');
+  bindToggle('pv-show-date', '#issue-date-cell, [id="issue-date-cell"]');
+  bindToggle('pv-show-docnum', '#doc-number-cell, [id="doc-number-cell"]');
+  bindToggle('pv-show-count', '#record-count-cell, [id="record-count-cell"]');
+  bindToggle('pv-show-sigs', '.signatures');
+
+  var rp=document.getElementById('pv-repeat');
+  if(rp) rp.addEventListener('change', function(){
+    if(rp.checked) body.classList.add('repeat-mode');
+    else body.classList.remove('repeat-mode');
+  });
+})();
+</script>
 </body></html>`);
   w.document.close();
 }
