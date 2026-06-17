@@ -141,17 +141,30 @@ body.in-preview{padding:0}
 .info-cell strong{color:#0f4c81;display:block;font-size:9.5px;margin-bottom:3px;font-weight:800;letter-spacing:.3px}
 .info-cell span{font-size:11px;color:#0b1f33;font-weight:700}
 
-/* ===== RUNNING HEADER (page 2+): we just reuse the full banner via <thead>. No separate compact header. ===== */
-/* When repeat-header is OFF → banner renders ONCE at the top of page 1 only (no repetition). */
+/* ===== REPEATING THEAD CONTROL =====
+   - body.repeat-header  → thead acts as table-header-group (banner repeats every print page)
+   - otherwise            → thead acts as a normal row group (banner shows ONCE on page 1) */
 body:not(.repeat-header) .print-shell > thead{display:table-row-group}
 body.repeat-header .print-shell > thead{display:table-header-group}
 
-/* On repeating pages, allow the banner to feel slightly more compact */
-body.compact-repeat .print-shell > thead .banner{padding-top:2px}
-body.compact-repeat .print-shell > thead .official-header{padding:4px 12px 6px}
-body.compact-repeat .print-shell > thead .hdr-logo{width:48px;height:48px}
-body.compact-repeat .print-shell > thead .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
-body.compact-repeat .print-shell > thead .filters-band{display:none}
+/* Compact look ONLY for the repeated banner — applied to repeat-banner-preview and to thead. */
+body.compact-repeat .print-shell > thead .banner,
+body.compact-repeat #repeat-banner-preview .banner{padding-top:2px}
+body.compact-repeat .print-shell > thead .official-header,
+body.compact-repeat #repeat-banner-preview .official-header{padding:4px 12px 6px}
+body.compact-repeat .print-shell > thead .hdr-logo,
+body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
+body.compact-repeat .print-shell > thead .doc-h1,
+body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
+
+/* Per-element banner toggles — apply to BOTH real banner and preview clone */
+body.hide-banner-logo    .banner .hdr-logo{display:none}
+body.hide-banner-title   .banner .doc-h1{display:none}
+body.hide-banner-info    .banner .info-band{display:none}
+body.hide-banner-filters .banner .filters-band{display:none}
+body.hide-date    .banner .cell-date{display:none}
+body.hide-docnum  .banner .cell-docnum{display:none}
+body.hide-count   .banner .cell-count{display:none}
 
 /* ===== DATA TABLE ===== */
 table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto;margin-top:4px}
@@ -180,14 +193,21 @@ table.data tr:hover{background:#eaf1fb}
 .print-shell > tfoot > tr > td,
 .print-shell > tbody > tr > td{padding:0;border:0;vertical-align:top}
 
-/* When repeat-sigs is ON, signatures live in tfoot (repeats on every page).
-   We render BOTH locations and toggle visibility. */
 body.repeat-sigs #sigs-end{display:none}
 body:not(.repeat-sigs) #sigs-foot{display:none}
+
+/* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
+#repeat-banner-preview{max-width:297mm;margin:8px auto 30px;background:transparent}
+#repeat-banner-preview .page2-label{background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;font-weight:800;padding:8px 14px;border-radius:8px 8px 0 0;font-size:12.5px;text-align:center;letter-spacing:.3px;box-shadow:0 4px 12px rgba(15,76,129,.25)}
+#repeat-banner-preview .page2-paper{background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:0 0 8px 8px;border-top:3px dashed #0f4c81;position:relative;min-height:120px}
+#repeat-banner-preview .page2-paper::after{content:"⋯ بقية بيانات التقرير ⋯";display:block;text-align:center;color:#94a3b8;font-weight:700;padding:18px 0 6px;font-size:12px;font-style:italic}
+body:not(.repeat-header) #repeat-banner-preview .banner{display:none}
+body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"🚫 تكرار البانر معطّل — الصفحات التالية تبدأ مباشرةً ببيانات الجدول";display:block;text-align:center;color:#dc2626;font-weight:800;padding:16px;font-size:13px;background:#fef2f2;border:1.5px dashed #fca5a5;border-radius:6px;margin-bottom:8px}
 
 @media print{
   body{background:#fff!important}
   .preview-bar{display:none!important}
+  #repeat-banner-preview{display:none!important}
   .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
   tr,td,th{page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
