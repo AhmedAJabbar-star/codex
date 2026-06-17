@@ -59,7 +59,7 @@ body{font-family:'Cairo',sans-serif;color:#000;background:#fff}
 .page::before{content:"";position:absolute;inset:4mm;border:2px double #0f4c81;border-radius:6px;pointer-events:none;z-index:0}
 .content{position:relative;z-index:1}
 .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.045);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
-.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:6px 12px;border-bottom:3px double #0f4c81}
+.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:6px 12px;border-bottom:3px double #0f4c81;background:#fff}
 .official-header img{width:78px;height:78px;object-fit:contain;justify-self:center}
 .header-text{text-align:center}
 .header-text .ar1{font-family:'Amiri',serif;font-size:16px;font-weight:700;color:#0f4c81;margin-bottom:2px}
@@ -85,21 +85,21 @@ table{width:100%;border-collapse:collapse;font-size:${fontSize};margin-top:6px;t
   .notes-col{min-width:48mm;text-align:center;white-space:pre-line}
 tr.even{background:#f0f6ff}
 tr.odd{background:#fff}
-.signatures{margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid}
+.signatures{margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid;background:#fff}
 .sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:6px}
 .sig-label{font-size:10.5px;font-weight:800;color:#0f4c81;margin-bottom:18px}
 .sig-name{font-size:10px;color:#555;border-bottom:1px dotted #888;min-height:14px;padding-bottom:2px;margin-bottom:4px}
 .sig-sub{font-size:9px;color:#555}
-.doc-meta{margin-top:8px;display:flex;justify-content:space-between;font-size:9.5px;color:#555;padding:5px 10px;border-top:1px solid #c5d3e3}
+.doc-meta{margin-top:8px;display:flex;justify-content:space-between;font-size:9.5px;color:#555;padding:5px 10px;border-top:1px solid #c5d3e3;background:#fff}
 .doc-meta strong{color:#0f4c81}
 .footer-note{margin-top:6px;font-size:9.5px;color:#444;line-height:1.7;padding:6px 10px}
 .footer-note strong{color:#0f4c81}
-.preview-bar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}
+.preview-bar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;padding:10px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}
 .preview-bar .pv-title{font-weight:800;font-size:13px;margin-inline-end:auto}
 .preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:9px 18px;cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
 .preview-bar .btn-print{background:#fff;color:#0f4c81}
 .preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
-.page{margin-top:54px}
+.page{margin-top:70px}
 @media print{
   ${singlePageCSS}
   body{padding:0}
@@ -108,16 +108,21 @@ tr.odd{background:#fff}
   .preview-bar{display:none!important}
   .page{margin-top:0}
 }
-</style></head><body>
+</style>
+<style id="repeat-style"></style>
+</head><body>
 <div class="preview-bar">
   <span class="pv-title">📄 معاينة —</span>
-  <input id="pv-title-input" value="${title.replace(/"/g, '&quot;')}" style="flex:1;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px"/>
-  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px;cursor:pointer"/> إظهار تاريخ الإصدار</label>
+  <input id="pv-title-input" value="${title.replace(/"/g, '&quot;')}" style="flex:1;min-width:220px;max-width:420px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px"/>
+  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-show-date" checked style="width:16px;height:16px;cursor:pointer"/> تاريخ الإصدار</label>
+  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-show-docnum" checked style="width:16px;height:16px;cursor:pointer"/> رقم الوثيقة</label>
+  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" id="pv-repeat" style="width:16px;height:16px;cursor:pointer"/> تكرار العنوان والتواقيع بكل صفحة</label>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 <div class="watermark">الجامعة التكنولوجية</div>
 <div class="page"><div class="content">
+<div id="page-header-area">
 <div class="official-header">
   <div class="header-side"><strong>جمهورية العراق</strong>وزارة التعليم العالي<br/>والبحث العلمي</div>
   <div class="header-text">
@@ -133,8 +138,9 @@ tr.odd{background:#fff}
 
 <div class="info-band">
   <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong>${today}</div>
-  <div class="info-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
+  <div class="info-cell" id="doc-number-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
   <div class="info-cell"><strong>عدد السجلات</strong>${rows.length}</div>
+</div>
 </div>
 <script>
   (function(){
@@ -144,6 +150,22 @@ tr.odd{background:#fff}
     var cb=document.getElementById('pv-show-date');
     var dc=document.getElementById('issue-date-cell');
     if(cb&&dc) cb.addEventListener('change',function(){ dc.style.display=cb.checked?'':'none'; });
+    var cb2=document.getElementById('pv-show-docnum');
+    var dn=document.getElementById('doc-number-cell');
+    if(cb2&&dn) cb2.addEventListener('change',function(){ dn.style.display=cb2.checked?'':'none'; });
+    var rp=document.getElementById('pv-repeat');
+    var rs=document.getElementById('repeat-style');
+    if(rp&&rs) rp.addEventListener('change',function(){
+      if(rp.checked){
+        rs.textContent='@media print{'+
+          '@page{size:A4 landscape;margin:55mm 6mm 45mm 6mm}'+
+          '#page-header-area{position:fixed;top:0;left:0;right:0;background:#fff;z-index:50;padding:2mm 6mm;border-bottom:2px solid #0f4c81}'+
+          '#page-footer-area{position:fixed;bottom:0;left:0;right:0;background:#fff;z-index:50;padding:2mm 6mm;border-top:2px solid #0f4c81}'+
+          '.page::before{display:none}'+
+          '.page{padding:0 4mm}'+
+        '}';
+      } else { rs.textContent=''; }
+    });
   })();
 </script>
 
@@ -158,6 +180,7 @@ ${(filtersInfo && filtersInfo.length > 0) ? `
 <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
 <tbody>${tableRows}</tbody></table>
 
+<div id="page-footer-area">
 ${(Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `<div class="signatures" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
   ${(customSignatures && customSignatures.length > 0
     ? customSignatures
@@ -173,6 +196,7 @@ ${(Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `<di
 <div class="doc-meta">
   <span><strong>وثيقة رسمية</strong> صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span>
   <span>صفحة 1 / 1</span>
+</div>
 </div>
 
 </div></div>
