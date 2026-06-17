@@ -141,22 +141,17 @@ body.in-preview{padding:0}
 .info-cell strong{color:#0f4c81;display:block;font-size:9.5px;margin-bottom:3px;font-weight:800;letter-spacing:.3px}
 .info-cell span{font-size:11px;color:#0b1f33;font-weight:700}
 
-.filters-band{margin:8px 0 4px;padding:8px 12px;background:linear-gradient(180deg,#fff,#eef4fc);border:1.5px solid #0f4c81;border-radius:8px;position:relative}
-.filters-band-title{position:absolute;top:-10px;right:14px;background:#0f4c81;color:#fff;font-size:10px;font-weight:800;padding:2px 12px;border-radius:4px;letter-spacing:.3px}
-.filters-band-grid{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:2px}
-.filter-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c5d3e3;border-radius:14px;padding:3px 10px;font-size:10px;font-weight:700;color:#222}
-.chip-label{color:#0f4c81;font-weight:800}
-.chip-label::after{content:" :"}
-.chip-value{color:#0b1f33}
+/* ===== RUNNING HEADER (page 2+): we just reuse the full banner via <thead>. No separate compact header. ===== */
+/* When repeat-header is OFF → banner renders ONCE at the top of page 1 only (no repetition). */
+body:not(.repeat-header) .print-shell > thead{display:table-row-group}
+body.repeat-header .print-shell > thead{display:table-header-group}
 
-/* ===== RUNNING HEADER (page 2+) ===== */
-.run-header{display:none;grid-template-columns:36px 1fr;gap:10px;align-items:center;padding:5px 10px;border-bottom:2px solid #0f4c81;background:#fff;margin-bottom:4px}
-.run-header .rh-logo img{width:32px;height:32px;object-fit:contain}
-body.no-rh-logo .run-header .rh-logo{display:none}
-body.no-rh-logo .run-header{grid-template-columns:1fr}
-.run-header .rh-mid{text-align:center}
-.run-header .rh-title{font-family:'Amiri',serif;font-size:12px;font-weight:700;color:#0b3558}
-.run-header .rh-sub{font-size:9px;font-weight:700;color:#0f4c81;margin-top:1px}
+/* On repeating pages, allow the banner to feel slightly more compact */
+body.compact-repeat .print-shell > thead .banner{padding-top:2px}
+body.compact-repeat .print-shell > thead .official-header{padding:4px 12px 6px}
+body.compact-repeat .print-shell > thead .hdr-logo{width:48px;height:48px}
+body.compact-repeat .print-shell > thead .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
+body.compact-repeat .print-shell > thead .filters-band{display:none}
 
 /* ===== DATA TABLE ===== */
 table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto;margin-top:4px}
@@ -179,18 +174,11 @@ table.data tr:hover{background:#eaf1fb}
 .doc-meta strong{color:#0f4c81}
 
 /* ===== REPEATING SHELL ===== */
-/* The outer shell uses thead for repeating running header.
-   tfoot is ONLY used when "repeat signatures" is enabled — otherwise signatures flow normally at the end. */
 .print-shell{width:100%;border-collapse:collapse}
-.print-shell > thead{display:table-header-group}
 .print-shell > tfoot{display:table-footer-group}
 .print-shell > thead > tr > td,
 .print-shell > tfoot > tr > td,
 .print-shell > tbody > tr > td{padding:0;border:0;vertical-align:top}
-
-/* When repeat-header is OFF, hide the running header entirely */
-body:not(.repeat-header) .run-header{display:none!important}
-body.repeat-header .run-header{display:grid}
 
 /* When repeat-sigs is ON, signatures live in tfoot (repeats on every page).
    We render BOTH locations and toggle visibility. */
