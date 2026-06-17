@@ -382,7 +382,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ğŸ
   applySigs(); applyFit();
 })();
 </script>
-</body></html>\`);
+</body></html>`);
   w.document.close();
 }
 </script>
