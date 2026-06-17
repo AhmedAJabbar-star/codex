@@ -134,12 +134,26 @@ body.in-preview{padding:0}
 .header-text .ar2{font-size:13px;font-weight:800;color:#0b1f33}
 .header-text .ar3{font-size:10.5px;font-weight:700;color:#445;margin-top:1px}
 
-.doc-h1{font-family:'Amiri',serif;font-size:17px;font-weight:700;color:#0b3558;text-align:center;margin:8px 0 6px;padding:5px 16px;background:linear-gradient(180deg,#f7faff,#eaf1fb);border-radius:6px;border:1px solid #c5d3e3}
+.doc-h1{font-family:'Amiri',serif;font-size:17px;font-weight:700;color:#0b3558;text-align:center;margin:8px 0 6px;padding:6px 16px;background:linear-gradient(180deg,#f7faff,#eaf1fb);border-radius:6px;border:1px solid #c5d3e3;line-height:1.4;word-break:break-word}
 
 .info-band{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0;padding:0}
 .info-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#222;padding:6px 10px;background:linear-gradient(180deg,#fff,#f3f7fd);border:1px solid #c5d3e3;border-top:3px solid #0f4c81;border-radius:5px}
 .info-cell strong{color:#0f4c81;display:block;font-size:9.5px;margin-bottom:3px;font-weight:800;letter-spacing:.3px}
 .info-cell span{font-size:11px;color:#0b1f33;font-weight:700}
+
+/* Filters band — flow layout (no overflowing absolute badge) */
+.filters-band{margin:8px 0 4px;padding:0;background:linear-gradient(180deg,#fff,#eef4fc);border:1.5px solid #0f4c81;border-radius:8px;overflow:hidden}
+.filters-band-title{background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;font-size:10px;font-weight:800;padding:5px 12px;letter-spacing:.3px;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.filters-band-grid{display:flex;flex-wrap:wrap;gap:6px 10px;padding:8px 12px}
+.filter-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c5d3e3;border-radius:14px;padding:3px 10px;font-size:10px;font-weight:700;color:#222}
+.chip-label{color:#0f4c81;font-weight:800}
+.chip-label::after{content:" :"}
+.chip-value{color:#0b1f33}
+
+/* Banner spacing hygiene — no awkward gaps when any sub-element is hidden */
+.banner > *:first-child{margin-top:0}
+.banner > *:last-child{margin-bottom:0}
+.info-band:empty,.filters-band:empty{display:none}
 
 /* ===== REPEATING THEAD CONTROL =====
    - body.repeat-header  → thead acts as table-header-group (banner repeats every print page)
