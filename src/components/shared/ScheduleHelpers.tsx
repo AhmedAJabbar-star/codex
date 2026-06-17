@@ -42,50 +42,47 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   const today = new Date().toLocaleDateString('ar-IQ');
   const docNumber = `${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`;
 
-  const signaturesHtml = (Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `<div class="signatures" id="sig-block" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
-    ${(customSignatures && customSignatures.length > 0
-      ? customSignatures
-      : [{ label: 'مقرر القسم' }, { label: 'رئيس القسم' }, { label: 'مصادقة العميد' }]
-    ).map((s) => `
-    <div class="sig-box">
-      <div class="sig-label">${s.label}</div>
-      <div class="sig-name">${s.name || '............................'}</div>
-      <div class="sig-sub">التوقيع &amp; الختم</div>
-    </div>`).join('')}
-  </div>`;
+  const sigItems = (customSignatures && customSignatures.length > 0)
+    ? customSignatures
+    : [{ label: 'مقرر القسم' }, { label: 'رئيس القسم' }, { label: 'مصادقة العميد' }];
+  const sigCols = sigItems.length || 3;
+  const signaturesHtml = (Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `
+    <div class="signatures" style="grid-template-columns:repeat(${sigCols},1fr)">
+      ${sigItems.map((s) => `
+      <div class="sig-box">
+        <div class="sig-label">${s.label}</div>
+        <div class="sig-name">${s.name || '............................'}</div>
+        <div class="sig-sub">التوقيع &amp; الختم</div>
+      </div>`).join('')}
+    </div>`;
 
-  // Running (per-page) header — kept small so browsers will reliably repeat thead
-  const runHeaderHtml = `
-<div class="run-header">
-  <div class="rh-logo"><img src="${universityLogo}" alt=""/></div>
-  <div class="rh-mid">
-    <div class="rh-line1">الجامعة التكنولوجية &mdash; كلية الهندسة المدنية${department ? ` &mdash; ${department}` : ''}</div>
-    <div class="rh-title" id="doc-h1">${title}</div>
-    <div class="rh-chips" id="rh-chips">
-      <span class="rh-chip" id="rh-chip-date"><b>تاريخ الإصدار:</b> ${today}</span>
-      <span class="rh-chip" id="rh-chip-docnum"><b>رقم الوثيقة:</b> ${docNumber}</span>
-      <span class="rh-chip" id="rh-chip-count"><b>عدد السجلات:</b> ${rows.length}</span>
-    </div>
-  </div>
-</div>`;
-
-  // First-page full banner (does NOT repeat — lives inside tbody)
-  const firstPageBannerHtml = `
-<div class="full-banner" id="full-banner">
+  // Full first-page banner — official header + info-band + filters (renders once at top)
+  const bannerHtml = `
+<div class="banner" id="full-banner">
   <div class="official-header">
-    <div class="header-side"><strong>جمهورية العراق</strong>وزارة التعليم العالي<br/>والبحث العلمي</div>
+    <div class="header-side">
+      <strong>جمهورية العراق</strong>
+      <span>وزارة التعليم العالي</span>
+      <span>والبحث العلمي</span>
+    </div>
     <div class="header-text">
-      <img src="${universityLogo}" alt="شعار الجامعة"/>
+      <img src="${universityLogo}" alt="شعار الجامعة" class="hdr-logo"/>
       <div class="ar1">الجامعة التكنولوجية</div>
       <div class="ar2">كلية الهندسة المدنية</div>
-      <div class="ar3">${department || ''}</div>
+      ${department ? `<div class="ar3">${department}</div>` : ''}
     </div>
-    <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education &amp; Scientific Research<br/>University of Technology</div>
+    <div class="header-side">
+      <strong>Republic of Iraq</strong>
+      <span>Ministry of Higher Education</span>
+      <span>&amp; Scientific Research</span>
+      <span>University of Technology</span>
+    </div>
   </div>
+  <h1 class="doc-h1" id="doc-h1">${title}</h1>
   <div class="info-band" id="info-band">
-    <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong>${today}</div>
-    <div class="info-cell" id="doc-number-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
-    <div class="info-cell" id="record-count-cell"><strong>عدد السجلات</strong>${rows.length}</div>
+    <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong><span>${today}</span></div>
+    <div class="info-cell" id="doc-number-cell"><strong>رقم الوثيقة</strong><span>${docNumber}</span></div>
+    <div class="info-cell" id="record-count-cell"><strong>عدد السجلات</strong><span>${rows.length}</span></div>
   </div>
   ${(filtersInfo && filtersInfo.length > 0) ? `
   <div class="filters-band" id="filters-band">
@@ -96,104 +93,134 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   </div>` : ''}
 </div>`;
 
+  // Compact running header (page 2+). NO LOGO by default to avoid duplication on page 1.
+  const runHeaderHtml = `
+<div class="run-header" id="run-header">
+  <div class="rh-logo" id="rh-logo"><img src="${universityLogo}" alt=""/></div>
+  <div class="rh-mid">
+    <div class="rh-title" id="rh-title-mirror">${title}</div>
+    <div class="rh-sub">الجامعة التكنولوجية &mdash; كلية الهندسة المدنية${department ? ` &mdash; ${department}` : ''}</div>
+  </div>
+</div>`;
+
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style id="page-style">@page{size:A4 landscape;margin:8mm}</style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{font-family:'Cairo',sans-serif;color:#000;background:#fff}
+html,body{font-family:'Cairo',sans-serif;color:#0b1f33;background:#eef2f7}
+body.in-preview{padding:0}
+
+/* ===== PREVIEW TOOLBAR ===== */
+.preview-bar{position:sticky;top:0;z-index:1000;display:flex;gap:6px;justify-content:flex-start;align-items:center;flex-wrap:wrap;padding:10px 14px;background:linear-gradient(135deg,#0f4c81 0%,#0b3558 100%);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 8px 24px rgba(15,76,129,.35)}
+.preview-bar .pv-title{font-weight:800;font-size:14px;letter-spacing:.2px}
+.preview-bar input[type="text"]{padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.97);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px;min-width:240px}
+.preview-bar select{padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.97);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer}
+.preview-bar label{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.1);padding:6px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.2);transition:background .15s}
+.preview-bar label:hover{background:rgba(255,255,255,.18)}
+.preview-bar label input{width:14px;height:14px;cursor:pointer;accent-color:#fff}
+.preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:8px 16px;cursor:pointer;font-size:12.5px;transition:transform .1s, box-shadow .15s}
+.preview-bar button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.preview-bar .btn-print{background:#fff;color:#0f4c81;margin-inline-start:auto}
+.preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
+.preview-bar .sep{width:1px;height:26px;background:rgba(255,255,255,.25);margin:0 4px}
+
+/* ===== PRINT AREA ===== */
+.print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative}
 .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.045);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
 
-/* Full first-page banner */
-.full-banner{background:#fff}
-.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:4px 12px;border-bottom:3px double #0f4c81}
-.official-header img{width:60px;height:60px;object-fit:contain;justify-self:center}
-.header-text{text-align:center}
-.header-text .ar1{font-family:'Amiri',serif;font-size:14px;font-weight:700;color:#0f4c81}
-.header-text .ar2{font-size:12px;font-weight:800;color:#000}
-.header-text .ar3{font-size:10px;font-weight:700;color:#333}
-.header-side{font-size:9px;text-align:center;color:#444;line-height:1.4}
-.header-side strong{color:#0f4c81;display:block;font-size:10px}
-.info-band{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 6px;padding:4px;background:#f7faff;border:1px solid #c5d3e3;border-radius:6px}
-.info-cell{font-size:10px;font-weight:700;color:#333;padding:3px 8px;border-right:3px solid #0f4c81;background:#fff;border-radius:3px}
-.info-cell strong{color:#0f4c81;display:block;font-size:9px;margin-bottom:2px}
-.filters-band{margin:6px;padding:6px 10px;background:linear-gradient(180deg,#fff,#eef4fc);border:1.5px solid #0f4c81;border-radius:8px;position:relative}
-.filters-band-title{position:absolute;top:-9px;right:14px;background:#0f4c81;color:#fff;font-size:9.5px;font-weight:800;padding:2px 10px;border-radius:4px}
+/* ===== FULL FIRST-PAGE BANNER ===== */
+.banner{background:#fff;margin-bottom:6px}
+.official-header{display:grid;grid-template-columns:1fr 1.4fr 1fr;align-items:center;gap:14px;padding:8px 12px 10px;border-bottom:3px double #0f4c81}
+.header-side{font-size:9.5px;text-align:center;color:#445;line-height:1.55;display:flex;flex-direction:column;gap:1px}
+.header-side strong{color:#0f4c81;font-size:10.5px;font-weight:800;margin-bottom:2px}
+.header-text{text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.hdr-logo{width:64px;height:64px;object-fit:contain;margin-bottom:3px}
+.header-text .ar1{font-family:'Amiri',serif;font-size:15px;font-weight:700;color:#0f4c81}
+.header-text .ar2{font-size:13px;font-weight:800;color:#0b1f33}
+.header-text .ar3{font-size:10.5px;font-weight:700;color:#445;margin-top:1px}
+
+.doc-h1{font-family:'Amiri',serif;font-size:17px;font-weight:700;color:#0b3558;text-align:center;margin:8px 0 6px;padding:5px 16px;background:linear-gradient(180deg,#f7faff,#eaf1fb);border-radius:6px;border:1px solid #c5d3e3}
+
+.info-band{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0;padding:0}
+.info-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#222;padding:6px 10px;background:linear-gradient(180deg,#fff,#f3f7fd);border:1px solid #c5d3e3;border-top:3px solid #0f4c81;border-radius:5px}
+.info-cell strong{color:#0f4c81;display:block;font-size:9.5px;margin-bottom:3px;font-weight:800;letter-spacing:.3px}
+.info-cell span{font-size:11px;color:#0b1f33;font-weight:700}
+
+.filters-band{margin:8px 0 4px;padding:8px 12px;background:linear-gradient(180deg,#fff,#eef4fc);border:1.5px solid #0f4c81;border-radius:8px;position:relative}
+.filters-band-title{position:absolute;top:-10px;right:14px;background:#0f4c81;color:#fff;font-size:10px;font-weight:800;padding:2px 12px;border-radius:4px;letter-spacing:.3px}
 .filters-band-grid{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:2px}
-.filter-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c5d3e3;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:700;color:#222}
+.filter-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c5d3e3;border-radius:14px;padding:3px 10px;font-size:10px;font-weight:700;color:#222}
 .chip-label{color:#0f4c81;font-weight:800}
 .chip-label::after{content:" :"}
-.chip-value{color:#000}
+.chip-value{color:#0b1f33}
 
-/* Running (per-page) header — compact so browsers reliably repeat it */
-.run-header{display:grid;grid-template-columns:46px 1fr;gap:8px;align-items:center;padding:4px 8px;border-bottom:2px solid #0f4c81;background:#fff}
-.run-header .rh-logo img{width:42px;height:42px;object-fit:contain}
+/* ===== RUNNING HEADER (page 2+) ===== */
+.run-header{display:none;grid-template-columns:36px 1fr;gap:10px;align-items:center;padding:5px 10px;border-bottom:2px solid #0f4c81;background:#fff;margin-bottom:4px}
+.run-header .rh-logo img{width:32px;height:32px;object-fit:contain}
+body.no-rh-logo .run-header .rh-logo{display:none}
+body.no-rh-logo .run-header{grid-template-columns:1fr}
 .run-header .rh-mid{text-align:center}
-.run-header .rh-line1{font-size:10px;font-weight:700;color:#0f4c81}
-.run-header .rh-title{font-family:'Amiri',serif;font-size:13px;font-weight:700;color:#0b3558;margin-top:1px}
-.run-header .rh-chips{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:2px}
-.run-header .rh-chip{font-size:9px;font-weight:700;color:#333;background:#f7faff;border:1px solid #c5d3e3;border-radius:4px;padding:1px 6px}
-.run-header .rh-chip b{color:#0f4c81}
+.run-header .rh-title{font-family:'Amiri',serif;font-size:12px;font-weight:700;color:#0b3558}
+.run-header .rh-sub{font-size:9px;font-weight:700;color:#0f4c81;margin-top:1px}
 
-/* Data table */
-table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto}
+/* ===== DATA TABLE ===== */
+table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto;margin-top:4px}
+table.data thead{display:table-header-group}
 table.data th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;line-height:1.2;-webkit-print-color-adjust:exact;print-color-adjust:exact;word-break:break-word;white-space:normal}
-table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
-table.data .notes-col{min-width:38mm;white-space:pre-wrap}
-table.data tr.even{background:#f0f6ff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.3;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+table.data .notes-col{min-width:38mm;white-space:pre-wrap;text-align:right}
+table.data tr.even{background:#f4f8fd;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table.data tr.odd{background:#fff}
+table.data tr:hover{background:#eaf1fb}
 
-/* Signatures + meta */
-.signatures{margin:10px 6px 4px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid;background:#fff}
-.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:6px}
-.sig-label{font-size:10.5px;font-weight:800;color:#0f4c81;margin-bottom:18px}
-.sig-name{font-size:10px;color:#555;border-bottom:1px dotted #888;min-height:14px;padding-bottom:2px;margin-bottom:4px}
+/* ===== SIGNATURES ===== */
+.signatures-wrap{margin-top:14px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:24px;padding:10px 4px 4px}
+.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:8px}
+.sig-label{font-size:11px;font-weight:800;color:#0f4c81;margin-bottom:22px}
+.sig-name{font-size:10px;color:#444;border-bottom:1px dotted #888;min-height:14px;padding-bottom:2px;margin-bottom:5px}
 .sig-sub{font-size:9px;color:#555}
-.doc-meta{margin:4px 6px;display:flex;justify-content:center;font-size:9px;color:#555;padding:4px 10px;border-top:1px solid #c5d3e3;background:#fff}
+.doc-meta{margin-top:8px;display:flex;justify-content:center;font-size:9px;color:#666;padding:5px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
 
-/* Repeating shell */
+/* ===== REPEATING SHELL ===== */
+/* The outer shell uses thead for repeating running header.
+   tfoot is ONLY used when "repeat signatures" is enabled — otherwise signatures flow normally at the end. */
 .print-shell{width:100%;border-collapse:collapse}
 .print-shell > thead{display:table-header-group}
 .print-shell > tfoot{display:table-footer-group}
 .print-shell > thead > tr > td,
 .print-shell > tfoot > tr > td,
 .print-shell > tbody > tr > td{padding:0;border:0;vertical-align:top}
-.shell-pad{padding:0 6px}
 
-/* When repeat mode is OFF, hide running header/footer (use first-page banner + bottom signatures) */
-body:not(.repeat-mode) .run-header{display:none}
-body:not(.repeat-mode) #sig-block-running{display:none}
+/* When repeat-header is OFF, hide the running header entirely */
+body:not(.repeat-header) .run-header{display:none!important}
+body.repeat-header .run-header{display:grid}
 
-/* When repeat mode is ON, hide bottom-only signatures (they live in tfoot now) */
-body.repeat-mode #sig-block-bottom{display:none}
-
-/* Preview toolbar */
-.preview-bar{position:sticky;top:0;z-index:1000;display:flex;gap:6px;justify-content:flex-start;align-items:center;flex-wrap:wrap;padding:8px 12px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}
-.preview-bar .pv-title{font-weight:800;font-size:13px}
-.preview-bar input[type="text"]{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px;min-width:220px}
-.preview-bar select{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12px}
-.preview-bar label{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.08);padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.18)}
-.preview-bar label input{width:14px;height:14px;cursor:pointer}
-.preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:7px 14px;cursor:pointer;font-size:12.5px}
-.preview-bar .btn-print{background:#fff;color:#0f4c81;margin-inline-start:auto}
-.preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
-.preview-bar .sep{width:1px;height:24px;background:rgba(255,255,255,.25);margin:0 4px}
-.print-area{padding:6px 4px}
+/* When repeat-sigs is ON, signatures live in tfoot (repeats on every page).
+   We render BOTH locations and toggle visibility. */
+body.repeat-sigs #sigs-end{display:none}
+body:not(.repeat-sigs) #sigs-foot{display:none}
 
 @media print{
+  body{background:#fff!important}
   .preview-bar{display:none!important}
-  .print-area{padding:0}
+  .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
   tr,td,th{page-break-inside:avoid}
-  .signatures{page-break-inside:avoid}
+  .signatures-wrap{page-break-inside:avoid}
+  /* Hide running header on the FIRST printed page (since the full banner already shows the logo).
+     The thead repeats from page 2 onward when repeat-header is on. */
+  body.repeat-header.hide-rh-on-first .run-header{visibility:hidden}
 }
 </style>
-</head><body class="repeat-mode">
+</head><body class="in-preview repeat-header">
+
 <div class="preview-bar">
   <span class="pv-title">📄 المعاينة</span>
-  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
+  <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}" placeholder="عنوان التقرير"/>
   <div class="sep"></div>
   <select id="pv-orient" title="اتجاه الصفحة">
     <option value="landscape">أفقي</option>
@@ -210,14 +237,17 @@ body.repeat-mode #sig-block-bottom{display:none}
     <option value="12">هوامش واسعة (12مم)</option>
   </select>
   <div class="sep"></div>
-  <label><input type="checkbox" id="pv-repeat" checked/> تكرار الهيدر/التواقيع</label>
-  <label><input type="checkbox" id="pv-show-banner" checked/> البانر الكامل (صفحة 1)</label>
+  <label><input type="checkbox" id="pv-repeat-header" checked/> تكرار الهيدر</label>
+  <label><input type="checkbox" id="pv-rh-logo"/> شعار في الهيدر المتكرر</label>
+  <label><input type="checkbox" id="pv-repeat-sigs"/> تكرار التواقيع</label>
+  <div class="sep"></div>
+  <label><input type="checkbox" id="pv-show-banner" checked/> البانر الكامل</label>
   <label><input type="checkbox" id="pv-show-info" checked/> شريط المعلومات</label>
   <label><input type="checkbox" id="pv-show-date" checked/> التاريخ</label>
   <label><input type="checkbox" id="pv-show-docnum" checked/> رقم الوثيقة</label>
   <label><input type="checkbox" id="pv-show-count" checked/> عدد السجلات</label>
   <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
-  <label><input type="checkbox" id="pv-fit" /> ملاءمة الأعمدة</label>
+  <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
@@ -226,25 +256,21 @@ body.repeat-mode #sig-block-bottom{display:none}
 
 <div class="print-area">
   <table class="print-shell">
-    <thead><tr><td>
-      ${runHeaderHtml}
-    </td></tr></thead>
-    <tfoot><tr><td>
-      <div id="sig-block-running" class="shell-pad">${signaturesHtml.replace('id="sig-block"','id="sig-block-running-inner"')}</div>
-    </td></tr></tfoot>
+    <thead><tr><td>${runHeaderHtml}</td></tr></thead>
+    <tfoot><tr><td><div id="sigs-foot" class="signatures-wrap">${signaturesHtml}</div></td></tr></tfoot>
     <tbody>
+      <tr><td>${bannerHtml}</td></tr>
       <tr><td>
-        ${firstPageBannerHtml}
+        <table class="data">
+          <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
       </td></tr>
       <tr><td>
-        <div class="shell-pad">
-          <table class="data"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-          <tbody>${tableRows}</tbody></table>
+        <div id="sigs-end" class="signatures-wrap">
+          ${signaturesHtml}
+          <div class="doc-meta"><span><strong>وثيقة رسمية</strong> &nbsp;صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
         </div>
-      </td></tr>
-      <tr><td>
-        <div id="sig-block-bottom" class="shell-pad">${signaturesHtml}</div>
-        <div class="doc-meta"><span><strong>وثيقة رسمية</strong> صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
       </td></tr>
     </tbody>
   </table>
@@ -252,101 +278,98 @@ body.repeat-mode #sig-block-bottom{display:none}
 
 <script>
 (function(){
-  var STORAGE_KEY = 'lovable-print-prefs-v2';
+  var STORAGE_KEY='lovable-print-prefs-v3';
   var body=document.body;
-
   function $(id){ return document.getElementById(id); }
-  function loadPrefs(){
-    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){ return {}; }
-  }
-  function savePrefs(p){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }catch(e){}
-  }
-  var prefs = loadPrefs();
+  function loadPrefs(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){ return {}; } }
+  function savePrefs(p){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }catch(e){} }
+  var prefs=loadPrefs();
 
-  // Title input — syncs all #doc-h1 elements
+  // Title sync
   var ti=$('pv-title-input');
   function syncTitle(){
-    document.querySelectorAll('h1, .rh-title, [id="doc-h1"]').forEach(function(h){
-      if(h.id==='doc-h1' || h.classList.contains('rh-title')) h.textContent=ti.value;
-    });
-    document.title=ti.value;
+    var v=ti.value||'';
+    var h1=$('doc-h1'); if(h1) h1.textContent=v;
+    var rh=$('rh-title-mirror'); if(rh) rh.textContent=v;
+    document.title=v;
   }
   if(ti) ti.addEventListener('input', function(){ syncTitle(); prefs.title=ti.value; savePrefs(prefs); });
 
   // Page settings
   function applyPage(){
-    var orient = $('pv-orient').value;
-    var size = $('pv-size').value;
-    var margin = $('pv-margin').value;
-    $('page-style').textContent = '@page{size:'+size+' '+orient+';margin:'+margin+'mm}';
+    var orient=$('pv-orient').value, size=$('pv-size').value, margin=$('pv-margin').value;
+    $('page-style').textContent='@page{size:'+size+' '+orient+';margin:'+margin+'mm}';
     prefs.orient=orient; prefs.size=size; prefs.margin=margin; savePrefs(prefs);
   }
-  ['pv-orient','pv-size','pv-margin'].forEach(function(id){
-    var el=$(id); if(el){ el.addEventListener('change', applyPage); }
-  });
+  ['pv-orient','pv-size','pv-margin'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', applyPage); });
 
   function bindToggle(id, selector, prefKey){
-    var cb=$(id); if(!cb) return;
+    var cb=$(id); if(!cb) return function(){};
     function apply(){
-      document.querySelectorAll(selector).forEach(function(el){
-        el.style.display = cb.checked ? '' : 'none';
-      });
+      document.querySelectorAll(selector).forEach(function(el){ el.style.display = cb.checked ? '' : 'none'; });
       prefs[prefKey]=cb.checked; savePrefs(prefs);
     }
-    cb.addEventListener('change', apply);
-    return apply;
+    cb.addEventListener('change', apply); return apply;
   }
-  var togDate   = bindToggle('pv-show-date',   '#issue-date-cell, #rh-chip-date',   'showDate');
-  var togDocnum = bindToggle('pv-show-docnum', '#doc-number-cell, #rh-chip-docnum', 'showDocnum');
-  var togCount  = bindToggle('pv-show-count',  '#record-count-cell, #rh-chip-count','showCount');
-  var togInfo   = bindToggle('pv-show-info',   '#info-band',                         'showInfo');
-  var togBanner = bindToggle('pv-show-banner', '#full-banner',                       'showBanner');
-  var togSigs   = bindToggle('pv-show-sigs',   '#sig-block, #sig-block-running, #sig-block-bottom', 'showSigs');
+  var togDate   = bindToggle('pv-show-date',   '#issue-date-cell',   'showDate');
+  var togDocnum = bindToggle('pv-show-docnum', '#doc-number-cell',   'showDocnum');
+  var togCount  = bindToggle('pv-show-count',  '#record-count-cell', 'showCount');
+  var togInfo   = bindToggle('pv-show-info',   '#info-band',         'showInfo');
+  var togBanner = bindToggle('pv-show-banner', '#full-banner',       'showBanner');
+  var togSigs   = bindToggle('pv-show-sigs',   '#sigs-end .signatures, #sigs-foot .signatures', 'showSigs');
 
-  var rp=$('pv-repeat');
-  function applyRepeat(){
-    if(rp.checked) body.classList.add('repeat-mode'); else body.classList.remove('repeat-mode');
-    prefs.repeat=rp.checked; savePrefs(prefs);
+  function bindBodyClass(id, cls, prefKey, defaultOn){
+    var cb=$(id); if(!cb) return function(){};
+    function apply(){
+      if(cb.checked) body.classList.add(cls); else body.classList.remove(cls);
+      prefs[prefKey]=cb.checked; savePrefs(prefs);
+    }
+    cb.addEventListener('change', apply); return apply;
   }
-  if(rp) rp.addEventListener('change', applyRepeat);
+  var togRepH   = bindBodyClass('pv-repeat-header','repeat-header','repeatHeader', true);
+  var togRepS   = bindBodyClass('pv-repeat-sigs',  'repeat-sigs',  'repeatSigs',   false);
+  var togRhLogo = (function(){
+    var cb=$('pv-rh-logo'); if(!cb) return function(){};
+    function apply(){
+      if(cb.checked) body.classList.remove('no-rh-logo'); else body.classList.add('no-rh-logo');
+      // also: when running header WITHOUT logo, no risk of double logo on page 1
+      prefs.rhLogo=cb.checked; savePrefs(prefs);
+    }
+    cb.addEventListener('change', apply); return apply;
+  })();
 
   var fit=$('pv-fit');
   function applyFit(){
-    document.querySelectorAll('table.data').forEach(function(t){
-      t.style.tableLayout = fit.checked ? 'fixed' : 'auto';
-    });
+    document.querySelectorAll('table.data').forEach(function(t){ t.style.tableLayout = fit.checked ? 'fixed' : 'auto'; });
     prefs.fit=fit.checked; savePrefs(prefs);
   }
   if(fit) fit.addEventListener('change', applyFit);
 
-  // Restore saved prefs
-  function setIf(id, val, defaultVal){
+  function setIf(id, val, def){
     var el=$(id); if(!el) return;
-    if(val===undefined) val=defaultVal;
+    if(val===undefined) val=def;
     if(el.type==='checkbox') el.checked=!!val; else el.value=val;
   }
   setIf('pv-orient', prefs.orient, 'landscape');
   setIf('pv-size', prefs.size, 'A4');
   setIf('pv-margin', prefs.margin, '8');
-  setIf('pv-repeat', prefs.repeat===undefined?true:prefs.repeat);
+  setIf('pv-repeat-header', prefs.repeatHeader===undefined?true:prefs.repeatHeader);
+  setIf('pv-repeat-sigs',   prefs.repeatSigs===undefined?false:prefs.repeatSigs);
+  setIf('pv-rh-logo',       prefs.rhLogo===undefined?false:prefs.rhLogo);
   setIf('pv-show-banner', prefs.showBanner===undefined?true:prefs.showBanner);
-  setIf('pv-show-info', prefs.showInfo===undefined?true:prefs.showInfo);
-  setIf('pv-show-date', prefs.showDate===undefined?true:prefs.showDate);
+  setIf('pv-show-info',   prefs.showInfo===undefined?true:prefs.showInfo);
+  setIf('pv-show-date',   prefs.showDate===undefined?true:prefs.showDate);
   setIf('pv-show-docnum', prefs.showDocnum===undefined?true:prefs.showDocnum);
-  setIf('pv-show-count', prefs.showCount===undefined?true:prefs.showCount);
-  setIf('pv-show-sigs', prefs.showSigs===undefined?true:prefs.showSigs);
-  setIf('pv-fit', !!prefs.fit);
+  setIf('pv-show-count',  prefs.showCount===undefined?true:prefs.showCount);
+  setIf('pv-show-sigs',   prefs.showSigs===undefined?true:prefs.showSigs);
+  setIf('pv-fit',         !!prefs.fit);
+  // Default: no logo in repeating header → avoids double-logo on page 1
+  if(!prefs.rhLogo) body.classList.add('no-rh-logo');
 
   applyPage();
-  applyRepeat();
+  togRepH(); togRepS(); togRhLogo();
   applyFit();
-  if(togDate)   togDate();
-  if(togDocnum) togDocnum();
-  if(togCount)  togCount();
-  if(togInfo)   togInfo();
-  if(togBanner) togBanner();
-  if(togSigs)   togSigs();
+  togDate(); togDocnum(); togCount(); togInfo(); togBanner(); togSigs();
 })();
 </script>
 </body></html>`);
