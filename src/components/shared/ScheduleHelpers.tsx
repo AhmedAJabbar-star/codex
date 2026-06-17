@@ -93,15 +93,7 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   </div>` : ''}
 </div>`;
 
-  // Compact running header (page 2+). NO LOGO by default to avoid duplication on page 1.
-  const runHeaderHtml = `
-<div class="run-header" id="run-header">
-  <div class="rh-logo" id="rh-logo"><img src="${universityLogo}" alt=""/></div>
-  <div class="rh-mid">
-    <div class="rh-title" id="rh-title-mirror">${title}</div>
-    <div class="rh-sub">الجامعة التكنولوجية &mdash; كلية الهندسة المدنية${department ? ` &mdash; ${department}` : ''}</div>
-  </div>
-</div>`;
+  // No separate "running header" — we repeat the SAME full banner via <thead>.
 
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -149,22 +141,17 @@ body.in-preview{padding:0}
 .info-cell strong{color:#0f4c81;display:block;font-size:9.5px;margin-bottom:3px;font-weight:800;letter-spacing:.3px}
 .info-cell span{font-size:11px;color:#0b1f33;font-weight:700}
 
-.filters-band{margin:8px 0 4px;padding:8px 12px;background:linear-gradient(180deg,#fff,#eef4fc);border:1.5px solid #0f4c81;border-radius:8px;position:relative}
-.filters-band-title{position:absolute;top:-10px;right:14px;background:#0f4c81;color:#fff;font-size:10px;font-weight:800;padding:2px 12px;border-radius:4px;letter-spacing:.3px}
-.filters-band-grid{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:2px}
-.filter-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c5d3e3;border-radius:14px;padding:3px 10px;font-size:10px;font-weight:700;color:#222}
-.chip-label{color:#0f4c81;font-weight:800}
-.chip-label::after{content:" :"}
-.chip-value{color:#0b1f33}
+/* ===== RUNNING HEADER (page 2+): we just reuse the full banner via <thead>. No separate compact header. ===== */
+/* When repeat-header is OFF → banner renders ONCE at the top of page 1 only (no repetition). */
+body:not(.repeat-header) .print-shell > thead{display:table-row-group}
+body.repeat-header .print-shell > thead{display:table-header-group}
 
-/* ===== RUNNING HEADER (page 2+) ===== */
-.run-header{display:none;grid-template-columns:36px 1fr;gap:10px;align-items:center;padding:5px 10px;border-bottom:2px solid #0f4c81;background:#fff;margin-bottom:4px}
-.run-header .rh-logo img{width:32px;height:32px;object-fit:contain}
-body.no-rh-logo .run-header .rh-logo{display:none}
-body.no-rh-logo .run-header{grid-template-columns:1fr}
-.run-header .rh-mid{text-align:center}
-.run-header .rh-title{font-family:'Amiri',serif;font-size:12px;font-weight:700;color:#0b3558}
-.run-header .rh-sub{font-size:9px;font-weight:700;color:#0f4c81;margin-top:1px}
+/* On repeating pages, allow the banner to feel slightly more compact */
+body.compact-repeat .print-shell > thead .banner{padding-top:2px}
+body.compact-repeat .print-shell > thead .official-header{padding:4px 12px 6px}
+body.compact-repeat .print-shell > thead .hdr-logo{width:48px;height:48px}
+body.compact-repeat .print-shell > thead .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
+body.compact-repeat .print-shell > thead .filters-band{display:none}
 
 /* ===== DATA TABLE ===== */
 table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto;margin-top:4px}
@@ -187,18 +174,11 @@ table.data tr:hover{background:#eaf1fb}
 .doc-meta strong{color:#0f4c81}
 
 /* ===== REPEATING SHELL ===== */
-/* The outer shell uses thead for repeating running header.
-   tfoot is ONLY used when "repeat signatures" is enabled — otherwise signatures flow normally at the end. */
 .print-shell{width:100%;border-collapse:collapse}
-.print-shell > thead{display:table-header-group}
 .print-shell > tfoot{display:table-footer-group}
 .print-shell > thead > tr > td,
 .print-shell > tfoot > tr > td,
 .print-shell > tbody > tr > td{padding:0;border:0;vertical-align:top}
-
-/* When repeat-header is OFF, hide the running header entirely */
-body:not(.repeat-header) .run-header{display:none!important}
-body.repeat-header .run-header{display:grid}
 
 /* When repeat-sigs is ON, signatures live in tfoot (repeats on every page).
    We render BOTH locations and toggle visibility. */
@@ -211,12 +191,9 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
   tr,td,th{page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
-  /* Hide running header on the FIRST printed page (since the full banner already shows the logo).
-     The thead repeats from page 2 onward when repeat-header is on. */
-  body.repeat-header.hide-rh-on-first .run-header{visibility:hidden}
 }
 </style>
-</head><body class="in-preview repeat-header">
+</head><body class="in-preview repeat-header compact-repeat">
 
 <div class="preview-bar">
   <span class="pv-title">📄 المعاينة</span>
@@ -237,11 +214,10 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
     <option value="12">هوامش واسعة (12مم)</option>
   </select>
   <div class="sep"></div>
-  <label><input type="checkbox" id="pv-repeat-header" checked/> تكرار الهيدر</label>
-  <label><input type="checkbox" id="pv-rh-logo"/> شعار في الهيدر المتكرر</label>
+  <label title="تكرار البانر الكامل (شعار + عناوين + الحقول المؤشّرة) في أعلى كل صفحة"><input type="checkbox" id="pv-repeat-header" checked/> تكرار البانر بكل صفحة</label>
+  <label title="تصغير البانر قليلاً عند التكرار لتوفير المساحة"><input type="checkbox" id="pv-compact-repeat" checked/> بانر مضغوط عند التكرار</label>
   <label><input type="checkbox" id="pv-repeat-sigs"/> تكرار التواقيع</label>
   <div class="sep"></div>
-  <label><input type="checkbox" id="pv-show-banner" checked/> البانر الكامل</label>
   <label><input type="checkbox" id="pv-show-info" checked/> شريط المعلومات</label>
   <label><input type="checkbox" id="pv-show-date" checked/> التاريخ</label>
   <label><input type="checkbox" id="pv-show-docnum" checked/> رقم الوثيقة</label>
@@ -256,10 +232,9 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
 
 <div class="print-area">
   <table class="print-shell">
-    <thead><tr><td>${runHeaderHtml}</td></tr></thead>
+    <thead><tr><td>${bannerHtml}</td></tr></thead>
     <tfoot><tr><td><div id="sigs-foot" class="signatures-wrap">${signaturesHtml}</div></td></tr></tfoot>
     <tbody>
-      <tr><td>${bannerHtml}</td></tr>
       <tr><td>
         <table class="data">
           <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
@@ -290,7 +265,6 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   function syncTitle(){
     var v=ti.value||'';
     var h1=$('doc-h1'); if(h1) h1.textContent=v;
-    var rh=$('rh-title-mirror'); if(rh) rh.textContent=v;
     document.title=v;
   }
   if(ti) ti.addEventListener('input', function(){ syncTitle(); prefs.title=ti.value; savePrefs(prefs); });
@@ -315,10 +289,9 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   var togDocnum = bindToggle('pv-show-docnum', '#doc-number-cell',   'showDocnum');
   var togCount  = bindToggle('pv-show-count',  '#record-count-cell', 'showCount');
   var togInfo   = bindToggle('pv-show-info',   '#info-band',         'showInfo');
-  var togBanner = bindToggle('pv-show-banner', '#full-banner',       'showBanner');
   var togSigs   = bindToggle('pv-show-sigs',   '#sigs-end .signatures, #sigs-foot .signatures', 'showSigs');
 
-  function bindBodyClass(id, cls, prefKey, defaultOn){
+  function bindBodyClass(id, cls, prefKey){
     var cb=$(id); if(!cb) return function(){};
     function apply(){
       if(cb.checked) body.classList.add(cls); else body.classList.remove(cls);
@@ -326,17 +299,9 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
     }
     cb.addEventListener('change', apply); return apply;
   }
-  var togRepH   = bindBodyClass('pv-repeat-header','repeat-header','repeatHeader', true);
-  var togRepS   = bindBodyClass('pv-repeat-sigs',  'repeat-sigs',  'repeatSigs',   false);
-  var togRhLogo = (function(){
-    var cb=$('pv-rh-logo'); if(!cb) return function(){};
-    function apply(){
-      if(cb.checked) body.classList.remove('no-rh-logo'); else body.classList.add('no-rh-logo');
-      // also: when running header WITHOUT logo, no risk of double logo on page 1
-      prefs.rhLogo=cb.checked; savePrefs(prefs);
-    }
-    cb.addEventListener('change', apply); return apply;
-  })();
+  var togRepH    = bindBodyClass('pv-repeat-header', 'repeat-header',  'repeatHeader');
+  var togRepS    = bindBodyClass('pv-repeat-sigs',   'repeat-sigs',    'repeatSigs');
+  var togCompact = bindBodyClass('pv-compact-repeat','compact-repeat', 'compactRepeat');
 
   var fit=$('pv-fit');
   function applyFit(){
@@ -353,23 +318,20 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   setIf('pv-orient', prefs.orient, 'landscape');
   setIf('pv-size', prefs.size, 'A4');
   setIf('pv-margin', prefs.margin, '8');
-  setIf('pv-repeat-header', prefs.repeatHeader===undefined?true:prefs.repeatHeader);
-  setIf('pv-repeat-sigs',   prefs.repeatSigs===undefined?false:prefs.repeatSigs);
-  setIf('pv-rh-logo',       prefs.rhLogo===undefined?false:prefs.rhLogo);
-  setIf('pv-show-banner', prefs.showBanner===undefined?true:prefs.showBanner);
+  setIf('pv-repeat-header',  prefs.repeatHeader===undefined?true:prefs.repeatHeader);
+  setIf('pv-repeat-sigs',    prefs.repeatSigs===undefined?false:prefs.repeatSigs);
+  setIf('pv-compact-repeat', prefs.compactRepeat===undefined?true:prefs.compactRepeat);
   setIf('pv-show-info',   prefs.showInfo===undefined?true:prefs.showInfo);
   setIf('pv-show-date',   prefs.showDate===undefined?true:prefs.showDate);
   setIf('pv-show-docnum', prefs.showDocnum===undefined?true:prefs.showDocnum);
   setIf('pv-show-count',  prefs.showCount===undefined?true:prefs.showCount);
   setIf('pv-show-sigs',   prefs.showSigs===undefined?true:prefs.showSigs);
   setIf('pv-fit',         !!prefs.fit);
-  // Default: no logo in repeating header → avoids double-logo on page 1
-  if(!prefs.rhLogo) body.classList.add('no-rh-logo');
 
   applyPage();
-  togRepH(); togRepS(); togRhLogo();
+  togRepH(); togRepS(); togCompact();
   applyFit();
-  togDate(); togDocnum(); togCount(); togInfo(); togBanner(); togSigs();
+  togDate(); togDocnum(); togCount(); togInfo(); togSigs();
 })();
 </script>
 </body></html>`);
