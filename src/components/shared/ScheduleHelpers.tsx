@@ -78,14 +78,14 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
       <span>University of Technology</span>
     </div>
   </div>
-  <h1 class="doc-h1" id="doc-h1">${title}</h1>
-  <div class="info-band" id="info-band">
-    <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong><span>${today}</span></div>
-    <div class="info-cell" id="doc-number-cell"><strong>رقم الوثيقة</strong><span>${docNumber}</span></div>
-    <div class="info-cell" id="record-count-cell"><strong>عدد السجلات</strong><span>${rows.length}</span></div>
+  <h1 class="doc-h1">${title}</h1>
+  <div class="info-band">
+    <div class="info-cell cell-date"><strong>تاريخ الإصدار</strong><span>${today}</span></div>
+    <div class="info-cell cell-docnum"><strong>رقم الوثيقة</strong><span>${docNumber}</span></div>
+    <div class="info-cell cell-count"><strong>عدد السجلات</strong><span>${rows.length}</span></div>
   </div>
   ${(filtersInfo && filtersInfo.length > 0) ? `
-  <div class="filters-band" id="filters-band">
+  <div class="filters-band">
     <div class="filters-band-title">معايير التصفية المطبّقة</div>
     <div class="filters-band-grid">
       ${filtersInfo.map(f => `<div class="filter-chip"><span class="chip-label">${f.label}</span><span class="chip-value">${f.value}</span></div>`).join('')}
@@ -141,17 +141,30 @@ body.in-preview{padding:0}
 .info-cell strong{color:#0f4c81;display:block;font-size:9.5px;margin-bottom:3px;font-weight:800;letter-spacing:.3px}
 .info-cell span{font-size:11px;color:#0b1f33;font-weight:700}
 
-/* ===== RUNNING HEADER (page 2+): we just reuse the full banner via <thead>. No separate compact header. ===== */
-/* When repeat-header is OFF → banner renders ONCE at the top of page 1 only (no repetition). */
+/* ===== REPEATING THEAD CONTROL =====
+   - body.repeat-header  → thead acts as table-header-group (banner repeats every print page)
+   - otherwise            → thead acts as a normal row group (banner shows ONCE on page 1) */
 body:not(.repeat-header) .print-shell > thead{display:table-row-group}
 body.repeat-header .print-shell > thead{display:table-header-group}
 
-/* On repeating pages, allow the banner to feel slightly more compact */
-body.compact-repeat .print-shell > thead .banner{padding-top:2px}
-body.compact-repeat .print-shell > thead .official-header{padding:4px 12px 6px}
-body.compact-repeat .print-shell > thead .hdr-logo{width:48px;height:48px}
-body.compact-repeat .print-shell > thead .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
-body.compact-repeat .print-shell > thead .filters-band{display:none}
+/* Compact look ONLY for the repeated banner — applied to repeat-banner-preview and to thead. */
+body.compact-repeat .print-shell > thead .banner,
+body.compact-repeat #repeat-banner-preview .banner{padding-top:2px}
+body.compact-repeat .print-shell > thead .official-header,
+body.compact-repeat #repeat-banner-preview .official-header{padding:4px 12px 6px}
+body.compact-repeat .print-shell > thead .hdr-logo,
+body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
+body.compact-repeat .print-shell > thead .doc-h1,
+body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
+
+/* Per-element banner toggles — apply to BOTH real banner and preview clone */
+body.hide-banner-logo    .banner .hdr-logo{display:none}
+body.hide-banner-title   .banner .doc-h1{display:none}
+body.hide-banner-info    .banner .info-band{display:none}
+body.hide-banner-filters .banner .filters-band{display:none}
+body.hide-date    .banner .cell-date{display:none}
+body.hide-docnum  .banner .cell-docnum{display:none}
+body.hide-count   .banner .cell-count{display:none}
 
 /* ===== DATA TABLE ===== */
 table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto;margin-top:4px}
@@ -180,14 +193,21 @@ table.data tr:hover{background:#eaf1fb}
 .print-shell > tfoot > tr > td,
 .print-shell > tbody > tr > td{padding:0;border:0;vertical-align:top}
 
-/* When repeat-sigs is ON, signatures live in tfoot (repeats on every page).
-   We render BOTH locations and toggle visibility. */
 body.repeat-sigs #sigs-end{display:none}
 body:not(.repeat-sigs) #sigs-foot{display:none}
+
+/* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
+#repeat-banner-preview{max-width:297mm;margin:8px auto 30px;background:transparent}
+#repeat-banner-preview .page2-label{background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;font-weight:800;padding:8px 14px;border-radius:8px 8px 0 0;font-size:12.5px;text-align:center;letter-spacing:.3px;box-shadow:0 4px 12px rgba(15,76,129,.25)}
+#repeat-banner-preview .page2-paper{background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:0 0 8px 8px;border-top:3px dashed #0f4c81;position:relative;min-height:120px}
+#repeat-banner-preview .page2-paper::after{content:"⋯ بقية بيانات التقرير ⋯";display:block;text-align:center;color:#94a3b8;font-weight:700;padding:18px 0 6px;font-size:12px;font-style:italic}
+body:not(.repeat-header) #repeat-banner-preview .banner{display:none}
+body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"🚫 تكرار البانر معطّل — الصفحات التالية تبدأ مباشرةً ببيانات الجدول";display:block;text-align:center;color:#dc2626;font-weight:800;padding:16px;font-size:13px;background:#fef2f2;border:1.5px dashed #fca5a5;border-radius:6px;margin-bottom:8px}
 
 @media print{
   body{background:#fff!important}
   .preview-bar{display:none!important}
+  #repeat-banner-preview{display:none!important}
   .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
   tr,td,th{page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
@@ -214,14 +234,19 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
     <option value="12">هوامش واسعة (12مم)</option>
   </select>
   <div class="sep"></div>
-  <label title="تكرار البانر الكامل (شعار + عناوين + الحقول المؤشّرة) في أعلى كل صفحة"><input type="checkbox" id="pv-repeat-header" checked/> تكرار البانر بكل صفحة</label>
+  <label title="تكرار البانر الكامل في أعلى كل صفحة عند الطباعة"><input type="checkbox" id="pv-repeat-header" checked/> تكرار البانر بكل صفحة</label>
   <label title="تصغير البانر قليلاً عند التكرار لتوفير المساحة"><input type="checkbox" id="pv-compact-repeat" checked/> بانر مضغوط عند التكرار</label>
   <label><input type="checkbox" id="pv-repeat-sigs"/> تكرار التواقيع</label>
   <div class="sep"></div>
+  <span class="pv-title" style="font-size:12px;opacity:.85">📌 محتويات البانر:</span>
+  <label><input type="checkbox" id="pv-show-logo" checked/> الشعار</label>
+  <label><input type="checkbox" id="pv-show-title" checked/> العنوان</label>
   <label><input type="checkbox" id="pv-show-info" checked/> شريط المعلومات</label>
   <label><input type="checkbox" id="pv-show-date" checked/> التاريخ</label>
   <label><input type="checkbox" id="pv-show-docnum" checked/> رقم الوثيقة</label>
   <label><input type="checkbox" id="pv-show-count" checked/> عدد السجلات</label>
+  <label><input type="checkbox" id="pv-show-filters" checked/> معايير التصفية</label>
+  <div class="sep"></div>
   <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
@@ -251,20 +276,28 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   </table>
 </div>
 
+<!-- محاكاة شكل الصفحة الثانية أثناء الطباعة — للمعاينة فقط -->
+<div id="repeat-banner-preview">
+  <div class="page2-label">🔁 معاينة الصفحة الثانية وما بعدها — بانر التكرار</div>
+  <div class="page2-paper">
+    ${bannerHtml}
+  </div>
+</div>
+
 <script>
 (function(){
-  var STORAGE_KEY='lovable-print-prefs-v3';
+  var STORAGE_KEY='lovable-print-prefs-v4';
   var body=document.body;
   function $(id){ return document.getElementById(id); }
   function loadPrefs(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){ return {}; } }
   function savePrefs(p){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }catch(e){} }
   var prefs=loadPrefs();
 
-  // Title sync
+  // Title sync (applies to BOTH banner instances via class selector)
   var ti=$('pv-title-input');
   function syncTitle(){
     var v=ti.value||'';
-    var h1=$('doc-h1'); if(h1) h1.textContent=v;
+    document.querySelectorAll('.banner .doc-h1').forEach(function(el){ el.textContent=v; });
     document.title=v;
   }
   if(ti) ti.addEventListener('input', function(){ syncTitle(); prefs.title=ti.value; savePrefs(prefs); });
@@ -277,21 +310,25 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   }
   ['pv-orient','pv-size','pv-margin'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', applyPage); });
 
-  function bindToggle(id, selector, prefKey){
+  // All visibility toggles use body classes → automatically affect BOTH the real thead banner
+  // AND the on-screen page-2 preview clone, AND the printed repeated header on every page.
+  function bindHide(id, cls, prefKey){
     var cb=$(id); if(!cb) return function(){};
     function apply(){
-      document.querySelectorAll(selector).forEach(function(el){ el.style.display = cb.checked ? '' : 'none'; });
+      if(cb.checked) body.classList.remove(cls); else body.classList.add(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
     }
     cb.addEventListener('change', apply); return apply;
   }
-  var togDate   = bindToggle('pv-show-date',   '#issue-date-cell',   'showDate');
-  var togDocnum = bindToggle('pv-show-docnum', '#doc-number-cell',   'showDocnum');
-  var togCount  = bindToggle('pv-show-count',  '#record-count-cell', 'showCount');
-  var togInfo   = bindToggle('pv-show-info',   '#info-band',         'showInfo');
-  var togSigs   = bindToggle('pv-show-sigs',   '#sigs-end .signatures, #sigs-foot .signatures', 'showSigs');
+  var togLogo    = bindHide('pv-show-logo',    'hide-banner-logo',    'showLogo');
+  var togTitle   = bindHide('pv-show-title',   'hide-banner-title',   'showTitle');
+  var togInfo    = bindHide('pv-show-info',    'hide-banner-info',    'showInfo');
+  var togFilters = bindHide('pv-show-filters', 'hide-banner-filters', 'showFilters');
+  var togDate    = bindHide('pv-show-date',    'hide-date',           'showDate');
+  var togDocnum  = bindHide('pv-show-docnum',  'hide-docnum',         'showDocnum');
+  var togCount   = bindHide('pv-show-count',   'hide-count',          'showCount');
 
-  function bindBodyClass(id, cls, prefKey){
+  function bindOn(id, cls, prefKey){
     var cb=$(id); if(!cb) return function(){};
     function apply(){
       if(cb.checked) body.classList.add(cls); else body.classList.remove(cls);
@@ -299,9 +336,17 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
     }
     cb.addEventListener('change', apply); return apply;
   }
-  var togRepH    = bindBodyClass('pv-repeat-header', 'repeat-header',  'repeatHeader');
-  var togRepS    = bindBodyClass('pv-repeat-sigs',   'repeat-sigs',    'repeatSigs');
-  var togCompact = bindBodyClass('pv-compact-repeat','compact-repeat', 'compactRepeat');
+  var togRepH    = bindOn('pv-repeat-header', 'repeat-header',  'repeatHeader');
+  var togRepS    = bindOn('pv-repeat-sigs',   'repeat-sigs',    'repeatSigs');
+  var togCompact = bindOn('pv-compact-repeat','compact-repeat', 'compactRepeat');
+
+  // Signatures show/hide (in both end + foot copies)
+  function applySigs(){
+    var on=$('pv-show-sigs').checked;
+    document.querySelectorAll('#sigs-end .signatures, #sigs-foot .signatures').forEach(function(el){ el.style.display = on ? '' : 'none'; });
+    prefs.showSigs=on; savePrefs(prefs);
+  }
+  $('pv-show-sigs').addEventListener('change', applySigs);
 
   var fit=$('pv-fit');
   function applyFit(){
@@ -321,17 +366,20 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   setIf('pv-repeat-header',  prefs.repeatHeader===undefined?true:prefs.repeatHeader);
   setIf('pv-repeat-sigs',    prefs.repeatSigs===undefined?false:prefs.repeatSigs);
   setIf('pv-compact-repeat', prefs.compactRepeat===undefined?true:prefs.compactRepeat);
-  setIf('pv-show-info',   prefs.showInfo===undefined?true:prefs.showInfo);
-  setIf('pv-show-date',   prefs.showDate===undefined?true:prefs.showDate);
-  setIf('pv-show-docnum', prefs.showDocnum===undefined?true:prefs.showDocnum);
-  setIf('pv-show-count',  prefs.showCount===undefined?true:prefs.showCount);
-  setIf('pv-show-sigs',   prefs.showSigs===undefined?true:prefs.showSigs);
-  setIf('pv-fit',         !!prefs.fit);
+  setIf('pv-show-logo',    prefs.showLogo===undefined?true:prefs.showLogo);
+  setIf('pv-show-title',   prefs.showTitle===undefined?true:prefs.showTitle);
+  setIf('pv-show-info',    prefs.showInfo===undefined?true:prefs.showInfo);
+  setIf('pv-show-filters', prefs.showFilters===undefined?true:prefs.showFilters);
+  setIf('pv-show-date',    prefs.showDate===undefined?true:prefs.showDate);
+  setIf('pv-show-docnum',  prefs.showDocnum===undefined?true:prefs.showDocnum);
+  setIf('pv-show-count',   prefs.showCount===undefined?true:prefs.showCount);
+  setIf('pv-show-sigs',    prefs.showSigs===undefined?true:prefs.showSigs);
+  setIf('pv-fit',          !!prefs.fit);
 
   applyPage();
   togRepH(); togRepS(); togCompact();
-  applyFit();
-  togDate(); togDocnum(); togCount(); togInfo(); togSigs();
+  togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount();
+  applySigs(); applyFit();
 })();
 </script>
 </body></html>`);
