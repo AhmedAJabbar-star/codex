@@ -385,10 +385,6 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
 </body></html>`);
   w.document.close();
 }
-</script>
-</body></html>`);
-  w.document.close();
-}
 
 /* ───── Official Assignments Print (تكليفات التدريسي) ───── */
 export function openAssignmentsPrintWindow(opts: {
