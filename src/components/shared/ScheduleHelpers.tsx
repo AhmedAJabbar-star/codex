@@ -78,14 +78,14 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
       <span>University of Technology</span>
     </div>
   </div>
-  <h1 class="doc-h1" id="doc-h1">${title}</h1>
-  <div class="info-band" id="info-band">
-    <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong><span>${today}</span></div>
-    <div class="info-cell" id="doc-number-cell"><strong>رقم الوثيقة</strong><span>${docNumber}</span></div>
-    <div class="info-cell" id="record-count-cell"><strong>عدد السجلات</strong><span>${rows.length}</span></div>
+  <h1 class="doc-h1">${title}</h1>
+  <div class="info-band">
+    <div class="info-cell cell-date"><strong>تاريخ الإصدار</strong><span>${today}</span></div>
+    <div class="info-cell cell-docnum"><strong>رقم الوثيقة</strong><span>${docNumber}</span></div>
+    <div class="info-cell cell-count"><strong>عدد السجلات</strong><span>${rows.length}</span></div>
   </div>
   ${(filtersInfo && filtersInfo.length > 0) ? `
-  <div class="filters-band" id="filters-band">
+  <div class="filters-band">
     <div class="filters-band-title">معايير التصفية المطبّقة</div>
     <div class="filters-band-grid">
       ${filtersInfo.map(f => `<div class="filter-chip"><span class="chip-label">${f.label}</span><span class="chip-value">${f.value}</span></div>`).join('')}
