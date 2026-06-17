@@ -265,7 +265,6 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   function syncTitle(){
     var v=ti.value||'';
     var h1=$('doc-h1'); if(h1) h1.textContent=v;
-    var rh=$('rh-title-mirror'); if(rh) rh.textContent=v;
     document.title=v;
   }
   if(ti) ti.addEventListener('input', function(){ syncTitle(); prefs.title=ti.value; savePrefs(prefs); });
@@ -290,10 +289,9 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   var togDocnum = bindToggle('pv-show-docnum', '#doc-number-cell',   'showDocnum');
   var togCount  = bindToggle('pv-show-count',  '#record-count-cell', 'showCount');
   var togInfo   = bindToggle('pv-show-info',   '#info-band',         'showInfo');
-  var togBanner = bindToggle('pv-show-banner', '#full-banner',       'showBanner');
   var togSigs   = bindToggle('pv-show-sigs',   '#sigs-end .signatures, #sigs-foot .signatures', 'showSigs');
 
-  function bindBodyClass(id, cls, prefKey, defaultOn){
+  function bindBodyClass(id, cls, prefKey){
     var cb=$(id); if(!cb) return function(){};
     function apply(){
       if(cb.checked) body.classList.add(cls); else body.classList.remove(cls);
@@ -301,17 +299,9 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
     }
     cb.addEventListener('change', apply); return apply;
   }
-  var togRepH   = bindBodyClass('pv-repeat-header','repeat-header','repeatHeader', true);
-  var togRepS   = bindBodyClass('pv-repeat-sigs',  'repeat-sigs',  'repeatSigs',   false);
-  var togRhLogo = (function(){
-    var cb=$('pv-rh-logo'); if(!cb) return function(){};
-    function apply(){
-      if(cb.checked) body.classList.remove('no-rh-logo'); else body.classList.add('no-rh-logo');
-      // also: when running header WITHOUT logo, no risk of double logo on page 1
-      prefs.rhLogo=cb.checked; savePrefs(prefs);
-    }
-    cb.addEventListener('change', apply); return apply;
-  })();
+  var togRepH    = bindBodyClass('pv-repeat-header', 'repeat-header',  'repeatHeader');
+  var togRepS    = bindBodyClass('pv-repeat-sigs',   'repeat-sigs',    'repeatSigs');
+  var togCompact = bindBodyClass('pv-compact-repeat','compact-repeat', 'compactRepeat');
 
   var fit=$('pv-fit');
   function applyFit(){
@@ -328,23 +318,20 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   setIf('pv-orient', prefs.orient, 'landscape');
   setIf('pv-size', prefs.size, 'A4');
   setIf('pv-margin', prefs.margin, '8');
-  setIf('pv-repeat-header', prefs.repeatHeader===undefined?true:prefs.repeatHeader);
-  setIf('pv-repeat-sigs',   prefs.repeatSigs===undefined?false:prefs.repeatSigs);
-  setIf('pv-rh-logo',       prefs.rhLogo===undefined?false:prefs.rhLogo);
-  setIf('pv-show-banner', prefs.showBanner===undefined?true:prefs.showBanner);
+  setIf('pv-repeat-header',  prefs.repeatHeader===undefined?true:prefs.repeatHeader);
+  setIf('pv-repeat-sigs',    prefs.repeatSigs===undefined?false:prefs.repeatSigs);
+  setIf('pv-compact-repeat', prefs.compactRepeat===undefined?true:prefs.compactRepeat);
   setIf('pv-show-info',   prefs.showInfo===undefined?true:prefs.showInfo);
   setIf('pv-show-date',   prefs.showDate===undefined?true:prefs.showDate);
   setIf('pv-show-docnum', prefs.showDocnum===undefined?true:prefs.showDocnum);
   setIf('pv-show-count',  prefs.showCount===undefined?true:prefs.showCount);
   setIf('pv-show-sigs',   prefs.showSigs===undefined?true:prefs.showSigs);
   setIf('pv-fit',         !!prefs.fit);
-  // Default: no logo in repeating header → avoids double-logo on page 1
-  if(!prefs.rhLogo) body.classList.add('no-rh-logo');
 
   applyPage();
-  togRepH(); togRepS(); togRhLogo();
+  togRepH(); togRepS(); togCompact();
   applyFit();
-  togDate(); togDocnum(); togCount(); togInfo(); togBanner(); togSigs();
+  togDate(); togDocnum(); togCount(); togInfo(); togSigs();
 })();
 </script>
 </body></html>`);
