@@ -29,25 +29,20 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
 
   const isNotes = (h: string) => (h || '').trim() === 'الملاحظات';
   const tableRows = rows.map((r, i) =>
-    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td class="${isNotes(h) ? 'notes-col' : ''}">${r[h] || ''}</td>`).join('')}</tr>`
+    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td class="${isNotes(h) ? 'notes-col' : ''}">${(r[h] || '').toString().replace(/</g,'&lt;')}</td>`).join('')}</tr>`
   ).join('');
 
   const colCount = headers.length;
   const rowCount = rows.length;
-  const baseFont = colCount > 14 ? 7.5 : colCount > 12 ? 8.5 : colCount > 10 ? 9.5 : colCount > 8 ? 10.5 : 11;
-  const rowFactor = rowCount > 40 ? 0.88 : rowCount > 25 ? 0.94 : 1;
+  const baseFont = colCount > 16 ? 7 : colCount > 14 ? 7.8 : colCount > 12 ? 8.6 : colCount > 10 ? 9.4 : colCount > 8 ? 10.2 : 11;
+  const rowFactor = rowCount > 40 ? 0.9 : rowCount > 25 ? 0.95 : 1;
   const fontSize = singlePage ? '7.5px' : `${(baseFont * rowFactor).toFixed(1)}px`;
   const cellPadV = singlePage ? 2 : rowCount > 30 ? 3 : 5;
-  const cellPadH = colCount > 12 ? 2 : 4;
+  const cellPadH = colCount > 14 ? 1.5 : colCount > 12 ? 2 : 4;
   const today = new Date().toLocaleDateString('ar-IQ');
   const docNumber = `${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`;
 
-  const singlePageCSS = singlePage ? `
-    @page{size:A4 landscape;margin:5mm}
-    html,body{height:100vh;overflow:hidden}
-  ` : `@page{size:A4 landscape;margin:8mm}`;
-
-  const signaturesHtml = (Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `<div class="signatures" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
+  const signaturesHtml = (Array.isArray(customSignatures) && customSignatures.length === 0) ? '' : `<div class="signatures" id="sig-block" style="grid-template-columns:repeat(${(customSignatures?.length || 3)},1fr)">
     ${(customSignatures && customSignatures.length > 0
       ? customSignatures
       : [{ label: 'مقرر القسم' }, { label: 'رئيس القسم' }, { label: 'مصادقة العميد' }]
@@ -59,46 +54,61 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
     </div>`).join('')}
   </div>`;
 
-  const headerBlockHtml = `
-<div class="official-header">
-  <div class="header-side"><strong>جمهورية العراق</strong>وزارة التعليم العالي<br/>والبحث العلمي</div>
-  <div class="header-text">
-    <img src="${universityLogo}" alt="شعار الجامعة"/>
-    <div class="ar1">الجامعة التكنولوجية</div>
-    <div class="ar2">كلية الهندسة المدنية</div>
-    <div class="ar3">${department || ''}</div>
+  // Running (per-page) header — kept small so browsers will reliably repeat thead
+  const runHeaderHtml = `
+<div class="run-header">
+  <div class="rh-logo"><img src="${universityLogo}" alt=""/></div>
+  <div class="rh-mid">
+    <div class="rh-line1">الجامعة التكنولوجية &mdash; كلية الهندسة المدنية${department ? ` &mdash; ${department}` : ''}</div>
+    <div class="rh-title" id="doc-h1">${title}</div>
+    <div class="rh-chips" id="rh-chips">
+      <span class="rh-chip" id="rh-chip-date"><b>تاريخ الإصدار:</b> ${today}</span>
+      <span class="rh-chip" id="rh-chip-docnum"><b>رقم الوثيقة:</b> ${docNumber}</span>
+      <span class="rh-chip" id="rh-chip-count"><b>عدد السجلات:</b> ${rows.length}</span>
+    </div>
   </div>
-  <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education &amp; Scientific Research<br/>University of Technology</div>
-</div>
-<div class="doc-title"><h1 id="doc-h1">${title}</h1></div>
-<div class="info-band" id="info-band">
-  <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong>${today}</div>
-  <div class="info-cell" id="doc-number-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
-  <div class="info-cell" id="record-count-cell"><strong>عدد السجلات</strong>${rows.length}</div>
 </div>`;
 
-  const filtersHtml = (filtersInfo && filtersInfo.length > 0) ? `
-<div class="filters-band">
-  <div class="filters-band-title">معايير التصفية المطبّقة</div>
-  <div class="filters-band-grid">
-    ${filtersInfo.map(f => `<div class="filter-chip"><span class="chip-label">${f.label}</span><span class="chip-value">${f.value}</span></div>`).join('')}
+  // First-page full banner (does NOT repeat — lives inside tbody)
+  const firstPageBannerHtml = `
+<div class="full-banner" id="full-banner">
+  <div class="official-header">
+    <div class="header-side"><strong>جمهورية العراق</strong>وزارة التعليم العالي<br/>والبحث العلمي</div>
+    <div class="header-text">
+      <img src="${universityLogo}" alt="شعار الجامعة"/>
+      <div class="ar1">الجامعة التكنولوجية</div>
+      <div class="ar2">كلية الهندسة المدنية</div>
+      <div class="ar3">${department || ''}</div>
+    </div>
+    <div class="header-side"><strong>Republic of Iraq</strong>Ministry of Higher<br/>Education &amp; Scientific Research<br/>University of Technology</div>
   </div>
-</div>` : '';
-
-  const footerBlockHtml = `${signaturesHtml}
-<div class="doc-meta">
-  <span><strong>وثيقة رسمية</strong> صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span>
+  <div class="info-band" id="info-band">
+    <div class="info-cell" id="issue-date-cell"><strong>تاريخ الإصدار</strong>${today}</div>
+    <div class="info-cell" id="doc-number-cell"><strong>رقم الوثيقة</strong>${docNumber}</div>
+    <div class="info-cell" id="record-count-cell"><strong>عدد السجلات</strong>${rows.length}</div>
+  </div>
+  ${(filtersInfo && filtersInfo.length > 0) ? `
+  <div class="filters-band" id="filters-band">
+    <div class="filters-band-title">معايير التصفية المطبّقة</div>
+    <div class="filters-band-grid">
+      ${filtersInfo.map(f => `<div class="filter-chip"><span class="chip-label">${f.label}</span><span class="chip-value">${f.value}</span></div>`).join('')}
+    </div>
+  </div>` : ''}
 </div>`;
 
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style id="page-style">@page{size:A4 landscape;margin:8mm}</style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:0}
+html,body{font-family:'Cairo',sans-serif;color:#000;background:#fff}
 .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.045);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
-.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:4px 12px;border-bottom:3px double #0f4c81;background:#fff}
+
+/* Full first-page banner */
+.full-banner{background:#fff}
+.official-header{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:10px;padding:4px 12px;border-bottom:3px double #0f4c81}
 .official-header img{width:60px;height:60px;object-fit:contain;justify-self:center}
 .header-text{text-align:center}
 .header-text .ar1{font-family:'Amiri',serif;font-size:14px;font-weight:700;color:#0f4c81}
@@ -106,8 +116,6 @@ body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:0}
 .header-text .ar3{font-size:10px;font-weight:700;color:#333}
 .header-side{font-size:9px;text-align:center;color:#444;line-height:1.4}
 .header-side strong{color:#0f4c81;display:block;font-size:10px}
-.doc-title{margin:6px auto 4px;text-align:center}
-.doc-title h1{font-family:'Amiri',serif;font-size:18px;color:#0f4c81;font-weight:700;display:inline-block;padding:4px 22px;border-top:2px solid #0f4c81;border-bottom:2px solid #0f4c81}
 .info-band{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 6px;padding:4px;background:#f7faff;border:1px solid #c5d3e3;border-radius:6px}
 .info-cell{font-size:10px;font-weight:700;color:#333;padding:3px 8px;border-right:3px solid #0f4c81;background:#fff;border-radius:3px}
 .info-cell strong{color:#0f4c81;display:block;font-size:9px;margin-bottom:2px}
@@ -118,12 +126,26 @@ body{font-family:'Cairo',sans-serif;color:#000;background:#fff;padding:0}
 .chip-label{color:#0f4c81;font-weight:800}
 .chip-label::after{content:" :"}
 .chip-value{color:#000}
-table.data{width:calc(100% - 12px);margin:4px 6px;border-collapse:collapse;font-size:${fontSize};table-layout:auto}
-table.data th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;line-height:1.2;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;white-space:pre-line;overflow-wrap:break-word}
-table.data .notes-col{min-width:48mm;text-align:center;white-space:pre-line}
+
+/* Running (per-page) header — compact so browsers reliably repeat it */
+.run-header{display:grid;grid-template-columns:46px 1fr;gap:8px;align-items:center;padding:4px 8px;border-bottom:2px solid #0f4c81;background:#fff}
+.run-header .rh-logo img{width:42px;height:42px;object-fit:contain}
+.run-header .rh-mid{text-align:center}
+.run-header .rh-line1{font-size:10px;font-weight:700;color:#0f4c81}
+.run-header .rh-title{font-family:'Amiri',serif;font-size:13px;font-weight:700;color:#0b3558;margin-top:1px}
+.run-header .rh-chips{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+.run-header .rh-chip{font-size:9px;font-weight:700;color:#333;background:#f7faff;border:1px solid #c5d3e3;border-radius:4px;padding:1px 6px}
+.run-header .rh-chip b{color:#0f4c81}
+
+/* Data table */
+table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto}
+table.data th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;line-height:1.2;-webkit-print-color-adjust:exact;print-color-adjust:exact;word-break:break-word;white-space:normal}
+table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.25;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+table.data .notes-col{min-width:38mm;white-space:pre-wrap}
 table.data tr.even{background:#f0f6ff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table.data tr.odd{background:#fff}
+
+/* Signatures + meta */
 .signatures{margin:10px 6px 4px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;page-break-inside:avoid;background:#fff}
 .sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:6px}
 .sig-label{font-size:10.5px;font-weight:800;color:#0f4c81;margin-bottom:18px}
@@ -132,56 +154,70 @@ table.data tr.odd{background:#fff}
 .doc-meta{margin:4px 6px;display:flex;justify-content:center;font-size:9px;color:#555;padding:4px 10px;border-top:1px solid #c5d3e3;background:#fff}
 .doc-meta strong{color:#0f4c81}
 
-/* Repeating header/footer using table thead/tfoot (browser-native) */
+/* Repeating shell */
 .print-shell{width:100%;border-collapse:collapse}
 .print-shell > thead{display:table-header-group}
 .print-shell > tfoot{display:table-footer-group}
 .print-shell > thead > tr > td,
 .print-shell > tfoot > tr > td,
-.print-shell > tbody > tr > td{padding:0;border:0}
-.shell-header{border-bottom:2px solid #0f4c81;background:#fff}
-.shell-footer{background:#fff}
+.print-shell > tbody > tr > td{padding:0;border:0;vertical-align:top}
+.shell-pad{padding:0 6px}
+
+/* When repeat mode is OFF, hide running header/footer (use first-page banner + bottom signatures) */
+body:not(.repeat-mode) .run-header{display:none}
+body:not(.repeat-mode) #sig-block-running{display:none}
+
+/* When repeat mode is ON, hide bottom-only signatures (they live in tfoot now) */
+body.repeat-mode #sig-block-bottom{display:none}
 
 /* Preview toolbar */
-.preview-bar{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;gap:8px;justify-content:flex-start;align-items:center;flex-wrap:wrap;padding:8px 14px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}
+.preview-bar{position:sticky;top:0;z-index:1000;display:flex;gap:6px;justify-content:flex-start;align-items:center;flex-wrap:wrap;padding:8px 12px;background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 6px 20px rgba(15,76,129,.3)}
 .preview-bar .pv-title{font-weight:800;font-size:13px}
-.preview-bar input[type="text"]{padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px;min-width:240px}
-.preview-bar label{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.08);padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.18)}
+.preview-bar input[type="text"]{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px;min-width:220px}
+.preview-bar select{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.95);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12px}
+.preview-bar label{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.08);padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.18)}
 .preview-bar label input{width:14px;height:14px;cursor:pointer}
-.preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:8px 16px;cursor:pointer;font-size:12.5px;margin-inline-start:auto}
-.preview-bar .btn-print{background:#fff;color:#0f4c81}
+.preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:7px 14px;cursor:pointer;font-size:12.5px}
+.preview-bar .btn-print{background:#fff;color:#0f4c81;margin-inline-start:auto}
 .preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
-body{padding-top:62px}
+.preview-bar .sep{width:1px;height:24px;background:rgba(255,255,255,.25);margin:0 4px}
 .print-area{padding:6px 4px}
 
 @media print{
-  ${singlePageCSS}
   .preview-bar{display:none!important}
-  body{padding-top:0!important}
   .print-area{padding:0}
   tr,td,th{page-break-inside:avoid}
   .signatures{page-break-inside:avoid}
-  /* Hide normal header block when repeat mode is on (handled via body class) */
-  body.repeat-mode .top-header{display:none}
-  body:not(.repeat-mode) .shell-header,
-  body:not(.repeat-mode) .shell-footer{display:none}
 }
-
-/* Screen preview: show what user expects */
-body.repeat-mode .top-header{display:none}
-body:not(.repeat-mode) .shell-header,
-body:not(.repeat-mode) .shell-footer{display:none}
 </style>
 </head><body class="repeat-mode">
 <div class="preview-bar">
   <span class="pv-title">📄 المعاينة</span>
   <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}"/>
-  <label><input type="checkbox" id="pv-repeat" checked/> تكرار الهيدر/التواقيع بكل صفحة</label>
-  <label><input type="checkbox" id="pv-show-info" checked/> شريط (التاريخ/الرقم/السجلات)</label>
+  <div class="sep"></div>
+  <select id="pv-orient" title="اتجاه الصفحة">
+    <option value="landscape">أفقي</option>
+    <option value="portrait">عمودي</option>
+  </select>
+  <select id="pv-size" title="حجم الورق">
+    <option value="A4">A4</option>
+    <option value="A3">A3</option>
+    <option value="Letter">Letter</option>
+  </select>
+  <select id="pv-margin" title="الهوامش">
+    <option value="5">هوامش ضيقة (5مم)</option>
+    <option value="8" selected>هوامش عادية (8مم)</option>
+    <option value="12">هوامش واسعة (12مم)</option>
+  </select>
+  <div class="sep"></div>
+  <label><input type="checkbox" id="pv-repeat" checked/> تكرار الهيدر/التواقيع</label>
+  <label><input type="checkbox" id="pv-show-banner" checked/> البانر الكامل (صفحة 1)</label>
+  <label><input type="checkbox" id="pv-show-info" checked/> شريط المعلومات</label>
   <label><input type="checkbox" id="pv-show-date" checked/> التاريخ</label>
   <label><input type="checkbox" id="pv-show-docnum" checked/> رقم الوثيقة</label>
   <label><input type="checkbox" id="pv-show-count" checked/> عدد السجلات</label>
   <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
+  <label><input type="checkbox" id="pv-fit" /> ملاءمة الأعمدة</label>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
@@ -189,69 +225,128 @@ body:not(.repeat-mode) .shell-footer{display:none}
 <div class="watermark">الجامعة التكنولوجية</div>
 
 <div class="print-area">
-  <!-- Top header (used when repeat mode is OFF) -->
-  <div class="top-header">
-    ${headerBlockHtml}
-    ${filtersHtml}
-  </div>
-
-  <!-- Table shell with repeating thead/tfoot (used when repeat mode is ON) -->
   <table class="print-shell">
     <thead><tr><td>
-      <div class="shell-header">
-        ${headerBlockHtml}
-        ${filtersHtml}
-      </div>
+      ${runHeaderHtml}
     </td></tr></thead>
     <tfoot><tr><td>
-      <div class="shell-footer" id="shell-footer">
-        ${footerBlockHtml}
-      </div>
+      <div id="sig-block-running" class="shell-pad">${signaturesHtml.replace('id="sig-block"','id="sig-block-running-inner"')}</div>
     </td></tr></tfoot>
-    <tbody><tr><td>
-      <table class="data"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-      <tbody>${tableRows}</tbody></table>
-    </td></tr></tbody>
+    <tbody>
+      <tr><td>
+        ${firstPageBannerHtml}
+      </td></tr>
+      <tr><td>
+        <div class="shell-pad">
+          <table class="data"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${tableRows}</tbody></table>
+        </div>
+      </td></tr>
+      <tr><td>
+        <div id="sig-block-bottom" class="shell-pad">${signaturesHtml}</div>
+        <div class="doc-meta"><span><strong>وثيقة رسمية</strong> صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
+      </td></tr>
+    </tbody>
   </table>
-
-  <!-- Bottom footer (used when repeat mode is OFF) -->
-  <div class="bottom-footer top-header">
-    ${footerBlockHtml}
-  </div>
 </div>
 
 <script>
 (function(){
+  var STORAGE_KEY = 'lovable-print-prefs-v2';
   var body=document.body;
-  var ti=document.getElementById('pv-title-input');
-  document.querySelectorAll('#doc-h1').forEach(function(h){});
+
+  function $(id){ return document.getElementById(id); }
+  function loadPrefs(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){ return {}; }
+  }
+  function savePrefs(p){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }catch(e){}
+  }
+  var prefs = loadPrefs();
+
+  // Title input — syncs all #doc-h1 elements
+  var ti=$('pv-title-input');
   function syncTitle(){
-    document.querySelectorAll('#doc-h1, [id="doc-h1"]').forEach(function(h){ h.textContent=ti.value; });
-    document.querySelectorAll('h1').forEach(function(h){ if(h.id==='doc-h1') h.textContent=ti.value; });
+    document.querySelectorAll('h1, .rh-title, [id="doc-h1"]').forEach(function(h){
+      if(h.id==='doc-h1' || h.classList.contains('rh-title')) h.textContent=ti.value;
+    });
     document.title=ti.value;
   }
-  if(ti) ti.addEventListener('input', syncTitle);
+  if(ti) ti.addEventListener('input', function(){ syncTitle(); prefs.title=ti.value; savePrefs(prefs); });
 
-  function bindToggle(id, selector){
-    var cb=document.getElementById(id);
-    if(!cb) return;
-    cb.addEventListener('change', function(){
+  // Page settings
+  function applyPage(){
+    var orient = $('pv-orient').value;
+    var size = $('pv-size').value;
+    var margin = $('pv-margin').value;
+    $('page-style').textContent = '@page{size:'+size+' '+orient+';margin:'+margin+'mm}';
+    prefs.orient=orient; prefs.size=size; prefs.margin=margin; savePrefs(prefs);
+  }
+  ['pv-orient','pv-size','pv-margin'].forEach(function(id){
+    var el=$(id); if(el){ el.addEventListener('change', applyPage); }
+  });
+
+  function bindToggle(id, selector, prefKey){
+    var cb=$(id); if(!cb) return;
+    function apply(){
       document.querySelectorAll(selector).forEach(function(el){
         el.style.display = cb.checked ? '' : 'none';
       });
-    });
+      prefs[prefKey]=cb.checked; savePrefs(prefs);
+    }
+    cb.addEventListener('change', apply);
+    return apply;
   }
-  bindToggle('pv-show-info', '#info-band, [id="info-band"]');
-  bindToggle('pv-show-date', '#issue-date-cell, [id="issue-date-cell"]');
-  bindToggle('pv-show-docnum', '#doc-number-cell, [id="doc-number-cell"]');
-  bindToggle('pv-show-count', '#record-count-cell, [id="record-count-cell"]');
-  bindToggle('pv-show-sigs', '.signatures');
+  var togDate   = bindToggle('pv-show-date',   '#issue-date-cell, #rh-chip-date',   'showDate');
+  var togDocnum = bindToggle('pv-show-docnum', '#doc-number-cell, #rh-chip-docnum', 'showDocnum');
+  var togCount  = bindToggle('pv-show-count',  '#record-count-cell, #rh-chip-count','showCount');
+  var togInfo   = bindToggle('pv-show-info',   '#info-band',                         'showInfo');
+  var togBanner = bindToggle('pv-show-banner', '#full-banner',                       'showBanner');
+  var togSigs   = bindToggle('pv-show-sigs',   '#sig-block, #sig-block-running, #sig-block-bottom', 'showSigs');
 
-  var rp=document.getElementById('pv-repeat');
-  if(rp) rp.addEventListener('change', function(){
-    if(rp.checked) body.classList.add('repeat-mode');
-    else body.classList.remove('repeat-mode');
-  });
+  var rp=$('pv-repeat');
+  function applyRepeat(){
+    if(rp.checked) body.classList.add('repeat-mode'); else body.classList.remove('repeat-mode');
+    prefs.repeat=rp.checked; savePrefs(prefs);
+  }
+  if(rp) rp.addEventListener('change', applyRepeat);
+
+  var fit=$('pv-fit');
+  function applyFit(){
+    document.querySelectorAll('table.data').forEach(function(t){
+      t.style.tableLayout = fit.checked ? 'fixed' : 'auto';
+    });
+    prefs.fit=fit.checked; savePrefs(prefs);
+  }
+  if(fit) fit.addEventListener('change', applyFit);
+
+  // Restore saved prefs
+  function setIf(id, val, defaultVal){
+    var el=$(id); if(!el) return;
+    if(val===undefined) val=defaultVal;
+    if(el.type==='checkbox') el.checked=!!val; else el.value=val;
+  }
+  setIf('pv-orient', prefs.orient, 'landscape');
+  setIf('pv-size', prefs.size, 'A4');
+  setIf('pv-margin', prefs.margin, '8');
+  setIf('pv-repeat', prefs.repeat===undefined?true:prefs.repeat);
+  setIf('pv-show-banner', prefs.showBanner===undefined?true:prefs.showBanner);
+  setIf('pv-show-info', prefs.showInfo===undefined?true:prefs.showInfo);
+  setIf('pv-show-date', prefs.showDate===undefined?true:prefs.showDate);
+  setIf('pv-show-docnum', prefs.showDocnum===undefined?true:prefs.showDocnum);
+  setIf('pv-show-count', prefs.showCount===undefined?true:prefs.showCount);
+  setIf('pv-show-sigs', prefs.showSigs===undefined?true:prefs.showSigs);
+  setIf('pv-fit', !!prefs.fit);
+
+  applyPage();
+  applyRepeat();
+  applyFit();
+  if(togDate)   togDate();
+  if(togDocnum) togDocnum();
+  if(togCount)  togCount();
+  if(togInfo)   togInfo();
+  if(togBanner) togBanner();
+  if(togSigs)   togSigs();
 })();
 </script>
 </body></html>`);
