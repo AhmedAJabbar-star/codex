@@ -93,15 +93,7 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   </div>` : ''}
 </div>`;
 
-  // Compact running header (page 2+). NO LOGO by default to avoid duplication on page 1.
-  const runHeaderHtml = `
-<div class="run-header" id="run-header">
-  <div class="rh-logo" id="rh-logo"><img src="${universityLogo}" alt=""/></div>
-  <div class="rh-mid">
-    <div class="rh-title" id="rh-title-mirror">${title}</div>
-    <div class="rh-sub">الجامعة التكنولوجية &mdash; كلية الهندسة المدنية${department ? ` &mdash; ${department}` : ''}</div>
-  </div>
-</div>`;
+  // No separate "running header" — we repeat the SAME full banner via <thead>.
 
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
