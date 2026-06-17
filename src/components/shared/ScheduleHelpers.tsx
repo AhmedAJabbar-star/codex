@@ -191,12 +191,9 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
   .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
   tr,td,th{page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
-  /* Hide running header on the FIRST printed page (since the full banner already shows the logo).
-     The thead repeats from page 2 onward when repeat-header is on. */
-  body.repeat-header.hide-rh-on-first .run-header{visibility:hidden}
 }
 </style>
-</head><body class="in-preview repeat-header">
+</head><body class="in-preview repeat-header compact-repeat">
 
 <div class="preview-bar">
   <span class="pv-title">📄 المعاينة</span>
@@ -217,11 +214,10 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
     <option value="12">هوامش واسعة (12مم)</option>
   </select>
   <div class="sep"></div>
-  <label><input type="checkbox" id="pv-repeat-header" checked/> تكرار الهيدر</label>
-  <label><input type="checkbox" id="pv-rh-logo"/> شعار في الهيدر المتكرر</label>
+  <label title="تكرار البانر الكامل (شعار + عناوين + الحقول المؤشّرة) في أعلى كل صفحة"><input type="checkbox" id="pv-repeat-header" checked/> تكرار البانر بكل صفحة</label>
+  <label title="تصغير البانر قليلاً عند التكرار لتوفير المساحة"><input type="checkbox" id="pv-compact-repeat" checked/> بانر مضغوط عند التكرار</label>
   <label><input type="checkbox" id="pv-repeat-sigs"/> تكرار التواقيع</label>
   <div class="sep"></div>
-  <label><input type="checkbox" id="pv-show-banner" checked/> البانر الكامل</label>
   <label><input type="checkbox" id="pv-show-info" checked/> شريط المعلومات</label>
   <label><input type="checkbox" id="pv-show-date" checked/> التاريخ</label>
   <label><input type="checkbox" id="pv-show-docnum" checked/> رقم الوثيقة</label>
@@ -236,10 +232,9 @@ body:not(.repeat-sigs) #sigs-foot{display:none}
 
 <div class="print-area">
   <table class="print-shell">
-    <thead><tr><td>${runHeaderHtml}</td></tr></thead>
+    <thead><tr><td>${bannerHtml}</td></tr></thead>
     <tfoot><tr><td><div id="sigs-foot" class="signatures-wrap">${signaturesHtml}</div></td></tr></tfoot>
     <tbody>
-      <tr><td>${bannerHtml}</td></tr>
       <tr><td>
         <table class="data">
           <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
