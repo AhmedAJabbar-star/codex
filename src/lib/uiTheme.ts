@@ -11,7 +11,11 @@ export type UiTheme =
   | 'bronze'     // Antique Bronze + Ivory
   | 'pearl'      // Pearl + Navy
   | 'emerald'    // Emerald + Gold
-  | 'onyx';      // Onyx + Platinum
+  | 'onyx'       // Onyx + Platinum
+  | 'crimson'    // Academic Crimson + Gold
+  | 'oxford'     // Oxford Blue + Pale Gold
+  | 'ivory'      // Ivory + Espresso + Brass
+  | 'cobalt';    // Cobalt + Silver
 
 export const UI_THEMES: { id: UiTheme; label: string; description: string; swatch: string }[] = [
   { id: 'original', label: '🏛️ الأصلي — تصميم النظام',     description: 'الواجهة الأصلية للنظام كما هي على civilacademi.com — مقفلة ولن تتغير.', swatch: 'linear-gradient(135deg,#e0f2fe,#fae8ff)' },
@@ -25,6 +29,10 @@ export const UI_THEMES: { id: UiTheme; label: string; description: string; swatc
   { id: 'pearl',    label: '🤍 اللؤلؤي الرسمي',             description: 'لؤلؤي فاتح مع كحلي ولمسات ذهب وردي — أنيق ومريح.',              swatch: 'linear-gradient(135deg,#f3f0eb,#1e3a5f)' },
   { id: 'emerald',  label: '💚 الزمرّدي الكلاسيكي',         description: 'زمرّدي عميق مع ذهبي — هيبة وفخامة.',                            swatch: 'linear-gradient(135deg,#064e3b,#c9a84c)' },
   { id: 'onyx',     label: '⚫ الأونيكس البلاتيني',          description: 'أسود أونيكس مع بلاتيني وأزرق ياقوتي — راقٍ ومميز.',             swatch: 'linear-gradient(135deg,#0d0d0d,#d4d4d8)' },
+  { id: 'crimson',  label: '🎓 القرمزي الأكاديمي',            description: 'قرمزي جامعي كلاسيكي مع ذهبي فاخر — هيبة أكاديمية عالمية.',      swatch: 'linear-gradient(135deg,#8b1a2e,#c9a84c)' },
+  { id: 'oxford',   label: '📘 الأزرق الأكسفوردي',           description: 'أزرق أكسفوردي عميق مع ذهبي فاتح — رسمية عالمية متجذرة.',        swatch: 'linear-gradient(135deg,#0a1e3d,#d4af37)' },
+  { id: 'ivory',    label: '🦢 العاجي الفاخر',               description: 'عاجي ناصع مع بني غامق ونحاسي — أناقة كلاسيكية جامعية.',          swatch: 'linear-gradient(135deg,#fdfbf7,#3c2415)' },
+  { id: 'cobalt',   label: '🔷 الكوبالت الأزرق',              description: 'أزرق كوبالتي حديث مع فضي لامع — عصري ومهني أكاديمياً.',          swatch: 'linear-gradient(135deg,#0047ab,#c0c0c0)' },
 ];
 
 const KEY = 'ui-theme';
@@ -35,7 +43,7 @@ const LEGACY_MAP: Record<string, UiTheme> = {
   executive: 'royal', neumorphic: 'pearl', editorial: 'onyx',
   aurora: 'emerald', nebula: 'sapphire', quantum: 'slate',
   holographic: 'original', glass: 'original', glasspro: 'original', liquid: 'original',
-  obsidian: 'onyx', crimson: 'burgundy', platinum: 'slate',
+  obsidian: 'onyx', crimson: 'crimson', platinum: 'slate',
 };
 
 export const getUiTheme = (): UiTheme => {
