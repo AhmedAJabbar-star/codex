@@ -155,20 +155,23 @@ body.in-preview{padding:0}
 .banner > *:last-child{margin-bottom:0}
 .info-band:empty,.filters-band:empty{display:none}
 
-/* ===== REPEATING THEAD CONTROL =====
-   - body.repeat-header  → thead acts as table-header-group (banner repeats every print page)
-   - otherwise            → thead acts as a normal row group (banner shows ONCE on page 1) */
-body:not(.repeat-header) .print-shell > thead{display:table-row-group}
-body.repeat-header .print-shell > thead{display:table-header-group}
+/* ===== REPEATING BANNER CONTROL =====
+   The banner is now part of the SAME data table header, not a wrapper table.
+   This is the reliable Chrome/PDF path: banner + column titles repeat together and data starts on page 1. */
+.first-banner{margin-bottom:6px}
+body.repeat-header .first-banner{display:none}
+body:not(.repeat-header) table.data > thead .repeat-banner-row{display:none}
+body.repeat-header table.data > thead .repeat-banner-row{display:table-row}
+table.data .banner-cell{background:#fff!important;color:#0b1f33!important;padding:0 0 5px!important;border:0!important;text-align:initial!important;font-weight:400!important;line-height:normal!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
 /* Compact look ONLY for the repeated banner — applied to repeat-banner-preview and to thead. */
-body.compact-repeat .print-shell > thead .banner,
+body.compact-repeat table.data > thead .banner,
 body.compact-repeat #repeat-banner-preview .banner{padding-top:2px}
-body.compact-repeat .print-shell > thead .official-header,
+body.compact-repeat table.data > thead .official-header,
 body.compact-repeat #repeat-banner-preview .official-header{padding:4px 12px 6px}
-body.compact-repeat .print-shell > thead .hdr-logo,
+body.compact-repeat table.data > thead .hdr-logo,
 body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
-body.compact-repeat .print-shell > thead .doc-h1,
+body.compact-repeat table.data > thead .doc-h1,
 body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
 
 /* Per-element banner toggles — apply to BOTH real banner and preview clone */
@@ -189,6 +192,14 @@ table.data .notes-col{min-width:38mm;white-space:pre-wrap;text-align:right}
 table.data tr.even{background:#f4f8fd;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table.data tr.odd{background:#fff}
 table.data tr:hover{background:#eaf1fb}
+table.data > tfoot{display:table-footer-group}
+table.data .footer-cell{padding:0!important;border:0!important;background:#fff!important}
+table.data > tfoot .signatures-wrap{margin-top:6px}
+table.data > tfoot .signatures{padding:4px 4px 2px;gap:18px}
+table.data > tfoot .sig-box{padding-top:5px}
+table.data > tfoot .sig-label{font-size:9px;margin-bottom:12px}
+table.data > tfoot .sig-name{font-size:8.5px;min-height:10px;margin-bottom:3px}
+table.data > tfoot .sig-sub{font-size:8px}
 
 /* ===== SIGNATURES ===== */
 .signatures-wrap{margin-top:14px;page-break-inside:avoid;break-inside:avoid}
@@ -199,13 +210,6 @@ table.data tr:hover{background:#eaf1fb}
 .sig-sub{font-size:9px;color:#555}
 .doc-meta{margin-top:8px;display:flex;justify-content:center;font-size:9px;color:#666;padding:5px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
-
-/* ===== REPEATING SHELL ===== */
-.print-shell{width:100%;border-collapse:collapse}
-.print-shell > tfoot{display:table-footer-group}
-.print-shell > thead > tr > td,
-.print-shell > tfoot > tr > td,
-.print-shell > tbody > tr > td{padding:0;border:0;vertical-align:top}
 
 /* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
 body.repeat-sigs #sigs-end{display:none}
@@ -223,7 +227,13 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   .preview-bar{display:none!important}
   #repeat-banner-preview{display:none!important}
   .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
-  tr,td,th{page-break-inside:avoid}
+  table.data{page-break-inside:auto;break-inside:auto}
+  table.data > thead{display:table-header-group!important}
+  table.data > tbody{display:table-row-group!important}
+  table.data > tfoot{display:table-footer-group!important}
+  table.data > tbody > tr{page-break-inside:avoid;break-inside:avoid}
+  table.data > thead .repeat-banner-row,
+  table.data > thead .columns-row{break-inside:avoid;page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
 }
 </style>
@@ -270,23 +280,18 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
 <div class="watermark">الجامعة التكنولوجية</div>
 
 <div class="print-area">
-  <table class="print-shell">
-    <thead><tr><td>${bannerHtml}</td></tr></thead>
-    <tbody>
-      <tr><td>
-        <table class="data">
-          <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </td></tr>
-      <tr><td>
-        <div id="sigs-end" class="signatures-wrap">
-          ${signaturesHtml}
-          <div class="doc-meta"><span><strong>وثيقة رسمية</strong> &nbsp;صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
-        </div>
-      </td></tr>
-    </tbody>
+  <div class="first-banner">${bannerHtml}</div>
+  <table class="data">
+    <thead>
+      <tr class="repeat-banner-row"><th class="banner-cell" colspan="${colCount}">${bannerHtml}</th></tr>
+      <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
   </table>
+  <div id="sigs-end" class="signatures-wrap">
+    ${signaturesHtml}
+    <div class="doc-meta"><span><strong>وثيقة رسمية</strong> &nbsp;صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
+  </div>
 </div>
 
 <!-- محاكاة شكل الصفحة الثانية أثناء الطباعة — للمعاينة فقط -->
@@ -356,13 +361,13 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   var SIG_HTML = ${JSON.stringify(signaturesHtml)};
   function applyRepeatSigs(){
     var on = $('pv-repeat-sigs').checked;
-    var shell = document.querySelector('.print-shell');
-    var existing = shell.querySelector('tfoot');
+    var dataTable = document.querySelector('table.data');
+    var existing = dataTable.querySelector(':scope > tfoot');
     if(on){
       if(!existing){
         var tfoot = document.createElement('tfoot');
-        tfoot.innerHTML = '<tr><td><div id="sigs-foot" class="signatures-wrap">'+SIG_HTML+'</div></td></tr>';
-        shell.appendChild(tfoot);
+        tfoot.innerHTML = '<tr><td class="footer-cell" colspan="${colCount}"><div id="sigs-foot" class="signatures-wrap">'+SIG_HTML+'</div></td></tr>';
+        dataTable.appendChild(tfoot);
       }
       body.classList.add('repeat-sigs');
     } else {
