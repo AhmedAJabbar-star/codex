@@ -33,6 +33,10 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   ).join('');
 
   const colCount = headers.length;
+  const hasNotesColumn = headers.some(isNotes);
+  const notesWidth = hasNotesColumn && colCount > 1 ? 18 : 0;
+  const normalWidth = ((100 - notesWidth) / Math.max(1, colCount - (hasNotesColumn ? 1 : 0))).toFixed(3);
+  const colgroupHtml = `<colgroup>${headers.map(h => `<col style="width:${isNotes(h) && notesWidth ? notesWidth : normalWidth}%">`).join('')}</colgroup>`;
   const rowCount = rows.length;
   const baseFont = colCount > 16 ? 7 : colCount > 14 ? 7.8 : colCount > 12 ? 8.6 : colCount > 10 ? 9.4 : colCount > 8 ? 10.2 : 11;
   const rowFactor = rowCount > 40 ? 0.9 : rowCount > 25 ? 0.95 : 1;
@@ -93,7 +97,11 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   </div>` : ''}
 </div>`;
 
-  // No separate "running header" — we repeat the SAME full banner via <thead>.
+  const fixedPrintHeaderHtml = `
+<div class="fixed-print-header" aria-hidden="true">
+  ${bannerHtml}
+  <table class="fixed-columns-table">${colgroupHtml}<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead></table>
+</div>`;
 
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -155,10 +163,9 @@ body.in-preview{padding:0}
 .banner > *:last-child{margin-bottom:0}
 .info-band:empty,.filters-band:empty{display:none}
 
-/* ===== REPEATING BANNER (position:fixed = reliable repeat on every printed page in Chrome) ===== */
+/* ===== REPEATING PRINT HEADER (banner + column titles, fixed = reliable on every page) ===== */
 .first-banner{margin-bottom:6px}
 .fixed-banner-print{display:none}
-body.repeat-header .first-banner{display:none}
 
 /* Compact look ONLY for the repeated banner (fixed-print + on-screen page-2 preview). */
 body.compact-repeat .fixed-banner-print .banner,
@@ -181,8 +188,9 @@ body.hide-count   .banner .cell-count{display:none}
 
 /* ===== DATA TABLE ===== */
 table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto;margin-top:4px}
+table.fixed-columns-table{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:fixed;margin-top:4px}
 table.data thead{display:table-header-group}
-table.data th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;line-height:1.2;-webkit-print-color-adjust:exact;print-color-adjust:exact;word-break:break-word;white-space:normal}
+table.data th,table.fixed-columns-table th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;line-height:1.2;-webkit-print-color-adjust:exact;print-color-adjust:exact;word-break:break-word;white-space:normal}
 table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.3;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
 table.data .notes-col{min-width:38mm;white-space:pre-wrap;text-align:right}
 table.data tr.even{background:#f4f8fd;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -216,6 +224,7 @@ body.repeat-sigs #sigs-end{display:none}
 #repeat-banner-preview .page2-paper{background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:0 0 8px 8px;border-top:3px dashed #0f4c81;position:relative;min-height:120px}
 #repeat-banner-preview .page2-paper::after{content:"⋯ بقية بيانات التقرير ⋯";display:block;text-align:center;color:#94a3b8;font-weight:700;padding:18px 0 6px;font-size:12px;font-style:italic}
 body:not(.repeat-header) #repeat-banner-preview .banner{display:none}
+body:not(.repeat-header) #repeat-banner-preview .fixed-columns-table{display:none}
 body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"🚫 تكرار البانر معطّل — الصفحات التالية تبدأ مباشرةً ببيانات الجدول";display:block;text-align:center;color:#dc2626;font-weight:800;padding:16px;font-size:13px;background:#fef2f2;border:1.5px dashed #fca5a5;border-radius:6px;margin-bottom:8px}
 
 @media print{
@@ -224,13 +233,16 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   #repeat-banner-preview{display:none!important}
   .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
   table.data{page-break-inside:auto;break-inside:auto}
+  table.data,table.fixed-columns-table{table-layout:fixed!important}
   table.data > thead{display:table-header-group!important}
+  body.repeat-header table.data > thead{display:none!important}
   table.data > tbody{display:table-row-group!important}
   table.data > tfoot{display:table-footer-group!important}
   table.data > tbody > tr{page-break-inside:avoid;break-inside:avoid}
   table.data > thead .columns-row{break-inside:avoid;page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
-  /* Fixed banner: position:fixed repeats on EVERY printed page in Chrome. */
+  /* Fixed print header: repeats banner AND column titles on EVERY printed page. */
+  body.repeat-header .first-banner{display:none!important}
   body.repeat-header .fixed-banner-print{display:block;position:fixed;top:0;left:0;right:0;background:#fff;z-index:9999;padding:0 6mm}
   body.repeat-header .fixed-banner-print .banner{margin-bottom:0;border-bottom:2px solid #0f4c81}
 }
@@ -277,12 +289,13 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
 
 <div class="watermark">الجامعة التكنولوجية</div>
 
-<!-- Fixed banner: repeats on every printed page via position:fixed (visible only in print when repeat-header is on) -->
-<div class="fixed-banner-print" aria-hidden="true">${bannerHtml}</div>
+<!-- Fixed print header: repeats banner + column titles on every printed page -->
+<div class="fixed-banner-print" aria-hidden="true">${fixedPrintHeaderHtml}</div>
 
 <div class="print-area">
   <div class="first-banner">${bannerHtml}</div>
   <table class="data">
+    ${colgroupHtml}
     <thead>
       <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
     </thead>
@@ -299,6 +312,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <div class="page2-label">🔁 معاينة الصفحة الثانية وما بعدها — بانر التكرار</div>
   <div class="page2-paper">
     ${bannerHtml}
+    <table class="fixed-columns-table">${colgroupHtml}<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead></table>
   </div>
 </div>
 
