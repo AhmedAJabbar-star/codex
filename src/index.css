@@ -838,3 +838,188 @@ select option, select optgroup {
     opacity: 0;
   }
 }
+
+/* ============================================================
+   3D Vibrant System Cards (Dashboard)
+   ============================================================ */
+.cards-3d-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:22px;
+  padding:24px;
+  perspective:1400px;
+}
+@media (min-width:1400px){ .cards-3d-grid{ grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:26px; } }
+
+.card3d{
+  --c: #2563eb;
+  --c2: #1d4ed8;
+  position:relative;
+  display:block;
+  width:100%;
+  min-height:200px;
+  padding:22px 22px 20px;
+  text-align:right;
+  border:0;
+  border-radius:22px;
+  cursor:pointer;
+  isolation:isolate;
+  transform-style:preserve-3d;
+  transform: translateZ(0) rotateX(0deg) rotateY(0deg);
+  transition: transform .55s cubic-bezier(.2,.8,.2,1), box-shadow .45s ease, filter .35s ease;
+  background:
+    radial-gradient(120% 80% at 80% -10%, color-mix(in srgb, var(--c) 32%, transparent) 0%, transparent 55%),
+    radial-gradient(120% 80% at -10% 110%, color-mix(in srgb, var(--c2) 22%, transparent) 0%, transparent 60%),
+    linear-gradient(160deg, rgba(255,255,255,.92) 0%, rgba(245,248,255,.88) 50%, rgba(232,238,250,.92) 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 -18px 30px -20px color-mix(in srgb, var(--c) 35%, transparent) inset,
+    0 18px 32px -18px color-mix(in srgb, var(--c) 40%, transparent),
+    0 28px 60px -30px rgba(15,23,42,.35),
+    0 2px 6px rgba(15,23,42,.08);
+}
+:root.dark .card3d, .dark .card3d{
+  background:
+    radial-gradient(120% 80% at 80% -10%, color-mix(in srgb, var(--c) 40%, transparent) 0%, transparent 55%),
+    radial-gradient(120% 80% at -10% 110%, color-mix(in srgb, var(--c2) 30%, transparent) 0%, transparent 60%),
+    linear-gradient(160deg, #1a2440 0%, #131c33 60%, #0e1628 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 -18px 30px -20px color-mix(in srgb, var(--c) 45%, transparent) inset,
+    0 18px 32px -18px color-mix(in srgb, var(--c) 55%, transparent),
+    0 30px 70px -30px rgba(0,0,0,.7);
+}
+
+/* Glossy top sheen */
+.card3d::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:inherit;
+  background:linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 38%);
+  mix-blend-mode:overlay;
+  pointer-events:none;
+  z-index:2;
+}
+/* Gradient ring */
+.card3d::after{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:inherit;
+  padding:1.5px;
+  background:linear-gradient(140deg, color-mix(in srgb, var(--c) 70%, white) 0%, transparent 45%, color-mix(in srgb, var(--c2) 60%, white) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events:none;
+  z-index:3;
+}
+
+.card3d:hover{
+  transform: translateY(-6px) rotateX(6deg) rotateY(-6deg);
+  filter:saturate(1.08);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.95) inset,
+    0 -22px 40px -22px color-mix(in srgb, var(--c) 55%, transparent) inset,
+    0 26px 50px -20px color-mix(in srgb, var(--c) 55%, transparent),
+    0 40px 80px -28px rgba(15,23,42,.45);
+}
+.card3d:active{ transform:translateY(-2px) rotateX(2deg) rotateY(-2deg) scale(.99); }
+
+/* Inner layers receive depth via translateZ */
+.card3d__inner{ position:relative; z-index:4; display:flex; gap:14px; align-items:flex-start; transform:translateZ(30px); }
+
+.card3d__icon{
+  flex-shrink:0;
+  width:62px; height:62px;
+  border-radius:18px;
+  display:grid; place-items:center;
+  font-size:30px;
+  color:#fff;
+  background:linear-gradient(150deg, var(--c) 0%, var(--c2) 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.5) inset,
+    0 -6px 14px rgba(0,0,0,.25) inset,
+    0 10px 22px -8px color-mix(in srgb, var(--c) 70%, transparent),
+    0 4px 10px rgba(15,23,42,.18);
+  transform:translateZ(40px) rotate(-4deg);
+  transition: transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.card3d:hover .card3d__icon{ transform:translateZ(60px) rotate(-8deg) scale(1.06); }
+
+.card3d__body{ min-width:0; flex:1; }
+.card3d__title{
+  margin:2px 0 6px;
+  font-size:1.05rem;
+  font-weight:900;
+  line-height:1.35;
+  color:var(--schedule-text);
+  letter-spacing:-.01em;
+}
+.card3d__desc{
+  margin:0;
+  font-size:.82rem;
+  font-weight:600;
+  line-height:1.55;
+  color:var(--schedule-muted);
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+}
+
+.card3d__count{
+  position:relative;
+  z-index:4;
+  margin-top:14px;
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:.72rem; font-weight:900;
+  color:#fff;
+  background:linear-gradient(135deg, var(--c) 0%, var(--c2) 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.4) inset,
+    0 6px 14px -6px color-mix(in srgb, var(--c) 65%, transparent);
+  transform:translateZ(25px);
+}
+
+.card3d__badge{
+  position:absolute; top:12px; left:12px;
+  z-index:5;
+  font-size:.62rem; font-weight:900;
+  padding:4px 9px;
+  border-radius:999px;
+  color:#fff;
+  background:linear-gradient(135deg, var(--c) 0%, var(--c2) 100%);
+  box-shadow:0 4px 10px -4px color-mix(in srgb, var(--c) 60%, transparent);
+  transform:translateZ(20px);
+  letter-spacing:.02em;
+}
+
+.card3d__arrow{
+  position:absolute; bottom:14px; left:14px;
+  z-index:4;
+  width:34px; height:34px;
+  border-radius:50%;
+  display:grid; place-items:center;
+  font-size:18px; font-weight:900;
+  color:var(--c);
+  background:rgba(255,255,255,.85);
+  border:1.5px solid color-mix(in srgb, var(--c) 30%, transparent);
+  opacity:0; transform:translateZ(20px) translateX(-6px);
+  transition:opacity .3s, transform .4s;
+}
+:root.dark .card3d__arrow, .dark .card3d__arrow{ background:rgba(20,30,55,.85); color:#fff; }
+.card3d:hover .card3d__arrow{ opacity:1; transform:translateZ(35px) translateX(0); }
+
+/* Floating ambient orbs */
+.card3d__orb{
+  position:absolute; border-radius:50%;
+  filter:blur(22px);
+  opacity:.55;
+  pointer-events:none;
+  z-index:1;
+}
+.card3d__orb--a{ width:140px; height:140px; top:-40px; right:-30px; background:var(--c); }
+.card3d__orb--b{ width:110px; height:110px; bottom:-40px; left:-20px; background:var(--c2); opacity:.35; }
+
+@media (prefers-reduced-motion: reduce){
+  .card3d, .card3d *{ transition:none !important; }
+  .card3d:hover{ transform:none; }
+}

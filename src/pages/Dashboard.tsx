@@ -544,87 +544,64 @@ const Dashboard = () => {
             </div>
           </header>
 
-          {/* System Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5 p-4 sm:p-6">
+          {/* System Cards Grid - 3D Vibrant */}
+          <div className="cards-3d-grid">
             {groups.map(group => {
               const count = groupRowCount(group);
-              const gradient = `linear-gradient(135deg, ${group.color} 0%, ${group.color}cc 100%)`;
               return (
                 <button
                   key={`group-${group.id}`}
                   onClick={() => navigate(`/group/${group.id}`)}
-                  className="group relative overflow-hidden rounded-2xl border-2 border-[var(--schedule-border)] p-6 text-right transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
-                  style={{ background: 'var(--schedule-card-bg)' }}
+                  className="card3d"
+                  style={{ ['--c' as any]: group.color, ['--c2' as any]: group.color } as React.CSSProperties}
                 >
-                  <div className="absolute top-0 right-0 w-1.5 h-full rounded-l-full" style={{ background: gradient }} />
-                  <div className="absolute top-2 left-2 text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: `${group.color}20`, color: group.color }}>
-                    📦 مجموعة · {group.systemIds.length}
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="text-4xl flex-shrink-0 w-14 h-14 rounded-2xl grid place-items-center" style={{ background: `${group.color}15` }}>
-                      {group.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-black text-[var(--schedule-text)] mb-1 group-hover:text-[var(--schedule-accent-blue)] transition-colors">
-                        {group.title}
-                      </h3>
-                      <p className="text-sm font-semibold text-[var(--schedule-muted)] leading-relaxed">
-                        {group.description || 'مجموعة أنظمة'}
-                      </p>
-                      {count > 0 && (
-                        <div className="mt-3 inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black" style={{ background: `${group.color}12`, color: group.color }}>
-                          📊 {count.toLocaleString('ar-SA')} سجل
-                        </div>
-                      )}
+                  <span className="card3d__orb card3d__orb--a" />
+                  <span className="card3d__orb card3d__orb--b" />
+                  <span className="card3d__badge">📦 مجموعة · {group.systemIds.length}</span>
+                  <div className="card3d__inner">
+                    <div className="card3d__icon">{group.icon}</div>
+                    <div className="card3d__body">
+                      <h3 className="card3d__title">{group.title}</h3>
+                      <p className="card3d__desc">{group.description || 'مجموعة أنظمة'}</p>
                     </div>
                   </div>
+                  {count > 0 && (
+                    <div className="card3d__count">📊 {count.toLocaleString('ar-SA')} سجل</div>
+                  )}
+                  <div className="card3d__arrow">←</div>
                 </button>
               );
             })}
             {visibleCards.map(card => {
               const count = getSystemRowCount(card.id);
+              const m = /linear-gradient\([^,]+,\s*([^\s]+)\s+0%\s*,\s*([^\s]+)\s+100%/.exec(card.gradient || '');
+              const c1 = m?.[1] || card.color;
+              const c2 = m?.[2] || card.color;
               return (
                 <button
                   key={card.id}
                   onClick={() => navigate(card.path)}
-                  className="group relative overflow-hidden rounded-2xl border border-[var(--schedule-border)] p-6 text-right transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
-                  style={{
-                    background: 'var(--schedule-card-bg)',
-                  }}
+                  className="card3d"
+                  style={{ ['--c' as any]: c1, ['--c2' as any]: c2 } as React.CSSProperties}
                 >
-                  {/* Accent bar */}
-                  <div className="absolute top-0 right-0 w-1.5 h-full rounded-l-full" style={{ background: card.gradient }} />
-
-                  <div className="flex items-start gap-4">
-                    <div className="text-4xl flex-shrink-0 w-14 h-14 rounded-2xl grid place-items-center"
-                      style={{ background: `${card.color}15`, }}
-                    >
-                      {card.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-black text-[var(--schedule-text)] mb-1 group-hover:text-[var(--schedule-accent-blue)] transition-colors">
-                        {card.title}
-                      </h3>
-                      <p className="text-sm font-semibold text-[var(--schedule-muted)] leading-relaxed">
-                        {card.description}
-                      </p>
-                      {count > 0 && (
-                        <div className="mt-3 inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black"
-                          style={{ background: `${card.color}12`, color: card.color }}>
-                          📊 {count.toLocaleString('ar-SA')} سجل
-                        </div>
-                      )}
+                  <span className="card3d__orb card3d__orb--a" />
+                  <span className="card3d__orb card3d__orb--b" />
+                  <div className="card3d__inner">
+                    <div className="card3d__icon">{card.icon}</div>
+                    <div className="card3d__body">
+                      <h3 className="card3d__title">{card.title}</h3>
+                      <p className="card3d__desc">{card.description}</p>
                     </div>
                   </div>
-
-                  {/* Hover arrow */}
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all text-[var(--schedule-accent-blue)] text-xl font-black">
-                    ←
-                  </div>
+                  {count > 0 && (
+                    <div className="card3d__count">📊 {count.toLocaleString('ar-SA')} سجل</div>
+                  )}
+                  <div className="card3d__arrow">←</div>
                 </button>
               );
             })}
           </div>
+
 
           {/* Footer */}
           <div className="schedule-footer">
