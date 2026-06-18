@@ -6,6 +6,7 @@ import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
 import { useEffect, useMemo, useState } from 'react';
+import { useDarkMode } from '@/lib/darkMode';
 import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 import { listCustomSystems, CUSTOM_SYSTEMS_UPDATED_EVENT } from '@/data/customSystemsRegistry';
 import { evaluateCondition, applyDerivedColumns } from '@/lib/conditionEngine';
@@ -253,6 +254,7 @@ const systemCards = [
 ];
 
 const Dashboard = () => {
+  const [isDark, setIsDark] = useDarkMode();
   const [rules, setRules] = useState(() => getRules());
   const [groups, setGroups] = useState<SystemGroup[]>(() => getGroups());
   const navigate = useNavigate();
