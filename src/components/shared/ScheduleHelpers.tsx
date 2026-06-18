@@ -272,7 +272,6 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ğŸ
 <div class="print-area">
   <table class="print-shell">
     <thead><tr><td>${bannerHtml}</td></tr></thead>
-    <tfoot><tr><td><div id="sigs-foot" class="signatures-wrap">${signaturesHtml}</div></td></tr></tfoot>
     <tbody>
       <tr><td>
         <table class="data">
