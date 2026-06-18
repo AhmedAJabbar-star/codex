@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 
 export type UiTheme =
-  | 'royal'      // Royal Navy + Gold (default — formal university)
+  | 'original'   // Original system look (colored side rails, pastel pills)
+  | 'vivid3d'    // Vibrant 3D with depth and orbs
+  | 'glasspro'   // Premium professional frosted glass
+  | 'royal'      // Royal Navy + Gold
   | 'sapphire'   // Deep Sapphire + Silver
   | 'burgundy'   // Burgundy + Cream
   | 'forest'     // Forest Green + Bronze
@@ -13,6 +16,9 @@ export type UiTheme =
   | 'glass';     // Crystal Glass
 
 export const UI_THEMES: { id: UiTheme; label: string; description: string; swatch: string }[] = [
+  { id: 'original', label: '🏛️ الأصلي — تصميم النظام',     description: 'الواجهة الأصلية للنظام: بطاقات بيضاء بأشرطة جانبية ملوّنة وشارات باستيل.', swatch: 'linear-gradient(135deg,#e0f2fe,#fae8ff)' },
+  { id: 'vivid3d',  label: '✨ ثلاثي الأبعاد النابض',        description: 'بطاقات ثلاثية الأبعاد بمنظور حيوي وألوان نابضة وهالات ضوئية.',              swatch: 'linear-gradient(135deg,#6366f1,#ec4899)' },
+  { id: 'glasspro', label: '🪟 زجاجي احترافي',              description: 'زجاج مصقول احترافي بضبابية عالية وحواف لامعة — مظهر أبل-بريميوم.',         swatch: 'linear-gradient(135deg,#bfdbfe,#e0e7ff)' },
   { id: 'royal',    label: '👑 الملكي — كحلي وذهبي',       description: 'كحلي عميق مع ذهب دافئ وخلفية كريمية — الطابع الجامعي الرسمي.', swatch: 'linear-gradient(135deg,#0b2545,#c9a24a)' },
   { id: 'sapphire', label: '💠 الياقوت الأزرق',             description: 'أزرق ياقوتي عميق مع لمسات فضية — أكاديمي راقٍ.',                swatch: 'linear-gradient(135deg,#0a1f44,#94a3b8)' },
   { id: 'burgundy', label: '🍷 العنابي الكلاسيكي',          description: 'عنابي أكاديمي مع عاجي دافئ ولمسات ذهبية.',                       swatch: 'linear-gradient(135deg,#6e1423,#b8860b)' },
