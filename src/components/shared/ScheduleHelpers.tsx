@@ -34,9 +34,9 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
 
   const colCount = headers.length;
   const hasNotesColumn = headers.some(isNotes);
-  const notesWidth = hasNotesColumn ? 18 : 0;
+  const notesWidth = hasNotesColumn && colCount > 1 ? 18 : 0;
   const normalWidth = ((100 - notesWidth) / Math.max(1, colCount - (hasNotesColumn ? 1 : 0))).toFixed(3);
-  const colgroupHtml = `<colgroup>${headers.map(h => `<col style="width:${isNotes(h) ? notesWidth : normalWidth}%">`).join('')}</colgroup>`;
+  const colgroupHtml = `<colgroup>${headers.map(h => `<col style="width:${isNotes(h) && notesWidth ? notesWidth : normalWidth}%">`).join('')}</colgroup>`;
   const rowCount = rows.length;
   const baseFont = colCount > 16 ? 7 : colCount > 14 ? 7.8 : colCount > 12 ? 8.6 : colCount > 10 ? 9.4 : colCount > 8 ? 10.2 : 11;
   const rowFactor = rowCount > 40 ? 0.9 : rowCount > 25 ? 0.95 : 1;
