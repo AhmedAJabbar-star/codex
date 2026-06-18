@@ -23,6 +23,7 @@ const ControlPanel = () => {
   const [saving, setSaving] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [builderInitial, setBuilderInitial] = useState<CustomSystemDef | null>(null);
+  const [uiTheme, setUi] = useUiTheme();
   const navigate = useNavigate();
 
   const { data: customSystems = [], refetch: refetchCustom } = useQuery({
