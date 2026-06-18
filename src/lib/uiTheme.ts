@@ -39,6 +39,12 @@ export const UI_THEMES: { id: UiTheme; label: string; description: string; swatc
   { id: 'oxford',   label: '📘 الأزرق الأكسفوردي',           description: 'أزرق أكسفوردي عميق مع ذهبي فاتح — رسمية عالمية متجذرة.',        swatch: 'linear-gradient(135deg,#0a1e3d,#d4af37)' },
   { id: 'ivory',    label: '🦢 العاجي الفاخر',               description: 'عاجي ناصع مع بني غامق ونحاسي — أناقة كلاسيكية جامعية.',          swatch: 'linear-gradient(135deg,#fdfbf7,#3c2415)' },
   { id: 'cobalt',   label: '🔷 الكوبالت الأزرق',              description: 'أزرق كوبالتي حديث مع فضي لامع — عصري ومهني أكاديمياً.',          swatch: 'linear-gradient(135deg,#0047ab,#c0c0c0)' },
+  // ===== YOUTH / MODERN (5 extra) =====
+  { id: 'glasspro', label: '💎 الزجاجي الاحترافي 3D',          description: 'زجاج مصنفر فاخر ثلاثي الأبعاد، بطاقات متعددة الألوان مع وهج بنفسجي/أزرق.', swatch: 'linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6)' },
+  { id: 'neon',     label: '🌃 نيون سايبر',                    description: 'خلفية داكنة مع حواف نيون متوهجة بألوان مختلفة لكل بطاقة — طابع شبابي تقني.', swatch: 'linear-gradient(135deg,#0ff,#f0f,#ff0)' },
+  { id: 'gradient', label: '🌈 التدرج الشبابي',                 description: 'تدرجات نابضة (برتقالي/وردي/أزرق/أخضر) متفرّدة لكل بطاقة — حيوي وعصري.',  swatch: 'linear-gradient(135deg,#fb923c,#ec4899,#8b5cf6)' },
+  { id: 'holo',     label: '🦋 الهولوجرام البلوري',              description: 'انعكاسات قزحية متلألئة — تأثير الهولوجرام/الصدف بتدرّجات مختلفة لكل بطاقة.',  swatch: 'linear-gradient(135deg,#a5f3fc,#c4b5fd,#fbcfe8,#fde68a)' },
+  { id: 'mesh',     label: '🎨 شبكة الألوان النابضة',           description: 'شبكة Mesh ملونة بألوان مختلفة لكل بطاقة — تصميم Y2K حديث وجريء.',          swatch: 'linear-gradient(135deg,#22d3ee,#a855f7,#f43f5e,#facc15)' },
 ];
 
 const KEY = 'ui-theme';
