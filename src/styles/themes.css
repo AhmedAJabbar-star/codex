@@ -722,3 +722,192 @@
 :root.dark[data-ui-theme="glasspro"] .card3d__arrow{
   background:linear-gradient(135deg,#818cf8,#a78bfa) !important; color:#0b1220 !important;
 }
+
+/* ============================================================
+   LIQUID GLASS — brand new iridescent vision-style glass design.
+   Distinct from "glass" and "glasspro": aurora mesh background,
+   chromatic frosted cards with iridescent borders, inner highlight
+   stroke, soft refraction shadow, and chrome accents.
+   ============================================================ */
+:root[data-ui-theme="liquid"] body,
+:root[data-ui-theme="liquid"] .schedule-body{
+  background:
+    radial-gradient(40% 35% at 15% 10%, rgba(165,243,252,.55), transparent 65%),
+    radial-gradient(45% 40% at 85% 20%, rgba(196,181,253,.50), transparent 65%),
+    radial-gradient(50% 45% at 75% 90%, rgba(251,207,232,.50), transparent 65%),
+    radial-gradient(35% 30% at 25% 80%, rgba(186,230,253,.45), transparent 65%),
+    linear-gradient(160deg,#f8fafc 0%,#eef2ff 50%,#fdf2f8 100%) !important;
+  background-attachment: fixed !important;
+}
+:root[data-ui-theme="liquid"] .schedule-body::before,
+:root[data-ui-theme="liquid"] .schedule-body::after{ display:none !important; }
+
+:root[data-ui-theme="liquid"] .schedule-card,
+:root[data-ui-theme="liquid"] .schedule-header{
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.72) 0%, rgba(255,255,255,.48) 100%) !important;
+  backdrop-filter: blur(32px) saturate(1.8) brightness(1.05);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.05);
+  border: 1px solid transparent !important;
+  background-clip: padding-box !important;
+  color:#1e1b4b !important;
+  border-radius: 22px !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 -1px 0 rgba(255,255,255,.4) inset,
+    0 30px 60px -30px rgba(99,102,241,.30),
+    0 8px 20px -10px rgba(236,72,153,.18) !important;
+  position: relative;
+}
+
+/* iridescent border ring */
+:root[data-ui-theme="liquid"] .schedule-card::after,
+:root[data-ui-theme="liquid"] .card3d::after{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: inherit;
+  padding:1px;
+  background: linear-gradient(135deg,
+    rgba(165,243,252,.9) 0%,
+    rgba(196,181,253,.7) 35%,
+    rgba(251,207,232,.7) 65%,
+    rgba(186,230,253,.9) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events:none;
+  z-index: 1;
+}
+
+:root[data-ui-theme="liquid"] .card3d{
+  --c:#7c3aed; --c2:#0ea5e9;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,.38) 100%) !important;
+  backdrop-filter: blur(28px) saturate(1.7) brightness(1.05);
+  -webkit-backdrop-filter: blur(28px) saturate(1.7) brightness(1.05);
+  border: 1px solid transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 22px !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.85) inset,
+    0 -1px 0 rgba(255,255,255,.35) inset,
+    0 28px 50px -28px rgba(124,58,237,.32),
+    0 10px 22px -12px rgba(14,165,233,.20) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* refraction sheen */
+:root[data-ui-theme="liquid"] .card3d::before{
+  content:"";
+  position:absolute;
+  top:-40%; left:-20%;
+  width:80%; height:60%;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,.55), transparent 70%);
+  filter: blur(20px);
+  pointer-events:none;
+  z-index: 0;
+  opacity:.7;
+}
+
+:root[data-ui-theme="liquid"] .card3d > *{ position: relative; z-index: 2; }
+
+:root[data-ui-theme="liquid"] .card3d:hover{
+  transform: perspective(1400px) rotateX(1.5deg) rotateY(-2deg) translateY(-5px) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.95) inset,
+    0 32px 60px -28px rgba(124,58,237,.4),
+    0 12px 26px -12px rgba(14,165,233,.25) !important;
+}
+
+:root[data-ui-theme="liquid"] .card3d__orb{
+  opacity:.22 !important; filter:blur(36px) !important;
+}
+
+:root[data-ui-theme="liquid"] .card3d__title{
+  color:#1e1b4b !important;
+  font-weight: 800 !important;
+  letter-spacing: -.01em;
+}
+:root[data-ui-theme="liquid"] .card3d__desc{ color:#4c4980 !important; }
+
+:root[data-ui-theme="liquid"] .card3d__icon{
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.95) 0%, rgba(255,255,255,.55) 100%) !important;
+  color:#7c3aed !important;
+  border: 1px solid rgba(255,255,255,.9) !important;
+  box-shadow:
+    0 8px 18px -8px rgba(124,58,237,.45),
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -8px 14px rgba(165,243,252,.4) !important;
+  backdrop-filter: blur(10px) saturate(1.5);
+}
+
+:root[data-ui-theme="liquid"] .card3d__count{
+  background: linear-gradient(135deg, rgba(124,58,237,.92) 0%, rgba(14,165,233,.92) 100%) !important;
+  color:#ffffff !important;
+  border: 1px solid rgba(255,255,255,.5) !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px -4px rgba(124,58,237,.4), inset 0 1px 0 rgba(255,255,255,.4) !important;
+}
+
+:root[data-ui-theme="liquid"] .card3d__badge{
+  background: linear-gradient(135deg, rgba(244,114,182,.92) 0%, rgba(196,181,253,.92) 100%) !important;
+  color:#ffffff !important;
+  border: 1px solid rgba(255,255,255,.5) !important;
+  backdrop-filter: blur(8px);
+}
+
+:root[data-ui-theme="liquid"] .card3d__arrow{
+  background: linear-gradient(135deg, rgba(255,255,255,.95) 0%, rgba(255,255,255,.6) 100%) !important;
+  color:#7c3aed !important;
+  border: 1px solid rgba(255,255,255,.85) !important;
+  box-shadow:
+    0 6px 14px -6px rgba(124,58,237,.4),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================================
+   LIQUID GLASS — Dark mode
+   ============================================================ */
+:root.dark[data-ui-theme="liquid"] body,
+:root.dark[data-ui-theme="liquid"] .schedule-body{
+  background:
+    radial-gradient(40% 35% at 15% 10%, rgba(34,211,238,.20), transparent 65%),
+    radial-gradient(45% 40% at 85% 20%, rgba(167,139,250,.22), transparent 65%),
+    radial-gradient(50% 45% at 75% 90%, rgba(244,114,182,.18), transparent 65%),
+    linear-gradient(180deg,#080a18 0%,#0b1024 50%,#0a0716 100%) !important;
+  color:#f1f5f9 !important;
+}
+:root.dark[data-ui-theme="liquid"] .schedule-card,
+:root.dark[data-ui-theme="liquid"] .schedule-header,
+:root.dark[data-ui-theme="liquid"] .card3d{
+  background:
+    linear-gradient(135deg, rgba(30,27,75,.55) 0%, rgba(15,23,42,.45) 100%) !important;
+  backdrop-filter: blur(28px) saturate(1.6) brightness(1.1);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6) brightness(1.1);
+  color:#f1f5f9 !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.12) inset,
+    0 -1px 0 rgba(255,255,255,.05) inset,
+    0 28px 50px -28px rgba(0,0,0,.6) !important;
+}
+:root.dark[data-ui-theme="liquid"] .schedule-card::after,
+:root.dark[data-ui-theme="liquid"] .card3d::after{
+  background: linear-gradient(135deg,
+    rgba(34,211,238,.55) 0%,
+    rgba(167,139,250,.50) 50%,
+    rgba(244,114,182,.55) 100%);
+}
+:root.dark[data-ui-theme="liquid"] .card3d__title{ color:#f1f5f9 !important; }
+:root.dark[data-ui-theme="liquid"] .card3d__desc{ color:#cbd5e1 !important; }
+:root.dark[data-ui-theme="liquid"] .card3d__icon{
+  background: linear-gradient(135deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.06) 100%) !important;
+  color:#e0e7ff !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+}
+:root.dark[data-ui-theme="liquid"] .card3d__arrow{
+  background: linear-gradient(135deg, rgba(167,139,250,.95) 0%, rgba(34,211,238,.95) 100%) !important;
+  color:#0b1024 !important;
+}
