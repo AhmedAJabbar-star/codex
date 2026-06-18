@@ -1023,3 +1023,333 @@ select option, select optgroup {
   .card3d, .card3d *{ transition:none !important; }
   .card3d:hover{ transform:none; }
 }
+
+/* ============================================================
+   Professional Loader (Hourglass + Skeleton)
+   ============================================================ */
+.loader-pro{
+  display:flex; flex-direction:column; align-items:center; gap:22px;
+  padding:40px 48px;
+  border-radius:24px;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(245,249,255,.78));
+  border:1px solid var(--schedule-border);
+  box-shadow:0 30px 70px -30px rgba(15,23,42,.25), 0 2px 6px rgba(15,23,42,.05);
+  backdrop-filter:saturate(180%) blur(14px);
+  min-width:280px;
+}
+.dark .loader-pro{
+  background:linear-gradient(180deg, rgba(15,23,40,.92), rgba(11,18,32,.82));
+}
+.loader-pro__title{
+  margin:0;
+  font-size:14px; font-weight:800;
+  letter-spacing:.02em;
+  color:var(--schedule-text);
+  text-align:center;
+}
+.loader-pro__error{
+  width:72px; height:72px;
+  border-radius:18px;
+  display:grid; place-items:center;
+  color:#dc2626;
+  background:rgba(239,68,68,.10);
+  border:1px solid rgba(239,68,68,.22);
+}
+.loader-pro__skeleton{
+  width:240px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.loader-pro__skeleton span{
+  height:8px; border-radius:999px;
+  background:linear-gradient(90deg,
+    rgba(148,163,184,.12) 0%,
+    rgba(37,99,235,.22) 50%,
+    rgba(148,163,184,.12) 100%);
+  background-size:200% 100%;
+  animation:skelShimmer 1.4s ease-in-out infinite;
+}
+.loader-pro__skeleton span:nth-child(2){ width:80%; animation-delay:.15s; }
+.loader-pro__skeleton span:nth-child(3){ width:60%; animation-delay:.3s; }
+@keyframes skelShimmer{
+  0%{ background-position:200% 0; }
+  100%{ background-position:-200% 0; }
+}
+
+/* Hourglass — refined, slim, no emoji */
+.hourglass-pro{
+  width:64px; height:88px;
+  display:grid; place-items:center;
+  animation:hgFlip 2.4s cubic-bezier(.7,0,.3,1) infinite;
+}
+.hourglass-pro__frame{
+  position:relative;
+  width:56px; height:80px;
+}
+.hourglass-pro__cap{
+  position:absolute; left:0; right:0;
+  height:6px;
+  background:linear-gradient(180deg, #1e293b, #0f172a);
+  border-radius:3px;
+}
+.dark .hourglass-pro__cap{ background:linear-gradient(180deg, #cbd5e1, #94a3b8); }
+.hourglass-pro__cap--top{ top:0; }
+.hourglass-pro__cap--bottom{ bottom:0; }
+.hourglass-pro__sand{
+  position:absolute; left:6px; right:6px;
+  background:linear-gradient(180deg, #f59e0b, #d97706);
+}
+/* Top sand triangle (drains) */
+.hourglass-pro__sand--top{
+  top:8px; height:30px;
+  clip-path:polygon(0 0, 100% 0, 50% 100%);
+  transform-origin:top;
+  animation:hgDrain 2.4s cubic-bezier(.55,.1,.45,.9) infinite;
+}
+/* Bottom sand triangle (fills) */
+.hourglass-pro__sand--bottom{
+  bottom:8px; height:30px;
+  clip-path:polygon(50% 0, 0 100%, 100% 100%);
+  transform-origin:bottom;
+  animation:hgFill 2.4s cubic-bezier(.55,.1,.45,.9) infinite;
+}
+/* Falling stream */
+.hourglass-pro__stream{
+  position:absolute; top:38px; left:50%;
+  width:2px; height:6px;
+  background:linear-gradient(180deg, #f59e0b, #d97706);
+  border-radius:1px;
+  transform:translateX(-50%);
+  animation:hgStream 2.4s linear infinite;
+}
+@keyframes hgFlip{
+  0%, 88%{ transform:rotate(0deg); }
+  100%{ transform:rotate(180deg); }
+}
+@keyframes hgDrain{
+  0%{ transform:scaleY(1); }
+  85%{ transform:scaleY(0); }
+  100%{ transform:scaleY(0); }
+}
+@keyframes hgFill{
+  0%{ transform:scaleY(0); }
+  85%{ transform:scaleY(1); }
+  100%{ transform:scaleY(1); }
+}
+@keyframes hgStream{
+  0%, 85%{ opacity:1; height:34px; }
+  90%, 100%{ opacity:0; height:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .hourglass-pro, .hourglass-pro__sand--top, .hourglass-pro__sand--bottom,
+  .hourglass-pro__stream, .loader-pro__skeleton span{ animation:none !important; }
+}
+
+/* ============================================================
+   Polished System Page (refined, less childish)
+   ============================================================ */
+.schedule-card{
+  border-radius:22px !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.7) inset,
+    0 24px 60px -28px rgba(15,23,42,.22),
+    0 4px 12px rgba(15,23,42,.06) !important;
+}
+.dark .schedule-card{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.04) inset,
+    0 30px 70px -28px rgba(0,0,0,.5) !important;
+}
+.schedule-header{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,251,255,.86)) !important;
+  padding:24px 28px 20px !important;
+}
+.dark .schedule-header{
+  background:linear-gradient(180deg, rgba(15,23,40,.95), rgba(11,18,32,.85)) !important;
+}
+
+/* Refined inputs & selects (less rounded, more pro) */
+.schedule-select,
+.schedule-input{
+  min-height:44px !important;
+  padding:10px 14px !important;
+  border-radius:10px !important;
+  border:1px solid var(--schedule-border-strong) !important;
+  background:#ffffff !important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04) !important;
+  font-size:13.5px !important;
+  font-weight:600 !important;
+  transition:border-color .15s ease, box-shadow .15s ease !important;
+}
+.dark .schedule-select,
+.dark .schedule-input{
+  background:#0f172a !important;
+  border-color:rgba(148,163,184,.18) !important;
+}
+.schedule-select{
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--schedule-muted) 50%),
+    linear-gradient(135deg, var(--schedule-muted) 50%, transparent 50%) !important;
+  background-position:
+    calc(0% + 14px) 50%,
+    calc(0% + 19px) 50% !important;
+  background-size: 5px 5px, 5px 5px !important;
+  background-repeat:no-repeat !important;
+  padding-left:36px !important;
+}
+.schedule-select:hover,
+.schedule-input:hover{
+  border-color:rgba(37,99,235,.35) !important;
+  transform:none !important;
+}
+.schedule-select:focus,
+.schedule-input:focus{
+  border-color:#2563eb !important;
+  box-shadow:0 0 0 3px rgba(37,99,235,.15) !important;
+  transform:none !important;
+}
+
+.schedule-filter-label{
+  font-size:11px !important;
+  font-weight:800 !important;
+  text-transform:uppercase;
+  letter-spacing:.04em !important;
+  color:var(--schedule-muted) !important;
+  margin-bottom:6px;
+}
+
+/* Refined buttons */
+.schedule-btn{
+  min-height:42px !important;
+  padding:9px 16px !important;
+  border-radius:10px !important;
+  font-size:13.5px !important;
+  font-weight:700 !important;
+  box-shadow:0 1px 2px rgba(15,23,42,.06) !important;
+  transition:all .15s ease !important;
+}
+.schedule-btn:hover{
+  transform:translateY(-1px) !important;
+  box-shadow:0 6px 14px -4px rgba(15,23,42,.15) !important;
+}
+.schedule-btn-primary{
+  background:linear-gradient(180deg, #2563eb, #1d4ed8) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.2) inset, 0 6px 14px -4px rgba(37,99,235,.45) !important;
+}
+.schedule-btn-secondary{
+  background:linear-gradient(180deg, #475569, #334155) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.15) inset, 0 6px 14px -4px rgba(15,23,42,.3) !important;
+}
+
+/* System switcher slides - more refined */
+.system-slide{
+  min-height:64px !important;
+  padding:14px 16px !important;
+  border-radius:12px !important;
+  font-size:13.5px !important;
+  font-weight:800 !important;
+  background:#ffffff !important;
+  border:1px solid var(--schedule-border-strong) !important;
+  transition:all .15s ease !important;
+}
+.dark .system-slide{ background:#0f172a !important; }
+.system-slide:hover{
+  transform:translateY(-1px) !important;
+  border-color:#2563eb !important;
+}
+.system-slide.active{
+  background:linear-gradient(180deg, #2563eb, #1d4ed8) !important;
+  border-color:transparent !important;
+  transform:translateY(-1px) !important;
+  box-shadow:0 8px 18px -6px rgba(37,99,235,.5) !important;
+}
+.system-slide-icon{ font-size:22px !important; }
+
+/* Refined badge */
+.schedule-badge{
+  min-height:32px !important;
+  padding:6px 12px !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  background:rgba(34,197,94,.10) !important;
+  color:#15803d !important;
+  border-color:rgba(34,197,94,.25) !important;
+  box-shadow:none !important;
+}
+.dark .schedule-badge{ color:#4ade80 !important; background:rgba(34,197,94,.15) !important; }
+
+/* Refined filters area */
+.schedule-filters{
+  padding:18px 22px !important;
+  gap:14px !important;
+  background:transparent !important;
+}
+
+/* Refined toolbar */
+.schedule-toolbar{
+  padding:14px 22px !important;
+  background:rgba(248,250,255,.5) !important;
+}
+.dark .schedule-toolbar{ background:rgba(11,18,32,.4) !important; }
+
+/* Refined table */
+.schedule-table-wrap{
+  margin:16px 22px 22px !important;
+  border-radius:14px !important;
+  border:1px solid var(--schedule-border-strong) !important;
+  box-shadow:0 1px 3px rgba(15,23,42,.04) !important;
+}
+.schedule-table thead th{
+  padding:12px 10px !important;
+  font-size:12px !important;
+  text-transform:none;
+  letter-spacing:.01em;
+  background:linear-gradient(180deg, #f8fafc, #f1f5f9) !important;
+  color:#0f172a !important;
+}
+.dark .schedule-table thead th{
+  background:linear-gradient(180deg, #1e293b, #0f172a) !important;
+  color:#e5eefb !important;
+}
+.schedule-table tbody td{
+  padding:11px 10px !important;
+  font-size:13px !important;
+  font-weight:600 !important;
+}
+
+/* Tone down background blobs (less playful) */
+.schedule-body::before,
+.schedule-body::after{
+  opacity:.12 !important;
+  filter:blur(60px) !important;
+  animation-duration:30s !important;
+}
+
+/* Refined counter & footer */
+.schedule-counter{
+  min-height:36px !important;
+  padding:6px 12px !important;
+  font-size:12px !important;
+  border-style:solid !important;
+  border-color:var(--schedule-border-strong) !important;
+}
+.schedule-footer{
+  padding:18px 22px 22px !important;
+  font-size:12.5px !important;
+}
+.schedule-footer-card{
+  padding:12px 14px !important;
+  border-radius:12px !important;
+}
+
+/* Native select option styling fallback */
+.schedule-select option{
+  background:#ffffff;
+  color:#0f172a;
+  font-weight:600;
+  padding:8px;
+}
+.dark .schedule-select option{
+  background:#0f172a;
+  color:#e5eefb;
+}
