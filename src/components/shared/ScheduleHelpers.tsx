@@ -274,23 +274,18 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
 <div class="watermark">الجامعة التكنولوجية</div>
 
 <div class="print-area">
-  <table class="print-shell">
-    <thead><tr><td>${bannerHtml}</td></tr></thead>
-    <tbody>
-      <tr><td>
-        <table class="data">
-          <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </td></tr>
-      <tr><td>
-        <div id="sigs-end" class="signatures-wrap">
-          ${signaturesHtml}
-          <div class="doc-meta"><span><strong>وثيقة رسمية</strong> &nbsp;صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
-        </div>
-      </td></tr>
-    </tbody>
+  <div class="first-banner">${bannerHtml}</div>
+  <table class="data">
+    <thead>
+      <tr class="repeat-banner-row"><th class="banner-cell" colspan="${colCount}">${bannerHtml}</th></tr>
+      <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
   </table>
+  <div id="sigs-end" class="signatures-wrap">
+    ${signaturesHtml}
+    <div class="doc-meta"><span><strong>وثيقة رسمية</strong> &nbsp;صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
+  </div>
 </div>
 
 <!-- محاكاة شكل الصفحة الثانية أثناء الطباعة — للمعاينة فقط -->
@@ -360,13 +355,13 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   var SIG_HTML = ${JSON.stringify(signaturesHtml)};
   function applyRepeatSigs(){
     var on = $('pv-repeat-sigs').checked;
-    var shell = document.querySelector('.print-shell');
-    var existing = shell.querySelector('tfoot');
+    var dataTable = document.querySelector('table.data');
+    var existing = dataTable.querySelector(':scope > tfoot');
     if(on){
       if(!existing){
         var tfoot = document.createElement('tfoot');
-        tfoot.innerHTML = '<tr><td><div id="sigs-foot" class="signatures-wrap">'+SIG_HTML+'</div></td></tr>';
-        shell.appendChild(tfoot);
+        tfoot.innerHTML = '<tr><td class="footer-cell" colspan="${colCount}"><div id="sigs-foot" class="signatures-wrap">'+SIG_HTML+'</div></td></tr>';
+        dataTable.appendChild(tfoot);
       }
       body.classList.add('repeat-sigs');
     } else {
