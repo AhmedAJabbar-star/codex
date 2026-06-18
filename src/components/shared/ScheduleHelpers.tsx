@@ -412,9 +412,9 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
   setIf('pv-fit',          !!prefs.fit);
 
   applyPage();
-  togRepH(); togRepS(); togCompact();
+  togRepH(); togCompact();
   togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount();
-  applySigs(); applyFit();
+  applyRepeatSigs(); applyFit();
 })();
 </script>
 </body></html>`);
