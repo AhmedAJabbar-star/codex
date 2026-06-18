@@ -1,37 +1,46 @@
 import { useEffect, useState } from 'react';
 
 export type UiTheme =
-  | 'vivid3d'
-  | 'glass'
-  | 'aurora'
-  | 'nebula'
-  | 'quantum'
-  | 'holographic'
-  | 'obsidian'
-  | 'emerald'
-  | 'crimson'
-  | 'platinum';
+  | 'royal'      // Royal Navy + Gold (default — formal university)
+  | 'sapphire'   // Deep Sapphire + Silver
+  | 'burgundy'   // Burgundy + Cream
+  | 'forest'     // Forest Green + Bronze
+  | 'slate'      // Charcoal Slate + Steel
+  | 'bronze'     // Antique Bronze + Ivory
+  | 'pearl'      // Pearl + Navy
+  | 'emerald'    // Emerald + Gold
+  | 'onyx'       // Onyx + Platinum
+  | 'glass';     // Crystal Glass
 
 export const UI_THEMES: { id: UiTheme; label: string; description: string; swatch: string }[] = [
-  { id: 'vivid3d',      label: '✨ ثلاثي الأبعاد النابض',  description: 'بطاقات نابضة بميلان ثلاثي الأبعاد وألوان حيوية.',           swatch: 'linear-gradient(135deg,#2563eb,#7c3aed)' },
-  { id: 'glass',        label: '🪟 زجاجي احترافي',         description: 'شفافية، blur زجاجي، حواف لامعة بإحساس Apple.',             swatch: 'linear-gradient(135deg,#7dd3fc,#a78bfa)' },
-  { id: 'aurora',       label: '🌌 شفق ثلاثي الأبعاد',     description: 'تدرجات شفق قطبية مع توهج عميق بظلال ملونة.',                swatch: 'linear-gradient(135deg,#22d3ee,#10b981,#a78bfa)' },
-  { id: 'nebula',       label: '🌠 سديم كوني',             description: 'خلفية فلكية داكنة مع توهج نيون أرجواني/وردي.',              swatch: 'linear-gradient(135deg,#7c3aed,#db2777,#f97316)' },
-  { id: 'quantum',      label: '⚡ كمّي تقني',             description: 'شبكة سايبر، أزرق كهربائي وسماوي مع توهج Tron.',             swatch: 'linear-gradient(135deg,#06b6d4,#3b82f6,#8b5cf6)' },
-  { id: 'holographic',  label: '💿 هولوجرام كروم',         description: 'انعكاس هولوغرافي قزحي بألوان متغيرة.',                       swatch: 'linear-gradient(135deg,#f0abfc,#67e8f9,#fde68a)' },
-  { id: 'obsidian',     label: '🖤 أوبسيديان ذهبي',        description: 'فاخر — أسود لامع مع لمسات ذهبية ثلاثية الأبعاد.',           swatch: 'linear-gradient(135deg,#0a0a0a,#c9a84c)' },
-  { id: 'emerald',      label: '💎 زمرّدي تقني',          description: 'زمرّدي/تركواز عميق مع ظلال خضراء وميل ثلاثي.',              swatch: 'linear-gradient(135deg,#059669,#0d9488,#0ea5e9)' },
-  { id: 'crimson',      label: '🔥 قرمزي ناري',           description: 'برتقالي/قرمزي تقني بظلال نارية حيوية.',                     swatch: 'linear-gradient(135deg,#f97316,#dc2626,#9333ea)' },
-  { id: 'platinum',     label: '🪙 بلاتيني صقيع',          description: 'فضي/أزرق فولاذي راقي مع انعكاسات معدنية.',                 swatch: 'linear-gradient(135deg,#cbd5e1,#64748b,#3b82f6)' },
+  { id: 'royal',    label: '👑 الملكي — كحلي وذهبي',       description: 'كحلي عميق مع ذهب دافئ وخلفية كريمية — الطابع الجامعي الرسمي.', swatch: 'linear-gradient(135deg,#0b2545,#c9a24a)' },
+  { id: 'sapphire', label: '💠 الياقوت الأزرق',             description: 'أزرق ياقوتي عميق مع لمسات فضية — أكاديمي راقٍ.',                swatch: 'linear-gradient(135deg,#0a1f44,#94a3b8)' },
+  { id: 'burgundy', label: '🍷 العنابي الكلاسيكي',          description: 'عنابي أكاديمي مع عاجي دافئ ولمسات ذهبية.',                       swatch: 'linear-gradient(135deg,#6e1423,#b8860b)' },
+  { id: 'forest',   label: '🌲 الأخضر الحرجي',              description: 'أخضر حرجي عميق مع برونزي عتيق — هيبة طبيعية.',                  swatch: 'linear-gradient(135deg,#1f3a2e,#8a6f3a)' },
+  { id: 'slate',    label: '🪨 الأردوازي المعدني',          description: 'رمادي فحمي مع أزرق فولاذي — هندسي رسمي.',                       swatch: 'linear-gradient(135deg,#1f2937,#475569)' },
+  { id: 'bronze',   label: '🏺 البرونزي العتيق',            description: 'برونز عتيق مع عاجي وبني جلدي — طابع تاريخي.',                   swatch: 'linear-gradient(135deg,#6b4423,#c9a172)' },
+  { id: 'pearl',    label: '🤍 اللؤلؤي الرسمي',             description: 'لؤلؤي فاتح مع كحلي ولمسات ذهب وردي — أنيق ومريح.',              swatch: 'linear-gradient(135deg,#f3f0eb,#1e3a5f)' },
+  { id: 'emerald',  label: '💚 الزمرّدي الكلاسيكي',         description: 'زمرّدي عميق مع ذهبي — هيبة وفخامة.',                            swatch: 'linear-gradient(135deg,#064e3b,#c9a84c)' },
+  { id: 'onyx',     label: '⚫ الأونيكس البلاتيني',          description: 'أسود أونيكس مع بلاتيني وأزرق ياقوتي — راقٍ ومميز.',             swatch: 'linear-gradient(135deg,#0d0d0d,#d4d4d8)' },
+  { id: 'glass',    label: '🪟 الكريستال الزجاجي',           description: 'زجاجي شفاف بضباب أزرق رمادي — حداثة هادئة.',                    swatch: 'linear-gradient(135deg,#dbeafe,#cbd5e1)' },
 ];
 
 const KEY = 'ui-theme';
 const EVENT = 'ui-theme-changed';
 
+const ALL_IDS: UiTheme[] = UI_THEMES.map(t => t.id);
+const LEGACY_MAP: Record<string, UiTheme> = {
+  vivid3d: 'royal', executive: 'royal', neumorphic: 'pearl', editorial: 'onyx',
+  aurora: 'emerald', nebula: 'sapphire', quantum: 'slate', holographic: 'glass',
+  obsidian: 'onyx', crimson: 'burgundy', platinum: 'slate',
+};
+
 export const getUiTheme = (): UiTheme => {
-  if (typeof window === 'undefined') return 'vivid3d';
-  const v = window.localStorage.getItem(KEY) as UiTheme | null;
-  return (v && UI_THEMES.some(t => t.id === v)) ? v : 'vivid3d';
+  if (typeof window === 'undefined') return 'royal';
+  const v = window.localStorage.getItem(KEY);
+  if (!v) return 'royal';
+  if (ALL_IDS.includes(v as UiTheme)) return v as UiTheme;
+  return LEGACY_MAP[v] || 'royal';
 };
 
 export const applyUiTheme = (t: UiTheme) => {
