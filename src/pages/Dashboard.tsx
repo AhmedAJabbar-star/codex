@@ -6,6 +6,7 @@ import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
 import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
 import { useEffect, useMemo, useState } from 'react';
+import { useDarkMode } from '@/lib/darkMode';
 import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 import { listCustomSystems, CUSTOM_SYSTEMS_UPDATED_EVENT } from '@/data/customSystemsRegistry';
 import { evaluateCondition, applyDerivedColumns } from '@/lib/conditionEngine';
@@ -253,6 +254,7 @@ const systemCards = [
 ];
 
 const Dashboard = () => {
+  const [isDark, setIsDark] = useDarkMode();
   const [rules, setRules] = useState(() => getRules());
   const [groups, setGroups] = useState<SystemGroup[]>(() => getGroups());
   const navigate = useNavigate();
@@ -528,6 +530,19 @@ const Dashboard = () => {
               <div className="flex flex-wrap gap-3 items-center justify-center">
                 <span className="schedule-badge">جاهز</span>
                 <RefreshButton compact />
+                <button
+                  onClick={() => setIsDark(!isDark)}
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black border-2 transition-all hover:scale-105"
+                  style={{
+                    background: isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#1e293b,#334155)',
+                    color: isDark ? '#1e293b' : '#fff',
+                    borderColor: isDark ? '#d97706' : '#0f172a',
+                    boxShadow: '0 4px 12px rgba(15,23,42,.25)',
+                  }}
+                  title={isDark ? 'تفعيل الوضع النهاري' : 'تفعيل الوضع الليلي'}
+                >
+                  {isDark ? '☀️ نهاري' : '🌙 ليلي'}
+                </button>
                 <span
                   className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black border-2"
                   style={{
