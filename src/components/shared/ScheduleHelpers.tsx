@@ -320,10 +320,23 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
   }
   if(ti) ti.addEventListener('input', function(){ syncTitle(); prefs.title=ti.value; savePrefs(prefs); });
 
-  // Page settings
+  // Page settings â€” dynamically computes top margin to fit the fixed repeated banner
   function applyPage(){
-    var orient=$('pv-orient').value, size=$('pv-size').value, margin=$('pv-margin').value;
-    $('page-style').textContent='@page{size:'+size+' '+orient+';margin:'+margin+'mm}';
+    var orient=$('pv-orient').value, size=$('pv-size').value, margin=parseFloat($('pv-margin').value)||8;
+    var topMm = margin;
+    if(body.classList.contains('repeat-header')){
+      var fb = document.querySelector('.fixed-banner-print');
+      if(fb){
+        // Temporarily make measurable
+        var prev = fb.style.cssText;
+        fb.style.cssText = 'display:block;position:absolute;left:-99999px;top:0;width:'+(orient==='landscape'?'277mm':'190mm')+';padding:0 6mm;visibility:hidden;';
+        var hPx = fb.offsetHeight;
+        fb.style.cssText = prev;
+        var hMm = Math.ceil(hPx * 25.4 / 96) + 3;
+        topMm = Math.max(margin, hMm);
+      }
+    }
+    $('page-style').textContent='@page{size:'+size+' '+orient+';margin:'+topMm+'mm '+margin+'mm '+margin+'mm '+margin+'mm}';
     prefs.orient=orient; prefs.size=size; prefs.margin=margin; savePrefs(prefs);
   }
   ['pv-orient','pv-size','pv-margin'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', applyPage); });
