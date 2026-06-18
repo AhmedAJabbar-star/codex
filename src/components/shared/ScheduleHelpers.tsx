@@ -228,9 +228,11 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
   table.data > tbody{display:table-row-group!important}
   table.data > tfoot{display:table-footer-group!important}
   table.data > tbody > tr{page-break-inside:avoid;break-inside:avoid}
-  table.data > thead .repeat-banner-row,
   table.data > thead .columns-row{break-inside:avoid;page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
+  /* Fixed banner: position:fixed repeats on EVERY printed page in Chrome. */
+  body.repeat-header .fixed-banner-print{display:block;position:fixed;top:0;left:0;right:0;background:#fff;z-index:9999;padding:0 6mm}
+  body.repeat-header .fixed-banner-print .banner{margin-bottom:0;border-bottom:2px solid #0f4c81}
 }
 </style>
 </head><body class="in-preview repeat-header compact-repeat">
