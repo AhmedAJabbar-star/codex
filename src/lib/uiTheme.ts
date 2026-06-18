@@ -36,17 +36,17 @@ const EVENT = 'ui-theme-changed';
 
 const ALL_IDS: UiTheme[] = UI_THEMES.map(t => t.id);
 const LEGACY_MAP: Record<string, UiTheme> = {
-  vivid3d: 'royal', executive: 'royal', neumorphic: 'pearl', editorial: 'onyx',
-  aurora: 'emerald', nebula: 'sapphire', quantum: 'slate', holographic: 'glass',
+  executive: 'royal', neumorphic: 'pearl', editorial: 'onyx',
+  aurora: 'emerald', nebula: 'sapphire', quantum: 'slate', holographic: 'glasspro',
   obsidian: 'onyx', crimson: 'burgundy', platinum: 'slate',
 };
 
 export const getUiTheme = (): UiTheme => {
-  if (typeof window === 'undefined') return 'royal';
+  if (typeof window === 'undefined') return 'original';
   const v = window.localStorage.getItem(KEY);
-  if (!v) return 'royal';
+  if (!v) return 'original';
   if (ALL_IDS.includes(v as UiTheme)) return v as UiTheme;
-  return LEGACY_MAP[v] || 'royal';
+  return LEGACY_MAP[v] || 'original';
 };
 
 export const applyUiTheme = (t: UiTheme) => {
