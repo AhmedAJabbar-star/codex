@@ -166,7 +166,6 @@ body.in-preview{padding:0}
 /* ===== REPEATING PRINT HEADER (banner + column titles, fixed = reliable on every page) ===== */
 .first-banner{margin-bottom:6px}
 .fixed-banner-print{display:none}
-body.repeat-header .first-banner{display:none}
 
 /* Compact look ONLY for the repeated banner (fixed-print + on-screen page-2 preview). */
 body.compact-repeat .fixed-banner-print .banner,
@@ -242,6 +241,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
   table.data > thead .columns-row{break-inside:avoid;page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
   /* Fixed print header: repeats banner AND column titles on EVERY printed page. */
+  body.repeat-header .first-banner{display:none!important}
   body.repeat-header .fixed-banner-print{display:block;position:fixed;top:0;left:0;right:0;background:#fff;z-index:9999;padding:0 6mm}
   body.repeat-header .fixed-banner-print .banner{margin-bottom:0;border-bottom:2px solid #0f4c81}
 }
