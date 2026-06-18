@@ -21,7 +21,8 @@ export type UiTheme =
   | 'neon'       // Cyber Neon
   | 'gradient'   // Youth Gradient
   | 'holo'       // Holographic Iridescent
-  | 'mesh';      // Vibrant Color Mesh
+  | 'mesh'       // Vibrant Color Mesh
+  | 'liquidglass';// iPadOS 26 Liquid Glass — refractive, specular, dynamic
 
 export const UI_THEMES: { id: UiTheme; label: string; description: string; swatch: string }[] = [
   { id: 'original', label: '🏛️ الأصلي — تصميم النظام',     description: 'الواجهة الأصلية للنظام كما هي على civilacademi.com — مقفلة ولن تتغير.', swatch: 'linear-gradient(135deg,#e0f2fe,#fae8ff)' },
