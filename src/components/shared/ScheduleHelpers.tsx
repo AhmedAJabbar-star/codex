@@ -227,7 +227,13 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ğŸ
   .preview-bar{display:none!important}
   #repeat-banner-preview{display:none!important}
   .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
-  tr,td,th{page-break-inside:avoid}
+  table.data{page-break-inside:auto;break-inside:auto}
+  table.data > thead{display:table-header-group!important}
+  table.data > tbody{display:table-row-group!important}
+  table.data > tfoot{display:table-footer-group!important}
+  table.data > tbody > tr{page-break-inside:avoid;break-inside:avoid}
+  table.data > thead .repeat-banner-row,
+  table.data > thead .columns-row{break-inside:avoid;page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
 }
 </style>
