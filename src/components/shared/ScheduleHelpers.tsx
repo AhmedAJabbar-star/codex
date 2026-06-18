@@ -155,26 +155,22 @@ body.in-preview{padding:0}
 .banner > *:last-child{margin-bottom:0}
 .info-band:empty,.filters-band:empty{display:none}
 
-/* ===== REPEATING BANNER CONTROL =====
-   The banner is now part of the SAME data table header, not a wrapper table.
-   This is the reliable Chrome/PDF path: banner + column titles repeat together and data starts on page 1. */
+/* ===== REPEATING BANNER (position:fixed = reliable repeat on every printed page in Chrome) ===== */
 .first-banner{margin-bottom:6px}
+.fixed-banner-print{display:none}
 body.repeat-header .first-banner{display:none}
-body:not(.repeat-header) table.data > thead .repeat-banner-row{display:none}
-body.repeat-header table.data > thead .repeat-banner-row{display:table-row}
-table.data .banner-cell{background:#fff!important;color:#0b1f33!important;padding:0 0 5px!important;border:0!important;text-align:initial!important;font-weight:400!important;line-height:normal!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
-/* Compact look ONLY for the repeated banner — applied to repeat-banner-preview and to thead. */
-body.compact-repeat table.data > thead .banner,
+/* Compact look ONLY for the repeated banner (fixed-print + on-screen page-2 preview). */
+body.compact-repeat .fixed-banner-print .banner,
 body.compact-repeat #repeat-banner-preview .banner{padding-top:2px}
-body.compact-repeat table.data > thead .official-header,
+body.compact-repeat .fixed-banner-print .official-header,
 body.compact-repeat #repeat-banner-preview .official-header{padding:4px 12px 6px}
-body.compact-repeat table.data > thead .hdr-logo,
+body.compact-repeat .fixed-banner-print .hdr-logo,
 body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
-body.compact-repeat table.data > thead .doc-h1,
+body.compact-repeat .fixed-banner-print .doc-h1,
 body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
 
-/* Per-element banner toggles — apply to BOTH real banner and preview clone */
+/* Per-element banner toggles — apply to ALL banner copies (first, fixed-print, preview) */
 body.hide-banner-logo    .banner .hdr-logo{display:none}
 body.hide-banner-title   .banner .doc-h1{display:none}
 body.hide-banner-info    .banner .info-band{display:none}
