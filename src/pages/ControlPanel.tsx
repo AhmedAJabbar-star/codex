@@ -131,6 +131,42 @@ const ControlPanel = () => {
 
           <UsersAdminSection />
 
+          {/* UI Theme picker */}
+          <div className="border-2 border-indigo-300 rounded-xl p-4 bg-indigo-50/40 mb-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <strong>🎨 نمط تصميم الواجهة</strong>
+              <span className="text-xs text-[var(--schedule-muted)]">يُطبَّق فوراً على كل البطاقات في النظام، ويُحفظ تلقائياً في هذا المتصفح.</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+              {UI_THEMES.map(t => {
+                const active = uiTheme === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => { setUi(t.id); toast.success(`تم تفعيل: ${t.label}`); }}
+                    className="text-right p-4 rounded-xl border-2 transition-all hover:scale-[1.01]"
+                    style={{
+                      borderColor: active ? '#4f46e5' : 'var(--schedule-border)',
+                      background: active ? 'rgba(79,70,229,.08)' : 'white',
+                      boxShadow: active ? '0 8px 22px -10px rgba(79,70,229,.4)' : 'none',
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-12 h-12 rounded-lg flex-shrink-0" style={{ background: t.swatch }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-black text-sm">{t.label}</div>
+                        {active && <div className="text-[10px] font-bold text-indigo-700 mt-0.5">✓ مُفعَّل حالياً</div>}
+                      </div>
+                    </div>
+                    <p className="text-xs font-semibold text-[var(--schedule-muted)] leading-relaxed m-0">{t.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+
+
 
           {/* Control panel password */}
           <div className="border-2 border-amber-400 rounded-xl p-4 bg-amber-50/60 mb-5">
