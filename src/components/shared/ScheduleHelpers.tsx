@@ -155,26 +155,22 @@ body.in-preview{padding:0}
 .banner > *:last-child{margin-bottom:0}
 .info-band:empty,.filters-band:empty{display:none}
 
-/* ===== REPEATING BANNER CONTROL =====
-   The banner is now part of the SAME data table header, not a wrapper table.
-   This is the reliable Chrome/PDF path: banner + column titles repeat together and data starts on page 1. */
+/* ===== REPEATING BANNER (position:fixed = reliable repeat on every printed page in Chrome) ===== */
 .first-banner{margin-bottom:6px}
+.fixed-banner-print{display:none}
 body.repeat-header .first-banner{display:none}
-body:not(.repeat-header) table.data > thead .repeat-banner-row{display:none}
-body.repeat-header table.data > thead .repeat-banner-row{display:table-row}
-table.data .banner-cell{background:#fff!important;color:#0b1f33!important;padding:0 0 5px!important;border:0!important;text-align:initial!important;font-weight:400!important;line-height:normal!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
-/* Compact look ONLY for the repeated banner — applied to repeat-banner-preview and to thead. */
-body.compact-repeat table.data > thead .banner,
+/* Compact look ONLY for the repeated banner (fixed-print + on-screen page-2 preview). */
+body.compact-repeat .fixed-banner-print .banner,
 body.compact-repeat #repeat-banner-preview .banner{padding-top:2px}
-body.compact-repeat table.data > thead .official-header,
+body.compact-repeat .fixed-banner-print .official-header,
 body.compact-repeat #repeat-banner-preview .official-header{padding:4px 12px 6px}
-body.compact-repeat table.data > thead .hdr-logo,
+body.compact-repeat .fixed-banner-print .hdr-logo,
 body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
-body.compact-repeat table.data > thead .doc-h1,
+body.compact-repeat .fixed-banner-print .doc-h1,
 body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
 
-/* Per-element banner toggles — apply to BOTH real banner and preview clone */
+/* Per-element banner toggles — apply to ALL banner copies (first, fixed-print, preview) */
 body.hide-banner-logo    .banner .hdr-logo{display:none}
 body.hide-banner-title   .banner .doc-h1{display:none}
 body.hide-banner-info    .banner .info-band{display:none}
@@ -232,9 +228,11 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   table.data > tbody{display:table-row-group!important}
   table.data > tfoot{display:table-footer-group!important}
   table.data > tbody > tr{page-break-inside:avoid;break-inside:avoid}
-  table.data > thead .repeat-banner-row,
   table.data > thead .columns-row{break-inside:avoid;page-break-inside:avoid}
   .signatures-wrap{page-break-inside:avoid}
+  /* Fixed banner: position:fixed repeats on EVERY printed page in Chrome. */
+  body.repeat-header .fixed-banner-print{display:block;position:fixed;top:0;left:0;right:0;background:#fff;z-index:9999;padding:0 6mm}
+  body.repeat-header .fixed-banner-print .banner{margin-bottom:0;border-bottom:2px solid #0f4c81}
 }
 </style>
 </head><body class="in-preview repeat-header compact-repeat">
@@ -279,11 +277,13 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
 
 <div class="watermark">الجامعة التكنولوجية</div>
 
+<!-- Fixed banner: repeats on every printed page via position:fixed (visible only in print when repeat-header is on) -->
+<div class="fixed-banner-print" aria-hidden="true">${bannerHtml}</div>
+
 <div class="print-area">
   <div class="first-banner">${bannerHtml}</div>
   <table class="data">
     <thead>
-      <tr class="repeat-banner-row"><th class="banner-cell" colspan="${colCount}">${bannerHtml}</th></tr>
       <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
     </thead>
     <tbody>${tableRows}</tbody>
@@ -320,10 +320,23 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   }
   if(ti) ti.addEventListener('input', function(){ syncTitle(); prefs.title=ti.value; savePrefs(prefs); });
 
-  // Page settings
+  // Page settings — dynamically computes top margin to fit the fixed repeated banner
   function applyPage(){
-    var orient=$('pv-orient').value, size=$('pv-size').value, margin=$('pv-margin').value;
-    $('page-style').textContent='@page{size:'+size+' '+orient+';margin:'+margin+'mm}';
+    var orient=$('pv-orient').value, size=$('pv-size').value, margin=parseFloat($('pv-margin').value)||8;
+    var topMm = margin;
+    if(body.classList.contains('repeat-header')){
+      var fb = document.querySelector('.fixed-banner-print');
+      if(fb){
+        // Temporarily make measurable
+        var prev = fb.style.cssText;
+        fb.style.cssText = 'display:block;position:absolute;left:-99999px;top:0;width:'+(orient==='landscape'?'277mm':'190mm')+';padding:0 6mm;visibility:hidden;';
+        var hPx = fb.offsetHeight;
+        fb.style.cssText = prev;
+        var hMm = Math.ceil(hPx * 25.4 / 96) + 3;
+        topMm = Math.max(margin, hMm);
+      }
+    }
+    $('page-style').textContent='@page{size:'+size+' '+orient+';margin:'+topMm+'mm '+margin+'mm '+margin+'mm '+margin+'mm}';
     prefs.orient=orient; prefs.size=size; prefs.margin=margin; savePrefs(prefs);
   }
   ['pv-orient','pv-size','pv-margin'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', applyPage); });
@@ -335,6 +348,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     function apply(){
       if(cb.checked) body.classList.remove(cls); else body.classList.add(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
+      applyPage();
     }
     cb.addEventListener('change', apply); return apply;
   }
@@ -351,11 +365,15 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     function apply(){
       if(cb.checked) body.classList.add(cls); else body.classList.remove(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
+      applyPage();
     }
     cb.addEventListener('change', apply); return apply;
   }
   var togRepH    = bindOn('pv-repeat-header', 'repeat-header',  'repeatHeader');
   var togCompact = bindOn('pv-compact-repeat','compact-repeat', 'compactRepeat');
+
+  // Recompute page margin right before printing (banner may have changed)
+  window.addEventListener('beforeprint', applyPage);
 
   // Build/destroy <tfoot> dynamically so it NEVER reserves footer space unless explicitly requested.
   var SIG_HTML = ${JSON.stringify(signaturesHtml)};
