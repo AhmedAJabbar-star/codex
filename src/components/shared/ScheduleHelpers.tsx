@@ -400,21 +400,21 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
     if(val===undefined) val=def;
     if(el.type==='checkbox') el.checked=!!val; else el.value=val;
   }
-  setIf('pv-orient', prefs.orient, 'landscape');
+  setIf('pv-orient', prefs.orient, 'portrait');
   setIf('pv-size', prefs.size, 'A4');
-  setIf('pv-margin', prefs.margin, '8');
+  setIf('pv-margin', prefs.margin, '5');
   setIf('pv-repeat-header',  prefs.repeatHeader===undefined?true:prefs.repeatHeader);
-  setIf('pv-repeat-sigs',    prefs.repeatSigs===undefined?false:prefs.repeatSigs);
+  setIf('pv-repeat-sigs',    prefs.repeatSigs===undefined?true:prefs.repeatSigs);
   setIf('pv-compact-repeat', prefs.compactRepeat===undefined?true:prefs.compactRepeat);
   setIf('pv-show-logo',    prefs.showLogo===undefined?true:prefs.showLogo);
   setIf('pv-show-title',   prefs.showTitle===undefined?true:prefs.showTitle);
   setIf('pv-show-info',    prefs.showInfo===undefined?true:prefs.showInfo);
-  setIf('pv-show-filters', prefs.showFilters===undefined?true:prefs.showFilters);
+  setIf('pv-show-filters', prefs.showFilters===undefined?false:prefs.showFilters);
   setIf('pv-show-date',    prefs.showDate===undefined?true:prefs.showDate);
-  setIf('pv-show-docnum',  prefs.showDocnum===undefined?true:prefs.showDocnum);
-  setIf('pv-show-count',   prefs.showCount===undefined?true:prefs.showCount);
+  setIf('pv-show-docnum',  prefs.showDocnum===undefined?false:prefs.showDocnum);
+  setIf('pv-show-count',   prefs.showCount===undefined?false:prefs.showCount);
   setIf('pv-show-sigs',    prefs.showSigs===undefined?true:prefs.showSigs);
-  setIf('pv-fit',          !!prefs.fit);
+  setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
 
   applyPage();
   togRepH(); togCompact();
