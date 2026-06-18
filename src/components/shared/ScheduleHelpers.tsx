@@ -348,6 +348,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
     function apply(){
       if(cb.checked) body.classList.remove(cls); else body.classList.add(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
+      applyPage();
     }
     cb.addEventListener('change', apply); return apply;
   }
@@ -364,11 +365,15 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
     function apply(){
       if(cb.checked) body.classList.add(cls); else body.classList.remove(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
+      applyPage();
     }
     cb.addEventListener('change', apply); return apply;
   }
   var togRepH    = bindOn('pv-repeat-header', 'repeat-header',  'repeatHeader');
   var togCompact = bindOn('pv-compact-repeat','compact-repeat', 'compactRepeat');
+
+  // Recompute page margin right before printing (banner may have changed)
+  window.addEventListener('beforeprint', applyPage);
 
   // Build/destroy <tfoot> dynamically so it NEVER reserves footer space unless explicitly requested.
   var SIG_HTML = ${JSON.stringify(signaturesHtml)};
