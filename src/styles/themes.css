@@ -1,0 +1,430 @@
+/* ============================================================
+   UI Themes — 5 distinct skins switchable from Control Panel.
+   Default (no attribute) = vivid3d (existing look in index.css).
+   Toggled via <html data-ui-theme="...">.
+   Each theme overrides: body backdrop, .card3d (+ children),
+   .schedule-card, .schedule-header, .schedule-btn, inputs, table heads.
+   ============================================================ */
+
+/* ----- Shared neutralization helpers ----- */
+:root[data-ui-theme="executive"],
+:root[data-ui-theme="glass"],
+:root[data-ui-theme="neumorphic"],
+:root[data-ui-theme="editorial"]{
+  --theme-active: 1;
+}
+
+/* ============================================================
+   1) EXECUTIVE — Formal, navy/gold, flat refined
+   ============================================================ */
+:root[data-ui-theme="executive"]{
+  --schedule-bg:#f4f6fb;
+  --schedule-bg-2:#eef2f8;
+  --schedule-accent-blue:#0f1b3d;
+  --schedule-accent-purple:#1e3a5f;
+}
+:root[data-ui-theme="executive"] body,
+:root[data-ui-theme="executive"] .schedule-body{
+  background:
+    linear-gradient(180deg,#f7f9fc 0%, #eef2f8 100%) !important;
+}
+:root[data-ui-theme="executive"] .schedule-body::before,
+:root[data-ui-theme="executive"] .schedule-body::after{ display:none !important; }
+
+:root[data-ui-theme="executive"] .schedule-card{
+  background:#ffffff !important;
+  border:1px solid #d9dee8 !important;
+  border-radius:6px !important;
+  box-shadow:0 1px 0 rgba(15,23,42,.04), 0 8px 24px -16px rgba(15,23,42,.18) !important;
+}
+:root[data-ui-theme="executive"] .schedule-header{
+  background:linear-gradient(180deg,#fbfcfe,#f3f6fb) !important;
+  border-bottom:1px solid #e2e7f0 !important;
+  border-radius:6px 6px 0 0 !important;
+}
+
+:root[data-ui-theme="executive"] .card3d{
+  --c:#0f1b3d; --c2:#c9a84c;
+  border-radius:6px !important;
+  background:#ffffff !important;
+  border:1px solid #d9dee8 !important;
+  box-shadow:0 1px 0 rgba(15,23,42,.04), 0 6px 18px -12px rgba(15,23,42,.18) !important;
+  transform:none !important;
+  perspective:none;
+}
+:root[data-ui-theme="executive"] .card3d::before{ display:none !important; }
+:root[data-ui-theme="executive"] .card3d::after{
+  padding:0 !important;
+  background:none !important;
+  border-right:3px solid var(--c) !important;
+  border-radius:0 6px 6px 0 !important;
+  -webkit-mask:none !important; mask:none !important;
+}
+:root[data-ui-theme="executive"] .card3d:hover{
+  transform:translateY(-2px) !important;
+  box-shadow:0 2px 0 rgba(15,23,42,.05), 0 14px 30px -16px rgba(15,23,42,.25) !important;
+  filter:none !important;
+}
+:root[data-ui-theme="executive"] .card3d__orb{ display:none !important; }
+:root[data-ui-theme="executive"] .card3d__inner{ transform:none !important; }
+:root[data-ui-theme="executive"] .card3d__icon{
+  background:#0f1b3d !important;
+  border-radius:4px !important;
+  box-shadow:none !important;
+  transform:none !important;
+  color:#c9a84c !important;
+}
+:root[data-ui-theme="executive"] .card3d:hover .card3d__icon{ transform:none !important; }
+:root[data-ui-theme="executive"] .card3d__title{
+  font-family:'Cairo',Georgia,serif !important;
+  font-weight:800 !important;
+  color:#0f1b3d !important;
+}
+:root[data-ui-theme="executive"] .card3d__count{
+  background:#0f1b3d !important;
+  color:#c9a84c !important;
+  border-radius:2px !important;
+  transform:none !important;
+  box-shadow:none !important;
+}
+:root[data-ui-theme="executive"] .card3d__badge{
+  background:#c9a84c !important;
+  color:#0f1b3d !important;
+  border-radius:2px !important;
+  transform:none !important;
+}
+:root[data-ui-theme="executive"] .card3d__arrow{
+  background:#0f1b3d !important;
+  color:#c9a84c !important;
+  border:none !important;
+  border-radius:2px !important;
+  transform:none !important;
+  opacity:.85 !important;
+}
+:root[data-ui-theme="executive"] .schedule-btn{
+  border-radius:4px !important;
+}
+
+/* ============================================================
+   2) GLASS PRO — Frosted, translucent, blurred
+   ============================================================ */
+:root[data-ui-theme="glass"]{
+  --schedule-bg:#dde7f5;
+  --schedule-bg-2:#cfdcef;
+}
+:root[data-ui-theme="glass"] body,
+:root[data-ui-theme="glass"] .schedule-body{
+  background:
+    radial-gradient(60% 50% at 10% 10%, rgba(125,211,252,.55), transparent 60%),
+    radial-gradient(60% 50% at 90% 90%, rgba(167,139,250,.45), transparent 60%),
+    linear-gradient(160deg,#e0f2fe 0%,#ede9fe 100%) !important;
+  background-attachment: fixed !important;
+}
+:root[data-ui-theme="glass"] .schedule-body::before,
+:root[data-ui-theme="glass"] .schedule-body::after{ display:none !important; }
+
+:root[data-ui-theme="glass"] .schedule-card,
+:root[data-ui-theme="glass"] .schedule-header{
+  background:rgba(255,255,255,.45) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border:1px solid rgba(255,255,255,.6) !important;
+  border-radius:20px !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 20px 50px -25px rgba(30,41,59,.25) !important;
+}
+
+:root[data-ui-theme="glass"] .card3d{
+  --c:#3b82f6; --c2:#a78bfa;
+  border-radius:20px !important;
+  background:rgba(255,255,255,.4) !important;
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.55) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 18px 40px -20px rgba(30,41,59,.28) !important;
+  transform:none !important;
+}
+:root[data-ui-theme="glass"] .card3d::before{
+  background:linear-gradient(180deg,rgba(255,255,255,.7) 0%, transparent 50%) !important;
+  mix-blend-mode:normal !important;
+}
+:root[data-ui-theme="glass"] .card3d::after{
+  background:linear-gradient(140deg, rgba(255,255,255,.9) 0%, transparent 50%, rgba(255,255,255,.5) 100%) !important;
+}
+:root[data-ui-theme="glass"] .card3d:hover{
+  transform:translateY(-4px) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.95) inset,
+    0 28px 60px -22px rgba(30,41,59,.4) !important;
+  filter:none !important;
+}
+:root[data-ui-theme="glass"] .card3d__inner{ transform:none !important; }
+:root[data-ui-theme="glass"] .card3d__icon{
+  background:linear-gradient(150deg, rgba(255,255,255,.9), rgba(255,255,255,.6)) !important;
+  color:var(--c) !important;
+  border:1px solid rgba(255,255,255,.8) !important;
+  box-shadow:0 8px 20px -8px color-mix(in srgb, var(--c) 40%, transparent) !important;
+  transform:none !important;
+}
+:root[data-ui-theme="glass"] .card3d:hover .card3d__icon{ transform:scale(1.05) !important; }
+:root[data-ui-theme="glass"] .card3d__orb{ opacity:.4 !important; filter:blur(40px) !important; }
+:root[data-ui-theme="glass"] .card3d__count{
+  background:rgba(255,255,255,.6) !important;
+  color:var(--c) !important;
+  border:1px solid rgba(255,255,255,.7) !important;
+  backdrop-filter:blur(8px);
+  transform:none !important;
+}
+:root[data-ui-theme="glass"] .card3d__arrow{
+  background:rgba(255,255,255,.7) !important;
+  backdrop-filter:blur(8px);
+  transform:none !important;
+}
+
+/* ============================================================
+   3) NEUMORPHIC — Soft inset/outset shadows on uniform bg
+   ============================================================ */
+:root[data-ui-theme="neumorphic"]{
+  --neu-bg:#e6e9f0;
+  --neu-text:#2d3748;
+}
+:root[data-ui-theme="neumorphic"] body,
+:root[data-ui-theme="neumorphic"] .schedule-body{
+  background:var(--neu-bg) !important;
+}
+:root[data-ui-theme="neumorphic"] .schedule-body::before,
+:root[data-ui-theme="neumorphic"] .schedule-body::after{ display:none !important; }
+
+:root[data-ui-theme="neumorphic"] .schedule-card,
+:root[data-ui-theme="neumorphic"] .schedule-header{
+  background:var(--neu-bg) !important;
+  border:none !important;
+  border-radius:28px !important;
+  box-shadow:
+    12px 12px 30px rgba(163,177,198,.55),
+    -12px -12px 30px rgba(255,255,255,.85) !important;
+}
+
+:root[data-ui-theme="neumorphic"] .card3d{
+  --c:#5b6bd6; --c2:#7c3aed;
+  background:var(--neu-bg) !important;
+  border:none !important;
+  border-radius:28px !important;
+  box-shadow:
+    10px 10px 24px rgba(163,177,198,.55),
+    -10px -10px 24px rgba(255,255,255,.85) !important;
+  transform:none !important;
+}
+:root[data-ui-theme="neumorphic"] .card3d::before,
+:root[data-ui-theme="neumorphic"] .card3d::after{ display:none !important; }
+:root[data-ui-theme="neumorphic"] .card3d:hover{
+  transform:translateY(-2px) !important;
+  box-shadow:
+    14px 14px 30px rgba(163,177,198,.6),
+    -14px -14px 30px rgba(255,255,255,.9) !important;
+  filter:none !important;
+}
+:root[data-ui-theme="neumorphic"] .card3d:active{
+  box-shadow:
+    inset 8px 8px 18px rgba(163,177,198,.5),
+    inset -8px -8px 18px rgba(255,255,255,.85) !important;
+  transform:none !important;
+}
+:root[data-ui-theme="neumorphic"] .card3d__inner{ transform:none !important; }
+:root[data-ui-theme="neumorphic"] .card3d__orb{ display:none !important; }
+:root[data-ui-theme="neumorphic"] .card3d__icon{
+  background:var(--neu-bg) !important;
+  color:var(--c) !important;
+  border-radius:20px !important;
+  box-shadow:
+    inset 6px 6px 14px rgba(163,177,198,.45),
+    inset -6px -6px 14px rgba(255,255,255,.9) !important;
+  transform:none !important;
+}
+:root[data-ui-theme="neumorphic"] .card3d:hover .card3d__icon{ transform:none !important; }
+:root[data-ui-theme="neumorphic"] .card3d__title{ color:var(--neu-text) !important; }
+:root[data-ui-theme="neumorphic"] .card3d__count{
+  background:var(--neu-bg) !important;
+  color:var(--c) !important;
+  box-shadow:
+    inset 4px 4px 10px rgba(163,177,198,.4),
+    inset -4px -4px 10px rgba(255,255,255,.85) !important;
+  transform:none !important;
+}
+:root[data-ui-theme="neumorphic"] .card3d__badge{
+  background:var(--neu-bg) !important;
+  color:var(--c) !important;
+  box-shadow:
+    inset 3px 3px 8px rgba(163,177,198,.4),
+    inset -3px -3px 8px rgba(255,255,255,.85) !important;
+  transform:none !important;
+}
+:root[data-ui-theme="neumorphic"] .card3d__arrow{
+  background:var(--neu-bg) !important;
+  box-shadow:
+    4px 4px 10px rgba(163,177,198,.45),
+    -4px -4px 10px rgba(255,255,255,.85) !important;
+  border:none !important;
+  transform:none !important;
+}
+:root[data-ui-theme="neumorphic"] .schedule-btn{
+  background:var(--neu-bg) !important;
+  border:none !important;
+  border-radius:14px !important;
+  box-shadow:
+    5px 5px 12px rgba(163,177,198,.45),
+    -5px -5px 12px rgba(255,255,255,.85) !important;
+}
+:root[data-ui-theme="neumorphic"] .schedule-btn:hover{
+  box-shadow:
+    7px 7px 16px rgba(163,177,198,.55),
+    -7px -7px 16px rgba(255,255,255,.9) !important;
+}
+:root[data-ui-theme="neumorphic"] .schedule-select,
+:root[data-ui-theme="neumorphic"] .schedule-input{
+  background:var(--neu-bg) !important;
+  border:none !important;
+  border-radius:14px !important;
+  box-shadow:
+    inset 4px 4px 10px rgba(163,177,198,.4),
+    inset -4px -4px 10px rgba(255,255,255,.85) !important;
+}
+
+/* ============================================================
+   4) EDITORIAL — Monochrome, serif headings, accent rail
+   ============================================================ */
+:root[data-ui-theme="editorial"]{
+  --schedule-bg:#f5f3ee;
+  --schedule-bg-2:#ece9e1;
+  --schedule-text:#0d0d0d;
+  --schedule-accent-blue:#0d0d0d;
+}
+:root[data-ui-theme="editorial"] body,
+:root[data-ui-theme="editorial"] .schedule-body{
+  background:#f5f3ee !important;
+}
+:root[data-ui-theme="editorial"] .schedule-body::before,
+:root[data-ui-theme="editorial"] .schedule-body::after{ display:none !important; }
+
+:root[data-ui-theme="editorial"] .schedule-card{
+  background:#ffffff !important;
+  border:1px solid #0d0d0d !important;
+  border-radius:0 !important;
+  box-shadow:8px 8px 0 #0d0d0d !important;
+}
+:root[data-ui-theme="editorial"] .schedule-header{
+  background:#ffffff !important;
+  border-bottom:2px solid #0d0d0d !important;
+  border-radius:0 !important;
+}
+
+:root[data-ui-theme="editorial"] .card3d{
+  --c:#0d0d0d; --c2:#c9a84c;
+  background:#ffffff !important;
+  border:1.5px solid #0d0d0d !important;
+  border-radius:0 !important;
+  box-shadow:6px 6px 0 #0d0d0d !important;
+  transform:none !important;
+  padding:24px 24px 56px !important;
+}
+:root[data-ui-theme="editorial"] .card3d::before{ display:none !important; }
+:root[data-ui-theme="editorial"] .card3d::after{
+  padding:0 !important;
+  background:none !important;
+  border-top:6px solid var(--c) !important;
+  border-radius:0 !important;
+  -webkit-mask:none !important; mask:none !important;
+  inset:0 0 auto 0 !important;
+  height:6px;
+}
+:root[data-ui-theme="editorial"] .card3d:hover{
+  transform:translate(-2px,-2px) !important;
+  box-shadow:8px 8px 0 var(--c) !important;
+  filter:none !important;
+}
+:root[data-ui-theme="editorial"] .card3d__inner{ transform:none !important; }
+:root[data-ui-theme="editorial"] .card3d__orb{ display:none !important; }
+:root[data-ui-theme="editorial"] .card3d__icon{
+  background:#ffffff !important;
+  color:#0d0d0d !important;
+  border:1.5px solid #0d0d0d !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  transform:none !important;
+}
+:root[data-ui-theme="editorial"] .card3d:hover .card3d__icon{ transform:none !important; background:#0d0d0d !important; color:#fff !important; }
+:root[data-ui-theme="editorial"] .card3d__title{
+  font-family:Georgia,'Times New Roman',serif !important;
+  font-weight:700 !important;
+  letter-spacing:-.02em !important;
+  font-size:1.2rem !important;
+  color:#0d0d0d !important;
+}
+:root[data-ui-theme="editorial"] .card3d__desc{
+  font-family:Georgia,'Times New Roman',serif !important;
+  font-style:italic !important;
+  color:#555 !important;
+}
+:root[data-ui-theme="editorial"] .card3d__count{
+  background:#0d0d0d !important;
+  color:#fff !important;
+  border-radius:0 !important;
+  font-family:Georgia,serif !important;
+  transform:none !important;
+  box-shadow:none !important;
+}
+:root[data-ui-theme="editorial"] .card3d__badge{
+  background:#c9a84c !important;
+  color:#0d0d0d !important;
+  border-radius:0 !important;
+  transform:none !important;
+  font-family:Georgia,serif !important;
+}
+:root[data-ui-theme="editorial"] .card3d__arrow{
+  background:#0d0d0d !important;
+  color:#fff !important;
+  border:none !important;
+  border-radius:0 !important;
+  transform:none !important;
+  opacity:1 !important;
+}
+:root[data-ui-theme="editorial"] .schedule-btn{
+  border-radius:0 !important;
+  border:1.5px solid #0d0d0d !important;
+}
+
+/* ============================================================
+   Dark-mode safety: keep theme legible if .dark toggled on
+   ============================================================ */
+:root.dark[data-ui-theme="executive"] .card3d,
+:root.dark[data-ui-theme="executive"] .schedule-card{
+  background:#0f1726 !important;
+  border-color:#1f2a44 !important;
+}
+:root.dark[data-ui-theme="glass"] .card3d,
+:root.dark[data-ui-theme="glass"] .schedule-card{
+  background:rgba(20,30,55,.45) !important;
+  border-color:rgba(255,255,255,.15) !important;
+}
+:root.dark[data-ui-theme="neumorphic"]{
+  --neu-bg:#1e2230;
+  --neu-text:#e2e8f0;
+}
+:root.dark[data-ui-theme="neumorphic"] .card3d,
+:root.dark[data-ui-theme="neumorphic"] .schedule-card,
+:root.dark[data-ui-theme="neumorphic"] .schedule-header{
+  box-shadow:
+    10px 10px 24px rgba(0,0,0,.55),
+    -10px -10px 24px rgba(60,72,100,.4) !important;
+}
+:root.dark[data-ui-theme="editorial"] .card3d,
+:root.dark[data-ui-theme="editorial"] .schedule-card{
+  background:#0d0d0d !important;
+  border-color:#f5f3ee !important;
+  box-shadow:6px 6px 0 #c9a84c !important;
+}
+:root.dark[data-ui-theme="editorial"] .card3d__title,
+:root.dark[data-ui-theme="editorial"] .card3d__icon{ color:#f5f3ee !important; }

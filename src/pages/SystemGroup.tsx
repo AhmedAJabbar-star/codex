@@ -107,7 +107,7 @@ const SystemGroupPage = () => {
             </div>
           </header>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5 p-4 sm:p-6">
+          <div className="cards-3d-grid">
             {cards.length === 0 && (
               <div className="col-span-full text-center py-10 text-[var(--schedule-muted)] font-bold">لا توجد أنظمة في هذه المجموعة</div>
             )}
@@ -115,19 +115,19 @@ const SystemGroupPage = () => {
               <button
                 key={card.id}
                 onClick={() => navigate(card.path)}
-                className="group relative overflow-hidden rounded-2xl border border-[var(--schedule-border)] p-6 text-right transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
-                style={{ background: 'var(--schedule-card-bg)' }}
+                className="card3d"
+                style={{ ['--c' as any]: card.color, ['--c2' as any]: card.color }}
               >
-                <div className="absolute top-0 right-0 w-1.5 h-full rounded-l-full" style={{ background: card.color }} />
-                <div className="flex items-start gap-4">
-                  <div className="text-4xl flex-shrink-0 w-14 h-14 rounded-2xl grid place-items-center" style={{ background: `${card.color}15` }}>
-                    {card.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-black text-[var(--schedule-text)] mb-1">{card.title}</h3>
-                    <p className="text-sm font-semibold text-[var(--schedule-muted)] leading-relaxed">{card.description}</p>
+                <span className="card3d__orb card3d__orb--a" />
+                <span className="card3d__orb card3d__orb--b" />
+                <div className="card3d__inner">
+                  <div className="card3d__icon">{card.icon}</div>
+                  <div className="card3d__body">
+                    <h3 className="card3d__title">{card.title}</h3>
+                    <p className="card3d__desc">{card.description}</p>
                   </div>
                 </div>
+                <span className="card3d__arrow">←</span>
               </button>
             ))}
           </div>

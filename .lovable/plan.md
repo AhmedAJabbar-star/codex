@@ -1,64 +1,68 @@
-# خطة تنفيذ نظام الصلاحيات وإعادة هيكلة لوحة التحكم
+## الهدف
+إضافة نظام "ثيمات تصميم" يتيح اختيار شكل الواجهة والبطاقات من لوحة التحكم، مع 5 أنماط CSS كاملة ومختلفة جذرياً، تُطبَّق على كل البطاقات في النظام (الرئيسية، صفحة المجموعة، صفحات الأنظمة).
 
-## 1) نقل واجهة إدارة المدير إلى لوحة التحكم
-- إنشاء قسم جديد في `ControlPanel.tsx` باسم **«المستخدمون والصلاحيات»**.
-- نقل تبويبات «المستخدمون / الأرشيف / إعدادات الاتصال» من `IndividualAssignments.tsx` إلى هذا القسم.
-- في صفحة التكليفات الفردية: تبقى فقط شاشة دخول التدريسي + عرض بياناته (بدون لوحة إدارة).
-- وصول قسم «المستخدمون والصلاحيات» محمي بكلمة مرور المدير الحالية (`aa/aa`) لمرة واحدة لكل جلسة لوحة التحكم.
+## الأنماط الخمسة
+1. **Executive** (رسمي تنفيذي) — حواف حادة، ظلال خفيفة طبقية، خطوط أكاديمية، ألوان كحلي/ذهبي. لا تأثيرات 3D.
+2. **Glass Pro** (زجاجي احترافي) — backdrop-blur، شفافية متدرجة، حواف رفيعة لامعة.
+3. **Neumorphic Soft** (نيومورفك ناعم) — ظلال داخلية/خارجية متطابقة، خلفية رمادية موحدة، حواف منحنية كبيرة.
+4. **Editorial Mono** (تحريري مونوكروم) — أبيض/أسود، خطوط Serif للعناوين، شريط جانبي ملون رفيع، بدون gradient.
+5. **Vivid 3D** (الحالي ثلاثي الأبعاد) — يبقى كخيار افتراضي.
 
-## 2) نظام الأدوار + الصلاحيات لكل نظام
-- إضافة حقول جديدة لكل مستخدم في جدول `users` على Google Sheets:
-  - `role` (موجود) — يُوسَّع إلى: `admin` / `editor` / `viewer` / `user`.
-  - `permissions_json` (جديد) — JSON يحوي:
-    ```json
-    {
-      "systems": {
-        "<system_id>": { "view": true, "add": true, "edit": false, "delete": false }
-      }
-    }
-    ```
-- **الأدوار الجاهزة** (افتراضي عند غياب التخصيص):
-  - `admin`: كل شيء + إدارة المستخدمين.
-  - `editor`: عرض + إضافة + تعديل (لا حذف).
-  - `viewer`: عرض فقط.
-  - `user`: حسب صلاحيات النظام نفسه (الوضع الحالي).
-- **التخصيص لكل نظام**: في واجهة المستخدم، جدول يعرض كل أنظمة منشئ الأنظمة، مع 4 مفاتيح (عرض/إضافة/تعديل/حذف) لتجاوز الدور.
+كل نمط يعيد تعريف: خلفية الجسم، البطاقة (الرئيسية + الفرعية)، الأيقونة، الشارة، عداد السجلات، الهيدر، الأزرار، الـ select/input، الجداول.
 
-## 3) واجهة الصلاحيات الجديدة (داخل لوحة التحكم)
-- جدول المستخدمين الحاليين مع عمود **الدور** (Select)، وزر **«تخصيص لكل نظام»** يفتح حوار:
-  - يُسرد كل الأنظمة المخصّصة (من `customSystemsRegistry`).
-  - 4 Switches لكل نظام.
-  - زر «استخدام افتراضي الدور».
-- زر **«تطبيق على عدة مستخدمين»** لاختيار قائمة وتطبيق صلاحيات/دور دفعة واحدة.
+## التنفيذ التقني
 
-## 4) تطبيق الصلاحيات على واجهة الأنظمة المخصّصة
-- في `GenericSystem.tsx` و `CrudPanel.tsx`: قراءة صلاحيات المستخدم الحالي من جلسة التدريسي عبر دالة جديدة `getEffectivePerms(systemId)`:
-  - دمج: `crud_permissions` للنظام ∩ صلاحيات المستخدم.
-  - إذا لم يكن المستخدم مُسجّلاً في النظام: يستخدم الدور الافتراضي.
+### 1) ملف ثيمات جديد `src/styles/themes.css`
+يحتوي 5 كتل تحت سلكتورات:
+```css
+:root[data-ui-theme="executive"] .card3d { ... }
+:root[data-ui-theme="executive"] .schedule-card { ... }
+:root[data-ui-theme="executive"] .schedule-header { ... }
+:root[data-ui-theme="executive"] .schedule-btn { ... }
+...
+```
+يكرر لـ `glass`, `neumorphic`, `editorial`, `vivid3d` (الافتراضي = vivid3d لذا بدون override).
 
-## 5) إلغاء كلمة المرور لكل عملية
-- `CrudPanel.tsx`:
-  - **إضافة / تعديل**: تُنفَّذ مباشرة دون أي إدخال كلمة سر (الجلسة + صلاحية المستخدم كافيتان).
-  - **حذف**: يبقى يطلب تأكيد + كلمة مرور المدير (`aa`) لمرة واحدة، تُخزَّن في `sessionStorage` وتُستخدم تلقائيًا لباقي عمليات الحذف ضمن نفس الجلسة (لا إعادة إدخال).
-- في `sheet-write` على Edge Function:
-  - قبول `token` (جلسة التدريسي) بدل كلمة مدير العمليات غير الحساسة (append/update).
-  - التحقق من صلاحيات المستخدم خادميًا.
-  - `delete` يبقى يتطلب كلمة المدير.
+كل ثيم يغيّر:
+- `.card3d` و pseudo-elements و hover transform
+- `.card3d__icon`, `.card3d__body`, `.card3d__count`, `.card3d__arrow`, `.card3d__orb`
+- `.schedule-card`, `.schedule-header`, `.schedule-body::before/::after`
+- `.schedule-btn`, `.schedule-select`, `.schedule-input`
+- `.schedule-table thead th`
+- بطاقات SystemGroup (الأزرار في `src/pages/SystemGroup.tsx`)
 
-## 6) ملفات ستُعدَّل / تُنشأ
-**إنشاء**
-- `src/components/control-panel/UsersPermissionsPanel.tsx` — الواجهة الموحّدة.
-- `src/components/control-panel/UserPermissionsDialog.tsx` — حوار التخصيص لكل نظام.
-- `src/lib/permissions.ts` — `getEffectivePerms`, `roleDefaults`, …
+ربط الملف عبر `import` في `src/index.css`.
 
-**تعديل**
-- `supabase/functions/sheet-auth/index.ts` — حفظ/قراءة `permissions_json`، توسيع `role`، endpoints: `admin-set-role`, `admin-set-permissions`.
-- `supabase/functions/custom-systems/index.ts` — قبول `token` بدل كلمة المدير للعمليات غير الحساسة، فحص الصلاحيات.
-- `src/lib/teacherAuth.ts` — تعريف `permissions` في `TeacherUser`، دوال `adminSetRole`, `adminSetPermissions`.
-- `src/components/custom-systems/CrudPanel.tsx` — تطبيق `getEffectivePerms`، إزالة طلب كلمة السر للإضافة/التعديل، تخزين كلمة الحذف في الجلسة.
-- `src/pages/IndividualAssignments.tsx` — إزالة تبويبات الإدارة.
-- `src/pages/ControlPanel.tsx` — تضمين `UsersPermissionsPanel`.
+### 2) Hook + storage `src/lib/uiTheme.ts`
+```ts
+export type UiTheme = 'vivid3d'|'executive'|'glass'|'neumorphic'|'editorial';
+export const UI_THEMES: {id, label, description}[];
+export function getUiTheme(): UiTheme;       // من localStorage، fallback 'vivid3d'
+export function setUiTheme(t: UiTheme): void; // يكتب data-ui-theme على <html> ويُطلق event
+export function useUiTheme(): [UiTheme, setter];
+```
+يُطبَّق على `document.documentElement.setAttribute('data-ui-theme', t)`.
 
-## 7) الأمان
-- جميع فحوصات الصلاحيات تُكرَّر **خادميًا** في الـ Edge Functions (لا يكفي العميل).
-- `permissions_json` يُكتب فقط بواسطة من له دور `admin` ومحمي
+### 3) Bootstrap في `src/main.tsx`
+قراءة الثيم وتطبيقه قبل render حتى لا يومض.
+
+### 4) قسم في لوحة التحكم `src/pages/ControlPanel.tsx`
+إضافة بطاقة "🎨 نمط التصميم العام" مع 5 أزرار اختيار، معاينة مصغرة لكل نمط (sample card)، ووصف مختصر. عند الضغط يُحدّث الثيم فوراً ويظهر toast.
+
+### 5) ضمان التطبيق
+- `SystemGroup.tsx`: تحويل الأزرار لاستخدام كلاسات `card3d` الموحدة بدل inline classes حتى تتأثر بالثيم.
+- مراجعة `Dashboard.tsx` (يستخدم `card3d` أصلاً — سيعمل تلقائياً).
+- التحقق من `.schedule-card` في الصفحات الفرعية.
+
+## ملفات سيتم إنشاؤها/تعديلها
+- جديد: `src/styles/themes.css`
+- جديد: `src/lib/uiTheme.ts`
+- تعديل: `src/index.css` (import + متغيرات قابلة للـ override)
+- تعديل: `src/main.tsx` (bootstrap)
+- تعديل: `src/pages/ControlPanel.tsx` (قسم اختيار الثيم)
+- تعديل: `src/pages/SystemGroup.tsx` (توحيد كلاسات البطاقات مع `card3d`)
+
+## ملاحظات
+- لا تغيير على منطق البيانات أو الطباعة أو المصادقة.
+- الثيم الافتراضي يبقى الحالي (Vivid 3D) لمن لم يختر.
+- الثيم يُحفظ في `localStorage` لكل مستخدم/متصفح.
