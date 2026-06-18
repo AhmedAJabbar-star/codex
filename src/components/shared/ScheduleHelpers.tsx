@@ -207,8 +207,8 @@ table.data tr:hover{background:#eaf1fb}
 .print-shell > tfoot > tr > td,
 .print-shell > tbody > tr > td{padding:0;border:0;vertical-align:top}
 
+/* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
 body.repeat-sigs #sigs-end{display:none}
-body:not(.repeat-sigs) #sigs-foot{display:none}
 
 /* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
 #repeat-banner-preview{max-width:297mm;margin:8px auto 30px;background:transparent}
