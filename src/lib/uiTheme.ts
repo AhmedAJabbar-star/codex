@@ -54,7 +54,7 @@ const ALL_IDS: UiTheme[] = UI_THEMES.map(t => t.id);
 const LEGACY_MAP: Record<string, UiTheme> = {
   executive: 'royal', neumorphic: 'pearl', editorial: 'onyx',
   aurora: 'emerald', nebula: 'sapphire', quantum: 'slate',
-  holographic: 'original', glass: 'original', glasspro: 'original', liquid: 'original',
+  holographic: 'holo', glass: 'glasspro', liquid: 'glasspro',
   obsidian: 'onyx', crimson: 'crimson', platinum: 'slate',
 };
 
