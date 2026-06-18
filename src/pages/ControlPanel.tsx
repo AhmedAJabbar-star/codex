@@ -12,6 +12,7 @@ import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog'
 import UsersAdminSection from '@/components/control-panel/UsersAdminSection';
 import { UI_THEMES, useUiTheme } from '@/lib/uiTheme';
 import { useDarkMode } from '@/lib/darkMode';
+import { use3DEnabled } from '@/lib/threeD';
 
 const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖','📝','📌','🔔','🗓️','🕒','👨‍🏫','👥','🏫','🧮','🔍','✅','⚠️','🚦','💡','🧾','📑','🗒️','📐','🧱','🔧'];
 const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1d4ed8','#9333ea','#0d9488','#be185d','#ea580c','#65a30d'];
@@ -26,6 +27,7 @@ const ControlPanel = () => {
   const [builderInitial, setBuilderInitial] = useState<CustomSystemDef | null>(null);
   const [uiTheme, setUi] = useUiTheme();
   const [isDark, setIsDark] = useDarkMode();
+  const [is3D, setIs3D] = use3DEnabled();
   const navigate = useNavigate();
 
   const { data: customSystems = [], refetch: refetchCustom } = useQuery({
@@ -136,20 +138,34 @@ const ControlPanel = () => {
           {/* UI Theme picker */}
           <div className="border-2 border-indigo-300 rounded-xl p-4 bg-indigo-50/40 mb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-              <strong>🎨 نمط تصميم الواجهة (10 ثيمات احترافية ثلاثية الأبعاد)</strong>
-              <button
-                onClick={() => { setIsDark(!isDark); toast.success(isDark ? 'تم تفعيل الوضع النهاري' : 'تم تفعيل الوضع الليلي'); }}
-                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black border-2 transition-all hover:scale-105"
-                style={{
-                  background: isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#1e293b,#334155)',
-                  color: isDark ? '#1e293b' : '#fff',
-                  borderColor: isDark ? '#d97706' : '#0f172a',
-                }}
-              >
-                {isDark ? '☀️ الوضع النهاري' : '🌙 الوضع الليلي'}
-              </button>
+              <strong>🎨 نمط تصميم الواجهة (10 ثيمات احترافية بمستوى جامعي رسمي)</strong>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setIs3D(!is3D); toast.success(is3D ? 'تم إطفاء التأثير ثلاثي الأبعاد' : 'تم تفعيل التأثير ثلاثي الأبعاد'); }}
+                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black border-2 transition-all hover:scale-105"
+                  style={{
+                    background: is3D ? 'linear-gradient(135deg,#0b2545,#1e3a5f)' : 'linear-gradient(135deg,#e2e8f0,#cbd5e1)',
+                    color: is3D ? '#f7e6b0' : '#0f172a',
+                    borderColor: is3D ? '#0b2545' : '#94a3b8',
+                  }}
+                  title="تشغيل/إطفاء التأثير ثلاثي الأبعاد على جميع البطاقات"
+                >
+                  {is3D ? '🟢 3D مُفعَّل' : '⚪ 3D مطفأ'}
+                </button>
+                <button
+                  onClick={() => { setIsDark(!isDark); toast.success(isDark ? 'تم تفعيل الوضع النهاري' : 'تم تفعيل الوضع الليلي'); }}
+                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black border-2 transition-all hover:scale-105"
+                  style={{
+                    background: isDark ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : 'linear-gradient(135deg,#1e293b,#334155)',
+                    color: isDark ? '#1e293b' : '#fff',
+                    borderColor: isDark ? '#d97706' : '#0f172a',
+                  }}
+                >
+                  {isDark ? '☀️ نهاري' : '🌙 ليلي'}
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-[var(--schedule-muted)] mb-2">يُطبَّق فوراً على كل البطاقات والواجهات. يعمل الوضع الليلي مع جميع الثيمات.</p>
+            <p className="text-xs text-[var(--schedule-muted)] mb-2">ثيمات بألوان جامعية رسمية. الوضع الليلي وزر الـ 3D يعملان مع جميع الثيمات.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
               {UI_THEMES.map(t => {
                 const active = uiTheme === t.id;
