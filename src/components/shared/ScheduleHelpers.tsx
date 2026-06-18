@@ -350,10 +350,32 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
     cb.addEventListener('change', apply); return apply;
   }
   var togRepH    = bindOn('pv-repeat-header', 'repeat-header',  'repeatHeader');
-  var togRepS    = bindOn('pv-repeat-sigs',   'repeat-sigs',    'repeatSigs');
   var togCompact = bindOn('pv-compact-repeat','compact-repeat', 'compactRepeat');
 
-  // Signatures show/hide (in both end + foot copies)
+  // Build/destroy <tfoot> dynamically so it NEVER reserves footer space unless explicitly requested.
+  var SIG_HTML = ${JSON.stringify(signaturesHtml)};
+  function applyRepeatSigs(){
+    var on = $('pv-repeat-sigs').checked;
+    var shell = document.querySelector('.print-shell');
+    var existing = shell.querySelector('tfoot');
+    if(on){
+      if(!existing){
+        var tfoot = document.createElement('tfoot');
+        tfoot.innerHTML = '<tr><td><div id="sigs-foot" class="signatures-wrap">'+SIG_HTML+'</div></td></tr>';
+        shell.appendChild(tfoot);
+      }
+      body.classList.add('repeat-sigs');
+    } else {
+      if(existing) existing.remove();
+      body.classList.remove('repeat-sigs');
+    }
+    // Respect the "show signatures" toggle on the foot copy too
+    applySigs();
+    prefs.repeatSigs = on; savePrefs(prefs);
+  }
+  $('pv-repeat-sigs').addEventListener('change', applyRepeatSigs);
+
+  // Signatures show/hide â€” applies to whichever copies currently exist
   function applySigs(){
     var on=$('pv-show-sigs').checked;
     document.querySelectorAll('#sigs-end .signatures, #sigs-foot .signatures').forEach(function(el){ el.style.display = on ? '' : 'none'; });
