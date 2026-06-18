@@ -1568,3 +1568,163 @@
 }
 :root.dark[data-ui-theme="mesh"] .card3d__title{ color:#f8fafc !important; }
 :root.dark[data-ui-theme="mesh"] .card3d__desc{ color:#cbd5e1 !important; }
+
+/* ============================================================
+   🫧 LIQUID GLASS — inspired by iPadOS 26 "Liquid Glass"
+   ------------------------------------------------------------
+   - Dynamic colored aurora backdrop visible THROUGH the glass
+   - Thick backdrop-filter (blur + saturate + brightness)
+   - Specular top-edge highlight + soft inner glow
+   - Squircle radius, refractive border, gentle parallax
+   - Per-card chromatic tint (5 palettes) so cards feel alive
+   ============================================================ */
+:root[data-ui-theme="liquidglass"] body,
+:root[data-ui-theme="liquidglass"] .schedule-body{
+  background:
+    radial-gradient(60% 50% at 15% 10%, #ffd1dc 0%, transparent 60%),
+    radial-gradient(55% 45% at 85% 15%, #b9e3ff 0%, transparent 60%),
+    radial-gradient(60% 50% at 80% 90%, #d8c4ff 0%, transparent 60%),
+    radial-gradient(55% 45% at 10% 85%, #c5f1d8 0%, transparent 60%),
+    linear-gradient(135deg,#f7f9ff 0%,#eef3ff 100%) !important;
+  background-attachment: fixed !important;
+}
+:root[data-ui-theme="liquidglass"] .schedule-body::before,
+:root[data-ui-theme="liquidglass"] .schedule-body::after{ display:none !important; }
+
+:root[data-ui-theme="liquidglass"] .schedule-card,
+:root[data-ui-theme="liquidglass"] .schedule-header,
+:root[data-ui-theme="liquidglass"] .card3d{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.22) 50%, rgba(255,255,255,.42) 100%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(1.05) !important;
+  backdrop-filter: blur(28px) saturate(180%) brightness(1.05) !important;
+  border: 1px solid rgba(255,255,255,.65) !important;
+  border-radius: 28px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.85),
+    inset 0 -1px 0 rgba(255,255,255,.35),
+    inset 0 0 30px rgba(255,255,255,.25),
+    0 1px 0 rgba(255,255,255,.6),
+    0 10px 30px -10px rgba(31,38,135,.18),
+    0 24px 60px -20px rgba(31,38,135,.22) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+/* Specular highlight sweep on top edge */
+:root[data-ui-theme="liquidglass"] .card3d::before{
+  content:"" !important;
+  position:absolute !important; inset:0 !important;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 55%),
+    linear-gradient(180deg, rgba(255,255,255,.4) 0%, rgba(255,255,255,0) 30%) !important;
+  pointer-events:none !important;
+  mix-blend-mode:screen !important;
+  z-index:1 !important;
+}
+/* Chromatic refractive edge ring */
+:root[data-ui-theme="liquidglass"] .card3d::after{
+  content:"" !important;
+  position:absolute !important; inset:0 !important;
+  border-radius:28px !important;
+  padding:1px !important;
+  background: conic-gradient(from var(--ang,140deg),
+    rgba(255,255,255,.0),
+    rgba(186,230,253,.7),
+    rgba(221,214,254,.7),
+    rgba(255,228,230,.7),
+    rgba(187,247,208,.7),
+    rgba(255,255,255,.0)) !important;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0) !important;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0) !important;
+  -webkit-mask-composite: xor !important;
+          mask-composite: exclude !important;
+  pointer-events:none !important;
+  z-index:2 !important;
+  opacity:.9 !important;
+}
+:root[data-ui-theme="liquidglass"] .card3d > *{ position:relative; z-index:3; }
+
+:root[data-ui-theme="liquidglass"] .card3d__title{
+  color:#0b1f3d !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.7);
+}
+:root[data-ui-theme="liquidglass"] .card3d__desc{ color:#3a4a6b !important; }
+:root[data-ui-theme="liquidglass"] .card3d__icon{
+  background: linear-gradient(135deg, rgba(255,255,255,.85), rgba(255,255,255,.45)) !important;
+  border:1px solid rgba(255,255,255,.9) !important;
+  color: var(--c, #3b82f6) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -6px 12px rgba(255,255,255,.5),
+    0 6px 16px -6px color-mix(in srgb, var(--c,#3b82f6) 50%, transparent) !important;
+  border-radius: 18px !important;
+}
+:root[data-ui-theme="liquidglass"] .card3d__count{
+  color:#0b1f3d !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.6);
+}
+:root[data-ui-theme="liquidglass"] .card3d__badge{
+  background: rgba(255,255,255,.55) !important;
+  color:#0b1f3d !important;
+  border:1px solid rgba(255,255,255,.8) !important;
+  backdrop-filter: blur(10px) !important;
+}
+:root[data-ui-theme="liquidglass"] .card3d__arrow{
+  color: var(--c, #3b82f6) !important;
+}
+:root[data-ui-theme="liquidglass"] .card3d__orb{ opacity:.08 !important; }
+
+/* Per-card chromatic tints (5 distinct liquid-glass moods) */
+:root[data-ui-theme="liquidglass"] .card3d:nth-child(5n+1){ --c:#0a84ff; --ang:120deg; }
+:root[data-ui-theme="liquidglass"] .card3d:nth-child(5n+2){ --c:#ff375f; --ang:200deg; }
+:root[data-ui-theme="liquidglass"] .card3d:nth-child(5n+3){ --c:#30d158; --ang:60deg;  }
+:root[data-ui-theme="liquidglass"] .card3d:nth-child(5n+4){ --c:#bf5af2; --ang:260deg; }
+:root[data-ui-theme="liquidglass"] .card3d:nth-child(5n+5){ --c:#ff9f0a; --ang:320deg; }
+
+/* ----------------- DARK MODE — Liquid Glass ----------------- */
+:root.dark[data-ui-theme="liquidglass"] body,
+:root.dark[data-ui-theme="liquidglass"] .schedule-body{
+  background:
+    radial-gradient(60% 50% at 15% 10%, rgba(10,132,255,.30) 0%, transparent 60%),
+    radial-gradient(55% 45% at 85% 15%, rgba(191,90,242,.28) 0%, transparent 60%),
+    radial-gradient(60% 50% at 80% 90%, rgba(48,209,88,.22) 0%, transparent 60%),
+    radial-gradient(55% 45% at 10% 85%, rgba(255,55,95,.22) 0%, transparent 60%),
+    linear-gradient(135deg,#0a0f1e 0%,#0d1430 100%) !important;
+  background-attachment: fixed !important;
+}
+:root.dark[data-ui-theme="liquidglass"] .schedule-card,
+:root.dark[data-ui-theme="liquidglass"] .schedule-header,
+:root.dark[data-ui-theme="liquidglass"] .card3d{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.04) 50%, rgba(255,255,255,.10) 100%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(170%) brightness(1.1) !important;
+  backdrop-filter: blur(30px) saturate(170%) brightness(1.1) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -1px 0 rgba(255,255,255,.06),
+    inset 0 0 40px rgba(255,255,255,.05),
+    0 10px 30px -10px rgba(0,0,0,.55),
+    0 30px 80px -20px rgba(0,0,0,.65) !important;
+}
+:root.dark[data-ui-theme="liquidglass"] .card3d::before{
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 55%),
+    linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 30%) !important;
+}
+:root.dark[data-ui-theme="liquidglass"] .card3d__title{ color:#f4f7ff !important; text-shadow:none; }
+:root.dark[data-ui-theme="liquidglass"] .card3d__desc{ color:#c8d3eb !important; }
+:root.dark[data-ui-theme="liquidglass"] .card3d__count{ color:#ffffff !important; text-shadow:none; }
+:root.dark[data-ui-theme="liquidglass"] .card3d__icon{
+  background: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08)) !important;
+  border:1px solid rgba(255,255,255,.30) !important;
+  color: var(--c, #60a5fa) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.4),
+    0 6px 18px -6px color-mix(in srgb, var(--c,#60a5fa) 60%, transparent) !important;
+}
+:root.dark[data-ui-theme="liquidglass"] .card3d__badge{
+  background: rgba(255,255,255,.10) !important;
+  color:#f4f7ff !important;
+  border:1px solid rgba(255,255,255,.22) !important;
+}

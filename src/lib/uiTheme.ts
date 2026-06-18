@@ -21,7 +21,8 @@ export type UiTheme =
   | 'neon'       // Cyber Neon
   | 'gradient'   // Youth Gradient
   | 'holo'       // Holographic Iridescent
-  | 'mesh';      // Vibrant Color Mesh
+  | 'mesh'       // Vibrant Color Mesh
+  | 'liquidglass';// iPadOS 26 Liquid Glass — refractive, specular, dynamic
 
 export const UI_THEMES: { id: UiTheme; label: string; description: string; swatch: string }[] = [
   { id: 'original', label: '🏛️ الأصلي — تصميم النظام',     description: 'الواجهة الأصلية للنظام كما هي على civilacademi.com — مقفلة ولن تتغير.', swatch: 'linear-gradient(135deg,#e0f2fe,#fae8ff)' },
@@ -45,6 +46,7 @@ export const UI_THEMES: { id: UiTheme; label: string; description: string; swatc
   { id: 'gradient', label: '🌈 التدرج الشبابي',                 description: 'تدرجات نابضة (برتقالي/وردي/أزرق/أخضر) متفرّدة لكل بطاقة — حيوي وعصري.',  swatch: 'linear-gradient(135deg,#fb923c,#ec4899,#8b5cf6)' },
   { id: 'holo',     label: '🦋 الهولوجرام البلوري',              description: 'انعكاسات قزحية متلألئة — تأثير الهولوجرام/الصدف بتدرّجات مختلفة لكل بطاقة.',  swatch: 'linear-gradient(135deg,#a5f3fc,#c4b5fd,#fbcfe8,#fde68a)' },
   { id: 'mesh',     label: '🎨 شبكة الألوان النابضة',           description: 'شبكة Mesh ملونة بألوان مختلفة لكل بطاقة — تصميم Y2K حديث وجريء.',          swatch: 'linear-gradient(135deg,#22d3ee,#a855f7,#f43f5e,#facc15)' },
+  { id: 'liquidglass', label: '🫧 الزجاج السائل — iPadOS 26', description: 'زجاج سائل انكساري مستوحى من iPadOS 26: شفافية عميقة، انعكاسات لمعية، ضباب ديناميكي، وحواف قزحية لكل بطاقة.', swatch: 'linear-gradient(135deg,rgba(255,255,255,.6),rgba(186,230,253,.55),rgba(221,214,254,.55),rgba(255,228,230,.6))' },
 ];
 
 const KEY = 'ui-theme';
