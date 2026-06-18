@@ -15,7 +15,13 @@ export type UiTheme =
   | 'crimson'    // Academic Crimson + Gold
   | 'oxford'     // Oxford Blue + Pale Gold
   | 'ivory'      // Ivory + Espresso + Brass
-  | 'cobalt';    // Cobalt + Silver
+  | 'cobalt'     // Cobalt + Silver
+  // ===== YOUTH / MODERN (5 extra) =====
+  | 'glasspro'   // Premium Frosted Glass 3D
+  | 'neon'       // Cyber Neon
+  | 'gradient'   // Youth Gradient
+  | 'holo'       // Holographic Iridescent
+  | 'mesh';      // Vibrant Color Mesh
 
 export const UI_THEMES: { id: UiTheme; label: string; description: string; swatch: string }[] = [
   { id: 'original', label: '🏛️ الأصلي — تصميم النظام',     description: 'الواجهة الأصلية للنظام كما هي على civilacademi.com — مقفلة ولن تتغير.', swatch: 'linear-gradient(135deg,#e0f2fe,#fae8ff)' },
