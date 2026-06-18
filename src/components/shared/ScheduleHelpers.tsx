@@ -224,6 +224,7 @@ body.repeat-sigs #sigs-end{display:none}
 #repeat-banner-preview .page2-paper{background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:0 0 8px 8px;border-top:3px dashed #0f4c81;position:relative;min-height:120px}
 #repeat-banner-preview .page2-paper::after{content:"⋯ بقية بيانات التقرير ⋯";display:block;text-align:center;color:#94a3b8;font-weight:700;padding:18px 0 6px;font-size:12px;font-style:italic}
 body:not(.repeat-header) #repeat-banner-preview .banner{display:none}
+body:not(.repeat-header) #repeat-banner-preview .fixed-columns-table{display:none}
 body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"🚫 تكرار البانر معطّل — الصفحات التالية تبدأ مباشرةً ببيانات الجدول";display:block;text-align:center;color:#dc2626;font-weight:800;padding:16px;font-size:13px;background:#fef2f2;border:1.5px dashed #fca5a5;border-radius:6px;margin-bottom:8px}
 
 @media print{
@@ -311,6 +312,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <div class="page2-label">🔁 معاينة الصفحة الثانية وما بعدها — بانر التكرار</div>
   <div class="page2-paper">
     ${bannerHtml}
+    <table class="fixed-columns-table">${colgroupHtml}<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead></table>
   </div>
 </div>
 
