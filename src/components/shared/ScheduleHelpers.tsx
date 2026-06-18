@@ -277,11 +277,13 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
 
 <div class="watermark">الجامعة التكنولوجية</div>
 
+<!-- Fixed banner: repeats on every printed page via position:fixed (visible only in print when repeat-header is on) -->
+<div class="fixed-banner-print" aria-hidden="true">${bannerHtml}</div>
+
 <div class="print-area">
   <div class="first-banner">${bannerHtml}</div>
   <table class="data">
     <thead>
-      <tr class="repeat-banner-row"><th class="banner-cell" colspan="${colCount}">${bannerHtml}</th></tr>
       <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
     </thead>
     <tbody>${tableRows}</tbody>
