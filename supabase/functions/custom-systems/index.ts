@@ -40,6 +40,8 @@ const HEADERS = [
   "crud_permissions_json",
   "teacher_department_column", "teacher_filter_scope",
   "required_filters_json", "quick_filters_json",
+  // v7 additions:
+  "print_prefs_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
