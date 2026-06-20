@@ -493,21 +493,21 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   <div className="space-y-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs font-black mb-1">عمود اسم التدريسي (حرف Excel)</label>
+                        <label className="block text-xs font-black mb-1">عمود اسم التدريسي في الورقة (حرف Excel)</label>
                         <input
                           className="schedule-select w-full"
                           value={s.teacher_column || ''}
                           onChange={(e) => patch({ teacher_column: e.target.value.toUpperCase().trim() })}
-                          placeholder="مثال: F"
+                          placeholder="أدخل حرف العمود (مثال: F)"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-black mb-1">عمود قسم التدريسي (حرف Excel)</label>
+                        <label className="block text-xs font-black mb-1">عمود قسم التدريسي في الورقة (حرف Excel)</label>
                         <input
                           className="schedule-select w-full"
                           value={s.teacher_department_column || ''}
                           onChange={(e) => patch({ teacher_department_column: e.target.value.toUpperCase().trim() })}
-                          placeholder="مثال: P"
+                          placeholder="أدخل حرف العمود (مثال: P)"
                         />
                       </div>
                     </div>
@@ -655,14 +655,14 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   <div key={i} className="bg-slate-50 border rounded-lg p-3 space-y-2">
                     <div className="grid grid-cols-12 gap-2 items-center">
                       <div className="col-span-2 flex gap-1">
-                        <input className="schedule-select w-12 text-center" value={q.icon || ''} onChange={(e) => updQF(i, { icon: e.target.value })} placeholder="⚡" maxLength={2} />
+                        <input className="schedule-select w-12 text-center" value={q.icon || ''} onChange={(e) => updQF(i, { icon: e.target.value })} placeholder="رمز" maxLength={2} />
                         <select className="schedule-select flex-1" value="" onChange={(e) => { if (e.target.value) updQF(i, { icon: e.target.value }); }} title="اختر أيقونة جاهزة">
                           <option value="">🎨</option>
                           {['⚡','🔥','⭐','✅','❌','⚠️','🚫','🔔','📌','📍','🎯','💡','🟢','🟡','🔴','🔵','🟣','🟠','📊','📈','📉','🏆','🎓','📚','📝','🧮','🗓️','⏰','🔍','👤','👥','🏛️','🏫','💼','🧪','🔬','🧰','🛠️','♻️','🆕','🆗','🆙','🆘','💯','🎁','🎉','🌟','💎','🚀','📞','📧','📦','📁','🗂️','🧩','🔐','🔓','🔑','🧭','🗺️'].map(em => <option key={em} value={em}>{em}</option>)}
                         </select>
                       </div>
-                      <input className="schedule-select col-span-3" value={q.label || ''} onChange={(e) => updQF(i, { label: e.target.value })} placeholder="تسمية الزر" />
-                      <input className="schedule-select col-span-2 text-center font-mono" value={q.column || ''} onChange={(e) => updQF(i, { column: e.target.value.toUpperCase() })} placeholder="عمود" />
+                      <input className="schedule-select col-span-3" value={q.label || ''} onChange={(e) => updQF(i, { label: e.target.value })} placeholder="نص الزر الظاهر (مثال: غير مستوفي / تضارب)" />
+                      <input className="schedule-select col-span-2 text-center font-mono" value={q.column || ''} onChange={(e) => updQF(i, { column: e.target.value.toUpperCase() })} placeholder="عمود (مثال: E)" />
                       <select className="schedule-select col-span-3" value={q.op || 'eq'} onChange={(e) => updQF(i, { op: e.target.value, value: '', values: [] })}>
                         {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
                       </select>
@@ -675,7 +675,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         placeholder="قيم مفصولة (,  ،  -  |  أو سطر جديد)" />
                     ) : NEEDS_VALUE[q.op as ConditionOp] ? (
                       <input className="schedule-select w-full" value={String(q.value ?? '')}
-                        onChange={(e) => updQF(i, { value: e.target.value })} placeholder="القيمة المراد المطابقة عليها" />
+                        onChange={(e) => updQF(i, { value: e.target.value })} placeholder="القيمة المطلوب تصفية الصفوف بها (مثال: نعم / مستوفي)" />
                     ) : null}
                   </div>
                 ))}
