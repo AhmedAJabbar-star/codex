@@ -348,7 +348,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                               className="schedule-select col-span-3"
                               value={r.label}
                               onChange={(e) => updRule(i, ri, { label: e.target.value })}
-                              placeholder="تسمية الخيار"
+                              placeholder="اسم الخيار الظاهر في القائمة"
                             />
                             <select
                               className="schedule-select col-span-3"
@@ -369,7 +369,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                 className="schedule-select col-span-4"
                                 value={String(r.value ?? '')}
                                 onChange={(e) => updRule(i, ri, { value: e.target.value })}
-                                placeholder="القيمة"
+                                placeholder="القيمة المطلوب مطابقتها"
                               />
                             ) : (
                               <div className="col-span-4 text-[11px] text-slate-400 text-center">— لا قيمة —</div>
@@ -415,7 +415,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
               <div className="space-y-2">
                 {s.conditions.map((c, i) => (
                   <div key={i} className="grid grid-cols-12 gap-2 items-center bg-slate-50 p-2 rounded-lg border">
-                    <input className="schedule-select col-span-2" value={c.column} onChange={(e) => updCondition(i, { column: e.target.value.toUpperCase() })} placeholder="E" />
+                    <input className="schedule-select col-span-2" value={c.column} onChange={(e) => updCondition(i, { column: e.target.value.toUpperCase() })} placeholder="عمود (مثال: E)" />
                     <select className="schedule-select col-span-4" value={c.op} onChange={(e) => updCondition(i, { op: e.target.value as ConditionOp, value: '', values: [] })}>
                       {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
                     </select>
