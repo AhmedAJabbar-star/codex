@@ -292,8 +292,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 {filtersCfg.map((f, i) => (
                   <div key={i} className="bg-slate-50 p-3 rounded-lg border space-y-2">
                     <div className="grid grid-cols-12 gap-2 items-center">
-                      <input className="schedule-select col-span-2" value={f.column} onChange={(e) => updFilter(i, { column: e.target.value.toUpperCase() })} placeholder="G" />
-                      <input className="schedule-select col-span-5" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر (اختياري)" />
+                      <input className="schedule-select col-span-2" value={f.column} onChange={(e) => updFilter(i, { column: e.target.value.toUpperCase() })} placeholder="عمود (مثال: G)" />
+                      <input className="schedule-select col-span-5" value={f.label || ''} onChange={(e) => updFilter(i, { label: e.target.value })} placeholder="عنوان الفلتر الظاهر للمستخدم (اختياري)" />
                       <select className="schedule-select col-span-3" value={f.control || 'select'} onChange={(e) => updFilter(i, { control: e.target.value as any })}>
                         <option value="select">قائمة منسدلة</option>
                         <option value="combo">قائمة + بحث</option>
