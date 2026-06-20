@@ -119,6 +119,13 @@ body.in-preview{padding:0}
 .preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
 .preview-bar .sep{width:1px;height:26px;background:rgba(255,255,255,.25);margin:0 4px}
 
+/* When system has locked print prefs, hide the bar and show a floating settings toggle. */
+body.toolbar-hidden .preview-bar{display:none}
+.pv-fab{position:fixed;top:14px;left:14px;z-index:1100;display:none;align-items:center;gap:6px;background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;border:0;border-radius:999px;padding:9px 14px;font-family:'Cairo',sans-serif;font-weight:800;font-size:12.5px;cursor:pointer;box-shadow:0 6px 18px rgba(15,76,129,.4);transition:transform .12s}
+.pv-fab:hover{transform:translateY(-1px)}
+body.toolbar-hidden .pv-fab{display:inline-flex}
+@media print{.pv-fab{display:none!important}}
+
 /* ===== PRINT AREA ===== */
 .print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative}
 .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.045);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
