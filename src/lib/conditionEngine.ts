@@ -108,6 +108,17 @@ export function evaluateCondition(
     case 'neq': return !tokens.some((x) => x === target);
     case 'contains': return normalizeAr(t).includes(normalizeAr(target));
     case 'not_contains': return !normalizeAr(t).includes(normalizeAr(target));
+    case 'token_match': {
+      // Treat cell as a list of tokens separated by / , ، ; | whitespace; match exactly
+      const parts = t.split(/[\s/،,;|]+/).map((x) => x.trim()).filter(Boolean);
+      const nTarget = normalizeAr(target);
+      return parts.some((x) => normalizeAr(x) === nTarget);
+    }
+    case 'not_token_match': {
+      const parts = t.split(/[\s/،,;|]+/).map((x) => x.trim()).filter(Boolean);
+      const nTarget = normalizeAr(target);
+      return !parts.some((x) => normalizeAr(x) === nTarget);
+    }
     case 'contains_any': {
       const list = (cond.values || []).map((v) => normalizeAr(String(v)));
       const nt = normalizeAr(t);
