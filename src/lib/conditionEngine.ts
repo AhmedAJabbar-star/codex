@@ -4,6 +4,7 @@
 export type ConditionOp =
   | 'eq' | 'neq'
   | 'contains' | 'contains_any' | 'not_contains'
+  | 'token_match' | 'not_token_match'
   | 'eq_number' | 'gt' | 'lt' | 'gte' | 'lte'
   | 'is_empty' | 'is_not_empty'
   | 'regex';
