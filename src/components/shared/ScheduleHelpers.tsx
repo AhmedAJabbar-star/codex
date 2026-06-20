@@ -23,7 +23,7 @@ export function parseTimeToMinutes(timeStr: string): number | null {
 }
 
 /* ───── Official Print helper (Unified University Schedule) ───── */
-export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[]) {
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs) {
   const w = window.open('', '_blank');
   if (!w) return;
 
@@ -118,6 +118,13 @@ body.in-preview{padding:0}
 .preview-bar .btn-print{background:#fff;color:#0f4c81;margin-inline-start:auto}
 .preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
 .preview-bar .sep{width:1px;height:26px;background:rgba(255,255,255,.25);margin:0 4px}
+
+/* When system has locked print prefs, hide the bar and show a floating settings toggle. */
+body.toolbar-hidden .preview-bar{display:none}
+.pv-fab{position:fixed;top:14px;left:14px;z-index:1100;display:none;align-items:center;gap:6px;background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;border:0;border-radius:999px;padding:9px 14px;font-family:'Cairo',sans-serif;font-weight:800;font-size:12.5px;cursor:pointer;box-shadow:0 6px 18px rgba(15,76,129,.4);transition:transform .12s}
+.pv-fab:hover{transform:translateY(-1px)}
+body.toolbar-hidden .pv-fab{display:inline-flex}
+@media print{.pv-fab{display:none!important}}
 
 /* ===== PRINT AREA ===== */
 .print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative}
@@ -277,6 +284,8 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
+<button class="pv-fab" id="pv-fab" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ إعدادات الطباعة</button>
+
 <div class="watermark">الجامعة التكنولوجية</div>
 
 <div class="print-area">
@@ -305,11 +314,29 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
 <script>
 (function(){
   var STORAGE_KEY='lovable-print-prefs-v4';
+  var SYSTEM_PREFS = ${JSON.stringify(printPrefs || null)};
   var body=document.body;
   function $(id){ return document.getElementById(id); }
   function loadPrefs(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){ return {}; } }
   function savePrefs(p){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }catch(e){} }
   var prefs=loadPrefs();
+  // Map snake_case system prefs onto the toolbar's camelCase keys, then merge — system overrides.
+  if(SYSTEM_PREFS){
+    var SP = SYSTEM_PREFS;
+    var mapped = {
+      orient: SP.orient, size: SP.size, margin: SP.margin,
+      repeatHeader: SP.repeatHeader, compactRepeat: SP.compactRepeat, repeatSigs: SP.repeatSigs,
+      showLogo: SP.showLogo, showTitle: SP.showTitle, showInfo: SP.showInfo,
+      showFilters: SP.showFilters, showDate: SP.showDate, showDocnum: SP.showDocnum,
+      showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit
+    };
+    Object.keys(mapped).forEach(function(k){ if(mapped[k] !== undefined) prefs[k] = mapped[k]; });
+    // Hide the preview toolbar unless the system explicitly asks to keep it visible.
+    if(!SP.show_toolbar) body.classList.add('toolbar-hidden');
+  }
+  var fab = $('pv-fab');
+  if(fab) fab.addEventListener('click', function(){ body.classList.toggle('toolbar-hidden'); });
+
 
   // Title sync (applies to BOTH banner instances via class selector)
   var ti=$('pv-title-input');

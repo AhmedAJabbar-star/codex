@@ -163,6 +163,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
           <Step n={4} label="الشروط" />
           <Step n={5} label="الحماية والصلاحيات" />
           <Step n={6} label="أزرار سريعة" />
+          <Step n={7} label="إعدادات الطباعة" />
         </div>
 
         <div className="px-5 py-4 overflow-auto flex-1">
@@ -683,7 +684,123 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
               </div>
             );
           })()}
+
+          {step === 7 && (() => {
+            const pp = s.print_prefs || {};
+            const setPP = (p: any) => patch({ print_prefs: { ...pp, ...p } });
+            const Bool = ({ k, label, def = true }: { k: string; label: string; def?: boolean }) => {
+              const v = (pp as any)[k];
+              const checked = v === undefined ? def : !!v;
+              return (
+                <label className="flex items-center gap-2 text-xs font-bold bg-white border rounded px-2 py-1.5 cursor-pointer">
+                  <input type="checkbox" checked={checked} onChange={(e) => setPP({ [k]: e.target.checked })} />
+                  {label}
+                </label>
+              );
+            };
+            const hasPrefs = Object.keys(pp).length > 0;
+            return (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
+                  <strong className="text-sm block mb-1">🖨️ إعدادات الطباعة الافتراضية لهذا النظام</strong>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    اضبط القيم هنا لتصبح <strong>ثابتة عند كل معاينة</strong> لهذا النظام، ولن يظهر شريط الإعدادات للمستخدم تلقائياً.
+                    يبقى بإمكانه إظهاره عبر زر «⚙️ إعدادات الطباعة» العائم أو من خلال تفعيل «إظهار شريط الإعدادات تلقائياً» أدناه.
+                    إذا لم تضبط أي قيمة، ستُستخدم الإعدادات الافتراضية ويظهر الشريط كالسابق.
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-3">
+                  <strong className="text-sm">إعدادات الصفحة</strong>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-black mb-1">الاتجاه</label>
+                      <select className="schedule-select w-full text-xs" value={pp.orient || ''} onChange={(e) => setPP({ orient: e.target.value || undefined })}>
+                        <option value="">— تلقائي —</option>
+                        <option value="landscape">أفقي</option>
+                        <option value="portrait">عمودي</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-black mb-1">حجم الورق</label>
+                      <select className="schedule-select w-full text-xs" value={pp.size || ''} onChange={(e) => setPP({ size: e.target.value || undefined })}>
+                        <option value="">— تلقائي —</option>
+                        <option value="A4">A4</option>
+                        <option value="A3">A3</option>
+                        <option value="Letter">Letter</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-black mb-1">الهوامش</label>
+                      <select className="schedule-select w-full text-xs" value={pp.margin || ''} onChange={(e) => setPP({ margin: e.target.value || undefined })}>
+                        <option value="">— تلقائي —</option>
+                        <option value="5">ضيقة (5مم)</option>
+                        <option value="8">عادية (8مم)</option>
+                        <option value="12">واسعة (12مم)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <strong className="text-sm">البانر والتكرار</strong>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <Bool k="repeatHeader" label="تكرار البانر بكل صفحة" />
+                    <Bool k="compactRepeat" label="بانر مضغوط عند التكرار" />
+                    <Bool k="repeatSigs" label="تكرار التواقيع في كل صفحة" def={false} />
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <strong className="text-sm">محتويات البانر</strong>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <Bool k="showLogo" label="الشعار" />
+                    <Bool k="showTitle" label="العنوان" />
+                    <Bool k="showInfo" label="شريط المعلومات" />
+                    <Bool k="showDate" label="التاريخ" />
+                    <Bool k="showDocnum" label="رقم الوثيقة" def={false} />
+                    <Bool k="showCount" label="عدد السجلات" def={false} />
+                    <Bool k="showFilters" label="معايير التصفية" def={false} />
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <strong className="text-sm">التواقيع والجدول</strong>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <Bool k="showSigs" label="إظهار التواقيع" />
+                    <Bool k="fit" label="ملاءمة الأعمدة (تخطيط ثابت)" def={false} />
+                  </div>
+                </div>
+
+                <div className="border-2 border-amber-300 rounded-lg p-3 bg-amber-50/60">
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!pp.show_toolbar}
+                      onChange={(e) => setPP({ show_toolbar: e.target.checked })}
+                    />
+                    <span>
+                      إظهار شريط الإعدادات في المعاينة تلقائياً
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        افتراضياً يكون الشريط مخفياً عند ضبط أي قيمة هنا، ويستطيع المستخدم إظهاره من زر «⚙️ إعدادات الطباعة» العائم.
+                        فعّل هذا الخيار إذا أردت أن يبقى الشريط ظاهراً دائماً.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                {hasPrefs && (
+                  <button
+                    className="schedule-btn"
+                    onClick={() => patch({ print_prefs: undefined })}
+                    style={{ color: '#b91c1c', fontSize: 12 }}
+                  >🗑️ إعادة تعيين جميع إعدادات الطباعة لهذا النظام</button>
+                )}
+              </div>
+            );
+          })()}
         </div>
+
 
         <footer className="px-5 py-3 border-t flex items-center justify-between gap-2 bg-slate-50">
           {initial?.id ? (

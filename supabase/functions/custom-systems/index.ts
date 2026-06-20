@@ -40,6 +40,8 @@ const HEADERS = [
   "crud_permissions_json",
   "teacher_department_column", "teacher_filter_scope",
   "required_filters_json", "quick_filters_json",
+  // v7 additions:
+  "print_prefs_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
@@ -202,6 +204,7 @@ function rowToSystem(r: Record<string, string>) {
     column_select_allow_custom: parseJson(r.column_select_allow_custom_json || "{}", {}),
     required_filters: parseJson(r.required_filters_json || "[]", []),
     quick_filters: parseJson(r.quick_filters_json || "[]", []),
+    print_prefs: parseJson(r.print_prefs_json || "null", undefined) || undefined,
   };
 }
 
@@ -245,6 +248,7 @@ async function systemToRow(s: any): Promise<string[]> {
     column_select_allow_custom_json: JSON.stringify(s.column_select_allow_custom || {}),
     required_filters_json: JSON.stringify(s.required_filters || []),
     quick_filters_json: JSON.stringify(s.quick_filters || []),
+    print_prefs_json: (s.print_prefs && Object.keys(s.print_prefs).length > 0) ? JSON.stringify(s.print_prefs) : "",
   };
   return order.map((h) => valByCol[h] ?? "");
 }

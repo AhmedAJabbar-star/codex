@@ -3,6 +3,30 @@ import type { Condition, ConditionOp, DerivedColumn } from '@/lib/conditionEngin
 
 export interface SignatureItem { label: string; name?: string }
 
+/** Saved print/preview settings per system. When set, they override the toolbar defaults
+ *  and the preview bar is hidden by default — the user can still reveal it via the
+ *  «⚙️ إعدادات الطباعة» floating button (unless show_toolbar is forced true). */
+export interface PrintPrefs {
+  orient?: 'portrait' | 'landscape';
+  size?: 'A4' | 'A3' | 'Letter';
+  margin?: '5' | '8' | '12';
+  repeatHeader?: boolean;
+  compactRepeat?: boolean;
+  repeatSigs?: boolean;
+  showLogo?: boolean;
+  showTitle?: boolean;
+  showInfo?: boolean;
+  showFilters?: boolean;
+  showDate?: boolean;
+  showDocnum?: boolean;
+  showCount?: boolean;
+  showSigs?: boolean;
+  fit?: boolean;
+  /** When true, the preview toolbar is shown by default. When false/undefined, it is hidden
+   *  (a small floating settings button is shown so the user can still adjust if needed). */
+  show_toolbar?: boolean;
+}
+
 /** A named rule attached to a filter. When the user picks it, only rows whose source cell satisfies the rule pass. */
 export interface FilterRule {
   label: string;
@@ -63,6 +87,8 @@ export interface CustomSystemDef {
   derived_columns: DerivedColumn[];
   header_labels?: Record<string, string>;
   signatures?: SignatureItem[];
+  /** Print/preview settings — when set, used as fixed defaults; toolbar hidden by default. */
+  print_prefs?: PrintPrefs;
   /** Excel letters of filters that the user MUST choose before any data renders. */
   required_filters?: string[];
   /** Toggle-style buttons rendered above the table (multiple may be active). */
