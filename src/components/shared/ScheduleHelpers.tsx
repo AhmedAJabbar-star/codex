@@ -284,6 +284,8 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
+<button class="pv-fab" id="pv-fab" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ إعدادات الطباعة</button>
+
 <div class="watermark">الجامعة التكنولوجية</div>
 
 <div class="print-area">
