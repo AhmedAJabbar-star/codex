@@ -87,6 +87,8 @@ export interface CustomSystemDef {
   derived_columns: DerivedColumn[];
   header_labels?: Record<string, string>;
   signatures?: SignatureItem[];
+  /** Print/preview settings — when set, used as fixed defaults; toolbar hidden by default. */
+  print_prefs?: PrintPrefs;
   /** Excel letters of filters that the user MUST choose before any data renders. */
   required_filters?: string[];
   /** Toggle-style buttons rendered above the table (multiple may be active). */
