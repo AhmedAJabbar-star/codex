@@ -185,6 +185,8 @@ export const OP_LABELS: Record<ConditionOp, string> = {
   neq: 'لا يساوي',
   contains: 'يحتوي على',
   not_contains: 'لا يحتوي على',
+  token_match: 'يطابق عنصراً (مفصول بـ / أو ،)',
+  not_token_match: 'لا يطابق عنصراً (مفصول بـ / أو ،)',
   contains_any: 'يحتوي أحد القيم',
   eq_number: 'يساوي رقماً',
   gt: 'أكبر من',
