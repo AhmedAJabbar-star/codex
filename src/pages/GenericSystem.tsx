@@ -192,6 +192,7 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     filters: builtFilters,
     rows,
     customSignatures: (def.signatures && def.signatures.length > 0) ? def.signatures : undefined,
+    printPrefs: def.print_prefs && Object.keys(def.print_prefs).length > 0 ? def.print_prefs : undefined,
     requiredFilters: requiredFilterKeys.length > 0 ? requiredFilterKeys : undefined,
     quickFilters: quickFilterDefs.length > 0 ? quickFilterDefs : undefined,
   };
