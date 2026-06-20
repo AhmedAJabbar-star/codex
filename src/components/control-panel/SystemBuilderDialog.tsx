@@ -425,7 +425,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         onChange={(e) => updCondition(i, { values: splitMulti(e.target.value) })}
                         placeholder="قيم مفصولة بأي من (, ، - | سطر جديد): مثل استاذ، أستاذ" />
                     ) : NEEDS_VALUE[c.op] ? (
-                      <input className="schedule-select col-span-5" value={String(c.value ?? '')} onChange={(e) => updCondition(i, { value: e.target.value })} placeholder="القيمة" />
+                      <input className="schedule-select col-span-5" value={String(c.value ?? '')} onChange={(e) => updCondition(i, { value: e.target.value })} placeholder="القيمة المطلوب مطابقتها في العمود" />
                     ) : (
                       <div className="col-span-5 text-xs text-slate-400 text-center">— لا قيمة —</div>
                     )}
@@ -456,8 +456,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 {sigs.length === 0 && <p className="text-xs text-slate-500 text-center py-2">سيتم استخدام التواقيع الافتراضية للنظام.</p>}
                 {sigs.map((sig, i) => (
                   <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                    <input className="schedule-select col-span-4" value={sig.label} onChange={(e) => updSig(i, { label: e.target.value })} placeholder="الوظيفة (مثال: عميد الكلية)" />
-                    <input className="schedule-select col-span-7" value={sig.name || ''} onChange={(e) => updSig(i, { name: e.target.value })} placeholder="الاسم" />
+                    <input className="schedule-select col-span-4" value={sig.label} onChange={(e) => updSig(i, { label: e.target.value })} placeholder="المنصب (مثال: عميد الكلية / رئيس القسم)" />
+                    <input className="schedule-select col-span-7" value={sig.name || ''} onChange={(e) => updSig(i, { name: e.target.value })} placeholder="اسم الشخص المكتوب في التوقيع الرسمي" />
                     <button onClick={() => delSig(i)} className="col-span-1 text-red-600 font-black">✕</button>
                   </div>
                 ))}
@@ -468,7 +468,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 حماية بكلمة سر
               </label>
               {s.protected && (
-                <input className="schedule-select w-full" value={s.password} onChange={(e) => patch({ password: e.target.value })} placeholder="كلمة المرور" />
+                <input className="schedule-select w-full" value={s.password} onChange={(e) => patch({ password: e.target.value })} placeholder="كلمة المرور لحماية دخول النظام (إذا فُعّلت الحماية)" />
               )}
               <label className="flex items-center gap-2 text-sm font-bold mt-3">
                 <input type="checkbox" checked={s.enabled !== false} onChange={(e) => patch({ enabled: e.target.checked })} />
