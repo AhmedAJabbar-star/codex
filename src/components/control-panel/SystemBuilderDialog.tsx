@@ -17,9 +17,10 @@ const ICONS = [
   // Office / Admin
   '📅','📆','🗓️','📌','📍','🔗','📎','🗃️','🗄️','📤','📥','✉️','📨','📧',
 ];
-const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','contains_any','eq_number','gt','lt','gte','lte','is_empty','is_not_empty'];
+const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','token_match','not_token_match','contains_any','eq_number','gt','lt','gte','lte','is_empty','is_not_empty'];
 const NEEDS_VALUE: Record<ConditionOp, boolean> = {
   eq: true, neq: true, contains: true, not_contains: true, contains_any: false,
+  token_match: true, not_token_match: true,
   eq_number: true, gt: true, lt: true, gte: true, lte: true,
   is_empty: false, is_not_empty: false, regex: false,
 };

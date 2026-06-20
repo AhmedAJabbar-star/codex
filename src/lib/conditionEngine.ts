@@ -4,6 +4,7 @@
 export type ConditionOp =
   | 'eq' | 'neq'
   | 'contains' | 'contains_any' | 'not_contains'
+  | 'token_match' | 'not_token_match'
   | 'eq_number' | 'gt' | 'lt' | 'gte' | 'lte'
   | 'is_empty' | 'is_not_empty'
   | 'regex';
@@ -107,6 +108,17 @@ export function evaluateCondition(
     case 'neq': return !tokens.some((x) => x === target);
     case 'contains': return normalizeAr(t).includes(normalizeAr(target));
     case 'not_contains': return !normalizeAr(t).includes(normalizeAr(target));
+    case 'token_match': {
+      // Treat cell as a list of tokens separated by / , ، ; | whitespace; match exactly
+      const parts = t.split(/[\s/،,;|]+/).map((x) => x.trim()).filter(Boolean);
+      const nTarget = normalizeAr(target);
+      return parts.some((x) => normalizeAr(x) === nTarget);
+    }
+    case 'not_token_match': {
+      const parts = t.split(/[\s/،,;|]+/).map((x) => x.trim()).filter(Boolean);
+      const nTarget = normalizeAr(target);
+      return !parts.some((x) => normalizeAr(x) === nTarget);
+    }
     case 'contains_any': {
       const list = (cond.values || []).map((v) => normalizeAr(String(v)));
       const nt = normalizeAr(t);
@@ -173,6 +185,8 @@ export const OP_LABELS: Record<ConditionOp, string> = {
   neq: 'لا يساوي',
   contains: 'يحتوي على',
   not_contains: 'لا يحتوي على',
+  token_match: 'يطابق عنصراً (مفصول بـ / أو ،)',
+  not_token_match: 'لا يطابق عنصراً (مفصول بـ / أو ،)',
   contains_any: 'يحتوي أحد القيم',
   eq_number: 'يساوي رقماً',
   gt: 'أكبر من',
