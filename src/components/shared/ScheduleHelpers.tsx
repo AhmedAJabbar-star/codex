@@ -314,11 +314,29 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
 <script>
 (function(){
   var STORAGE_KEY='lovable-print-prefs-v4';
+  var SYSTEM_PREFS = ${JSON.stringify(printPrefs || null)};
   var body=document.body;
   function $(id){ return document.getElementById(id); }
   function loadPrefs(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch(e){ return {}; } }
   function savePrefs(p){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }catch(e){} }
   var prefs=loadPrefs();
+  // Map snake_case system prefs onto the toolbar's camelCase keys, then merge â€” system overrides.
+  if(SYSTEM_PREFS){
+    var SP = SYSTEM_PREFS;
+    var mapped = {
+      orient: SP.orient, size: SP.size, margin: SP.margin,
+      repeatHeader: SP.repeatHeader, compactRepeat: SP.compactRepeat, repeatSigs: SP.repeatSigs,
+      showLogo: SP.showLogo, showTitle: SP.showTitle, showInfo: SP.showInfo,
+      showFilters: SP.showFilters, showDate: SP.showDate, showDocnum: SP.showDocnum,
+      showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit
+    };
+    Object.keys(mapped).forEach(function(k){ if(mapped[k] !== undefined) prefs[k] = mapped[k]; });
+    // Hide the preview toolbar unless the system explicitly asks to keep it visible.
+    if(!SP.show_toolbar) body.classList.add('toolbar-hidden');
+  }
+  var fab = $('pv-fab');
+  if(fab) fab.addEventListener('click', function(){ body.classList.toggle('toolbar-hidden'); });
+
 
   // Title sync (applies to BOTH banner instances via class selector)
   var ti=$('pv-title-input');
