@@ -176,8 +176,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 <textarea className="schedule-select w-full" rows={2} value={s.description} onChange={(e) => patch({ description: e.target.value })} placeholder="وصف موجز يظهر تحت البطاقة" />
               </div>
               <div>
-                <label className="block text-sm font-black mb-1">نص توضيحي (يظهر في الصفحة)</label>
-                <input className="schedule-select w-full" value={s.hint} onChange={(e) => patch({ hint: e.target.value })} />
+                <label className="block text-sm font-black mb-1">نص توضيحي (يظهر في أعلى صفحة النظام)</label>
+                <input className="schedule-select w-full" value={s.hint} onChange={(e) => patch({ hint: e.target.value })} placeholder="مثال: اختر القسم والفصل الدراسي لعرض البيانات المناسبة" />
               </div>
               <div>
                 <label className="block text-sm font-black mb-1">موضع الظهور في الواجهة الرئيسية</label>
