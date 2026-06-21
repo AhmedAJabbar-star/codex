@@ -22,6 +22,10 @@ export interface PrintPrefs {
   showCount?: boolean;
   showSigs?: boolean;
   fit?: boolean;
+  /** Show the diagonal "University of Technology" watermark. Default true. */
+  showWatermark?: boolean;
+  /** Optional override text for the watermark. */
+  watermarkText?: string;
   /** When true, the preview toolbar is shown by default. When false/undefined, it is hidden
    *  (a small floating settings button is shown so the user can still adjust if needed). */
   show_toolbar?: boolean;
