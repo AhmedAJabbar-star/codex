@@ -56,6 +56,14 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     patch({ header_labels: next });
   };
 
+  // Link button labels per column (letter -> button text e.g. "افتح الملف")
+  const linkLabels: Record<string, string> = s.column_link_labels || {};
+  const setLinkLabel = (letter: string, value: string) => {
+    const next = { ...(s.column_link_labels || {}) };
+    if (value.trim()) next[letter] = value.trim(); else delete next[letter];
+    patch({ column_link_labels: next });
+  };
+
   // Filters config
   const filtersCfg: FilterConfigItem[] = s.filters_config || [];
   const addFilter = () => patch({ filters_config: [...filtersCfg, { column: 'A', control: 'select' }] });
