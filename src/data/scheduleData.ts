@@ -42,6 +42,9 @@ export interface SystemConfig {
   printPrefs?: import('./customSystemsRegistry').PrintPrefs;
   /** Toggle-style buttons rendered above the table (e.g. «غير مستوفي»). */
   quickFilters?: QuickFilterDef[];
+  /** Per-column link button label (display header name -> button text). When set, cells with a URL
+   *  in that column render as a clickable button instead of plain text. */
+  linkColumns?: Record<string, string>;
 }
 
 const teacherRows: ScheduleRow[] = [
