@@ -267,16 +267,31 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
 
               {colLetters.length > 0 && (
                 <div>
-                  <label className="block text-sm font-black mb-2">تسميات الأعمدة (اختياري — استبدال اسم العمود الظاهر)</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <label className="block text-sm font-black mb-2">تسميات الأعمدة + أزرار الروابط (اختياري)</label>
+                  <div className="space-y-2">
                     {colLetters.map((L) => (
-                      <div key={L} className="flex items-center gap-2">
-                        <span className="text-xs font-black w-10 text-center bg-slate-100 rounded py-2">{L}</span>
-                        <input className="schedule-select flex-1" value={labels[L] || ''} onChange={(e) => setLabel(L, e.target.value)} placeholder={`اسم بديل لعمود ${L}`} />
+                      <div key={L} className="grid grid-cols-12 gap-2 items-center">
+                        <span className="col-span-1 text-xs font-black text-center bg-slate-100 rounded py-2">{L}</span>
+                        <input
+                          className="schedule-select col-span-6"
+                          value={labels[L] || ''}
+                          onChange={(e) => setLabel(L, e.target.value)}
+                          placeholder={`اسم بديل للعمود ${L} (اختياري)`}
+                        />
+                        <input
+                          className="schedule-select col-span-5"
+                          value={linkLabels[L] || ''}
+                          onChange={(e) => setLinkLabel(L, e.target.value)}
+                          placeholder="🔗 نص زر الرابط (مثل: افتح الملف)"
+                          title="عند تعبئة هذا الحقل، إذا كانت الخلية تحتوي رابطاً (https://...) فستظهر كزر قابل للضغط بهذا النص بدلاً من عرض الرابط الطويل."
+                        />
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">اتركه فارغاً للإبقاء على اسم العمود الأصلي من الورقة.</p>
+                  <p className="text-[11px] text-slate-500 mt-2">
+                    💡 لجعل العمود يعرض زراً قابلاً للنقر (مثل «افتح الملف») بدلاً من رابط طويل، اكتب نص الزر في الحقل الأيسر.
+                    سيظهر الزر تلقائياً للخلايا التي تبدأ بـ <code>http://</code> أو <code>https://</code>.
+                  </p>
                 </div>
               )}
             </div>
