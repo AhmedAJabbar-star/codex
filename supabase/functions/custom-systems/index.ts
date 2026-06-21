@@ -252,6 +252,7 @@ async function systemToRow(s: any): Promise<string[]> {
     required_filters_json: JSON.stringify(s.required_filters || []),
     quick_filters_json: JSON.stringify(s.quick_filters || []),
     print_prefs_json: (s.print_prefs && Object.keys(s.print_prefs).length > 0) ? JSON.stringify(s.print_prefs) : "",
+    column_link_labels_json: JSON.stringify(s.column_link_labels || {}),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
