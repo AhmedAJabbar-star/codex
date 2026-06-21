@@ -209,6 +209,7 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     printPrefs: def.print_prefs && Object.keys(def.print_prefs).length > 0 ? def.print_prefs : undefined,
     requiredFilters: requiredFilterKeys.length > 0 ? requiredFilterKeys : undefined,
     quickFilters: quickFilterDefs.length > 0 ? quickFilterDefs : undefined,
+    linkColumns: Object.keys(linkColumns).length > 0 ? linkColumns : undefined,
   };
 }
 
