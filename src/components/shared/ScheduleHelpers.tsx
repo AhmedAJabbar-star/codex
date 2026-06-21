@@ -448,11 +448,12 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
   setIf('pv-show-docnum',  prefs.showDocnum===undefined?false:prefs.showDocnum);
   setIf('pv-show-count',   prefs.showCount===undefined?false:prefs.showCount);
   setIf('pv-show-sigs',    prefs.showSigs===undefined?true:prefs.showSigs);
+  setIf('pv-show-watermark', prefs.showWatermark===undefined?true:prefs.showWatermark);
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
 
   applyPage();
   togRepH(); togCompact();
-  togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount();
+  togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount(); togWM();
   applyRepeatSigs(); applyFit();
 })();
 </script>
