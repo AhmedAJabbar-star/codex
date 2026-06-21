@@ -378,6 +378,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
   var togDate    = bindHide('pv-show-date',    'hide-date',           'showDate');
   var togDocnum  = bindHide('pv-show-docnum',  'hide-docnum',         'showDocnum');
   var togCount   = bindHide('pv-show-count',   'hide-count',          'showCount');
+  var togWM      = bindHide('pv-show-watermark','hide-watermark',     'showWatermark');
 
   function bindOn(id, cls, prefKey){
     var cb=$(id); if(!cb) return function(){};
