@@ -128,6 +128,10 @@ export interface CustomSystemDef {
   column_select_source?: Record<string, 'manual' | 'column'>;
   /** When true, the select also accepts values not in the list (renders as combobox/datalist). */
   column_select_allow_custom?: Record<string, boolean>;
+  /** Per-column link button label (Excel letter -> button text). When set, cells with a URL
+   *  in this column render as a clickable button («افتح الملف» / «Open» ...) opening the URL
+   *  in a new tab instead of showing the raw URL. */
+  column_link_labels?: Record<string, string>;
 }
 
 /** Resolve effective CRUD permissions with backward compatibility. */
