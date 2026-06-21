@@ -333,14 +333,15 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
       repeatHeader: SP.repeatHeader, compactRepeat: SP.compactRepeat, repeatSigs: SP.repeatSigs,
       showLogo: SP.showLogo, showTitle: SP.showTitle, showInfo: SP.showInfo,
       showFilters: SP.showFilters, showDate: SP.showDate, showDocnum: SP.showDocnum,
-      showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit
+      showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit,
+      showWatermark: SP.showWatermark
     };
     Object.keys(mapped).forEach(function(k){ if(mapped[k] !== undefined) prefs[k] = mapped[k]; });
     // Hide the preview toolbar unless the system explicitly asks to keep it visible.
     if(!SP.show_toolbar) body.classList.add('toolbar-hidden');
   }
-  var fab = $('pv-fab');
-  if(fab) fab.addEventListener('click', function(){ body.classList.toggle('toolbar-hidden'); });
+  var tog = $('pv-toggle');
+  if(tog) tog.addEventListener('click', function(){ body.classList.toggle('toolbar-hidden'); });
 
 
   // Title sync (applies to BOTH banner instances via class selector)
