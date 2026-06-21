@@ -42,6 +42,8 @@ const HEADERS = [
   "required_filters_json", "quick_filters_json",
   // v7 additions:
   "print_prefs_json",
+  // v8 additions:
+  "column_link_labels_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
