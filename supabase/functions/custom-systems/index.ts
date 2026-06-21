@@ -207,6 +207,7 @@ function rowToSystem(r: Record<string, string>) {
     required_filters: parseJson(r.required_filters_json || "[]", []),
     quick_filters: parseJson(r.quick_filters_json || "[]", []),
     print_prefs: parseJson(r.print_prefs_json || "null", undefined) || undefined,
+    column_link_labels: parseJson(r.column_link_labels_json || "{}", {}),
   };
 }
 
