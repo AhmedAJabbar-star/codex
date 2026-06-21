@@ -119,16 +119,20 @@ body.in-preview{padding:0}
 .preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
 .preview-bar .sep{width:1px;height:26px;background:rgba(255,255,255,.25);margin:0 4px}
 
-/* When system has locked print prefs, hide the bar and show a floating settings toggle. */
-body.toolbar-hidden .preview-bar{display:none}
-.pv-fab{position:fixed;top:14px;left:14px;z-index:1100;display:none;align-items:center;gap:6px;background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;border:0;border-radius:999px;padding:9px 14px;font-family:'Cairo',sans-serif;font-weight:800;font-size:12.5px;cursor:pointer;box-shadow:0 6px 18px rgba(15,76,129,.4);transition:transform .12s}
-.pv-fab:hover{transform:translateY(-1px)}
-body.toolbar-hidden .pv-fab{display:inline-flex}
-@media print{.pv-fab{display:none!important}}
+/* When system has locked print prefs, collapse the bar so ONLY print + close + the gear toggle remain visible. */
+body.toolbar-hidden .preview-bar > *{display:none!important}
+body.toolbar-hidden .preview-bar > .btn-print,
+body.toolbar-hidden .preview-bar > .btn-close,
+body.toolbar-hidden .preview-bar > .pv-toggle{display:inline-flex!important}
+body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
+@media print{.preview-bar,.pv-toggle{display:none!important}}
 
 /* ===== PRINT AREA ===== */
-.print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative}
-.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.045);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0}
+.print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative;overflow:hidden}
+.print-area > *{position:relative;z-index:1}
+.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.09);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0;letter-spacing:4px}
+body.hide-watermark .watermark{display:none!important}
+@media print{ .watermark{position:fixed;top:50%;left:50%;color:rgba(15,76,129,0.08)} }
 
 /* ===== FULL FIRST-PAGE BANNER ===== */
 .banner{background:#fff;margin-bottom:6px}
@@ -279,16 +283,17 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-filters" checked/> معايير التصفية</label>
   <div class="sep"></div>
   <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
+  <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
+  <button class="pv-toggle btn-close" id="pv-toggle" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ الإعدادات</button>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
-<button class="pv-fab" id="pv-fab" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ إعدادات الطباعة</button>
 
-<div class="watermark">الجامعة التكنولوجية</div>
 
 <div class="print-area">
+  <div class="watermark">${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</div>
   <div class="first-banner">${bannerHtml}</div>
   <table class="data">
     <thead>
@@ -328,14 +333,15 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
       repeatHeader: SP.repeatHeader, compactRepeat: SP.compactRepeat, repeatSigs: SP.repeatSigs,
       showLogo: SP.showLogo, showTitle: SP.showTitle, showInfo: SP.showInfo,
       showFilters: SP.showFilters, showDate: SP.showDate, showDocnum: SP.showDocnum,
-      showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit
+      showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit,
+      showWatermark: SP.showWatermark
     };
     Object.keys(mapped).forEach(function(k){ if(mapped[k] !== undefined) prefs[k] = mapped[k]; });
     // Hide the preview toolbar unless the system explicitly asks to keep it visible.
     if(!SP.show_toolbar) body.classList.add('toolbar-hidden');
   }
-  var fab = $('pv-fab');
-  if(fab) fab.addEventListener('click', function(){ body.classList.toggle('toolbar-hidden'); });
+  var tog = $('pv-toggle');
+  if(tog) tog.addEventListener('click', function(){ body.classList.toggle('toolbar-hidden'); });
 
 
   // Title sync (applies to BOTH banner instances via class selector)
@@ -372,6 +378,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   var togDate    = bindHide('pv-show-date',    'hide-date',           'showDate');
   var togDocnum  = bindHide('pv-show-docnum',  'hide-docnum',         'showDocnum');
   var togCount   = bindHide('pv-show-count',   'hide-count',          'showCount');
+  var togWM      = bindHide('pv-show-watermark','hide-watermark',     'showWatermark');
 
   function bindOn(id, cls, prefKey){
     var cb=$(id); if(!cb) return function(){};
@@ -441,11 +448,12 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   setIf('pv-show-docnum',  prefs.showDocnum===undefined?false:prefs.showDocnum);
   setIf('pv-show-count',   prefs.showCount===undefined?false:prefs.showCount);
   setIf('pv-show-sigs',    prefs.showSigs===undefined?true:prefs.showSigs);
+  setIf('pv-show-watermark', prefs.showWatermark===undefined?true:prefs.showWatermark);
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
 
   applyPage();
   togRepH(); togCompact();
-  togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount();
+  togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount(); togWM();
   applyRepeatSigs(); applyFit();
 })();
 </script>
