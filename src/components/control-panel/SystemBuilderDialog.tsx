@@ -765,10 +765,20 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 </div>
 
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
-                  <strong className="text-sm">التواقيع والجدول</strong>
+                  <strong className="text-sm">التواقيع والجدول والعلامة المائية</strong>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     <Bool k="showSigs" label="إظهار التواقيع" />
                     <Bool k="fit" label="ملاءمة الأعمدة (تخطيط ثابت)" def={false} />
+                    <Bool k="showWatermark" label="إظهار العلامة المائية" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black mb-1 mt-2">نص العلامة المائية (اختياري)</label>
+                    <input
+                      className="schedule-select w-full text-xs"
+                      value={pp.watermarkText || ''}
+                      onChange={(e) => setPP({ watermarkText: e.target.value || undefined })}
+                      placeholder="افتراضي: الجامعة التكنولوجية"
+                    />
                   </div>
                 </div>
 
