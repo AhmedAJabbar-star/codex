@@ -42,6 +42,8 @@ const HEADERS = [
   "required_filters_json", "quick_filters_json",
   // v7 additions:
   "print_prefs_json",
+  // v8 additions:
+  "column_link_labels_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
@@ -205,6 +207,7 @@ function rowToSystem(r: Record<string, string>) {
     required_filters: parseJson(r.required_filters_json || "[]", []),
     quick_filters: parseJson(r.quick_filters_json || "[]", []),
     print_prefs: parseJson(r.print_prefs_json || "null", undefined) || undefined,
+    column_link_labels: parseJson(r.column_link_labels_json || "{}", {}),
   };
 }
 
@@ -249,6 +252,7 @@ async function systemToRow(s: any): Promise<string[]> {
     required_filters_json: JSON.stringify(s.required_filters || []),
     quick_filters_json: JSON.stringify(s.quick_filters || []),
     print_prefs_json: (s.print_prefs && Object.keys(s.print_prefs).length > 0) ? JSON.stringify(s.print_prefs) : "",
+    column_link_labels_json: JSON.stringify(s.column_link_labels || {}),
   };
   return order.map((h) => valByCol[h] ?? "");
 }

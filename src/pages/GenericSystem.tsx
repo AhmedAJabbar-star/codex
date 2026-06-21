@@ -30,6 +30,20 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     displayHeaders.push(override || real);
   });
 
+  // Per-column link buttons: map display header -> button label
+  const linkLabelsByLetter = def.column_link_labels || {};
+  const linkColumns: Record<string, string> = {};
+  colIdxs.forEach((i) => {
+    const letter = colIndexToLetter(i);
+    const lbl = (linkLabelsByLetter[letter] || linkLabelsByLetter[letter.toLowerCase()] || '').trim();
+    if (!lbl) return;
+    const real = sheet.headers[i];
+    if (!real) return;
+    const visibleIdx = sourceHeaders.indexOf(real);
+    if (visibleIdx < 0) return;
+    linkColumns[displayHeaders[visibleIdx]] = lbl;
+  });
+
   const derivedNames = (def.derived_columns || []).map((d) => d.name);
   const allHeaders = [...displayHeaders, ...derivedNames];
 
@@ -195,6 +209,7 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     printPrefs: def.print_prefs && Object.keys(def.print_prefs).length > 0 ? def.print_prefs : undefined,
     requiredFilters: requiredFilterKeys.length > 0 ? requiredFilterKeys : undefined,
     quickFilters: quickFilterDefs.length > 0 ? quickFilterDefs : undefined,
+    linkColumns: Object.keys(linkColumns).length > 0 ? linkColumns : undefined,
   };
 }
 

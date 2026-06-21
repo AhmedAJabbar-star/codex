@@ -687,6 +687,23 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                             else if (val.includes('❌')) cellClass = 'schedule-cell-danger';
                           }
                           const tdClass = [cellClass, (h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : ''].filter(Boolean).join(' ');
+                          const linkLabel = system.linkColumns?.[h];
+                          const isUrl = !!val && /^https?:\/\//i.test(val.trim());
+                          if (linkLabel && isUrl) {
+                            return (
+                              <td key={h} className={tdClass}>
+                                <a
+                                  href={val.trim()}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="schedule-btn schedule-btn-primary"
+                                  style={{ minHeight: 28, padding: '4px 12px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                                >
+                                  🔗 {linkLabel}
+                                </a>
+                              </td>
+                            );
+                          }
                           return <td key={h} className={tdClass}>{val}</td>;
                         })}
                         {activeSystem === 'emptyRooms' && (() => {
