@@ -290,7 +290,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
-<div class="watermark-text" style="display:none">${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</div>
+
 
 <div class="print-area">
   <div class="watermark">${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</div>
