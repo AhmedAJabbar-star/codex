@@ -283,16 +283,17 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-filters" checked/> معايير التصفية</label>
   <div class="sep"></div>
   <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
+  <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
+  <button class="pv-toggle btn-close" id="pv-toggle" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ الإعدادات</button>
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
-<button class="pv-fab" id="pv-fab" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ إعدادات الطباعة</button>
-
-<div class="watermark">الجامعة التكنولوجية</div>
+<div class="watermark-text" style="display:none">${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</div>
 
 <div class="print-area">
+  <div class="watermark">${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</div>
   <div class="first-banner">${bannerHtml}</div>
   <table class="data">
     <thead>
