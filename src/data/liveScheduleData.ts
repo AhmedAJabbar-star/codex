@@ -388,8 +388,18 @@ function cacheLiveScheduleData(data: LiveScheduleData) {
   if (!data.teacher.length || !data.student.length) return;
   liveMemoryCache = data;
   if (typeof window === 'undefined') return;
-  try { window.localStorage.setItem(LIVE_CACHE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+  let serialized: string;
+  try { serialized = JSON.stringify(data); } catch { return; }
+  if (serialized.length > MAX_LIVE_CACHE_BYTES) return;
+  try {
+    window.localStorage.setItem(LIVE_CACHE_KEY, serialized);
+  } catch (e) {
+    if (!isQuotaErr(e)) return;
+    pruneSheetCaches();
+    try { window.localStorage.setItem(LIVE_CACHE_KEY, serialized); } catch { /* keep memory only */ }
+  }
 }
+
 
 function buildLectureTypeAudit(studentRows: ScheduleRow[]): ScheduleRow[] {
   return studentRows
