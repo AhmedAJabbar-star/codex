@@ -141,12 +141,43 @@ function readSheetCache(gid: string): { rows: ScheduleRow[]; headers?: string[] 
   } catch { return undefined; }
 }
 
+const MAX_SHEET_CACHE_BYTES = 1_500_000; // ~1.5MB لكل ورقة
+const MAX_LIVE_CACHE_BYTES = 3_000_000;  // ~3MB للتجميعة
+
+function isQuotaErr(e: unknown): boolean {
+  const err = e as any;
+  return !!err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22 || err.code === 1014);
+}
+
+function pruneSheetCaches(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith(SHEET_CACHE_PREFIX) || k === LIVE_CACHE_KEY) keys.push(k);
+    }
+    keys.forEach((k) => { try { window.localStorage.removeItem(k); } catch { /* ignore */ } });
+  } catch { /* ignore */ }
+}
+
 function writeSheetCache(gid: string, rows: ScheduleRow[], headers?: string[]) {
   const payload = { rows, headers };
   sheetMemoryCache.set(gid, payload);
   if (typeof window === 'undefined') return;
-  try { window.localStorage.setItem(`${SHEET_CACHE_PREFIX}${gid}`, JSON.stringify(payload)); } catch { /* ignore */ }
+  let serialized: string;
+  try { serialized = JSON.stringify(payload); } catch { return; }
+  if (serialized.length > MAX_SHEET_CACHE_BYTES) return; // كبير جداً — نكتفي بذاكرة العملية
+  const key = `${SHEET_CACHE_PREFIX}${gid}`;
+  try {
+    window.localStorage.setItem(key, serialized);
+  } catch (e) {
+    if (!isQuotaErr(e)) return;
+    pruneSheetCaches();
+    try { window.localStorage.setItem(key, serialized); } catch { /* keep memory only */ }
+  }
 }
+
 
 async function fetchTextWithTimeout(url: string, timeoutMs = 12000): Promise<string> {
   const controller = new AbortController();
