@@ -47,7 +47,7 @@ export function getConnectionConfig(): SheetConnectionConfig | null {
   } catch { return null; }
 }
 export function setConnectionConfig(cfg: SheetConnectionConfig | null) {
-  if (cfg) localStorage.setItem(CONNECTION_KEY, JSON.stringify(cfg));
+  if (cfg) safeLocalSet(CONNECTION_KEY, JSON.stringify(cfg));
   else localStorage.removeItem(CONNECTION_KEY);
 }
 
@@ -62,17 +62,70 @@ function toFriendlyAuthError(error: unknown): Error {
   return new Error(raw);
 }
 
+
+function isQuotaError(e: unknown): boolean {
+  const err = e as any;
+  if (!err) return false;
+  return err.name === 'QuotaExceededError'
+    || err.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+    || err.code === 22 || err.code === 1014
+    || /quota/i.test(String(err.message || ''));
+}
+
+/** يمسح كل ذاكرات كاش أوراق Google Sheets لتحرير مساحة localStorage. */
+function purgeSheetCaches(): number {
+  let removed = 0;
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith('sheets:') || k === 'live_schedule_v3' || k.startsWith('live_schedule_')) {
+        keys.push(k);
+      }
+    }
+    keys.forEach((k) => { try { localStorage.removeItem(k); removed++; } catch { /* ignore */ } });
+  } catch { /* ignore */ }
+  return removed;
+}
+
+/** كتابة آمنة إلى localStorage: عند امتلاء الحصّة نُنظّف كاش الأوراق ونعيد المحاولة، ثم نلجأ إلى sessionStorage. */
+function safeLocalSet(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    if (!isQuotaError(e)) { try { console.warn('localStorage setItem failed', e); } catch {} return false; }
+    const n = purgeSheetCaches();
+    try { console.warn(`تم تنظيف ${n} مفتاح كاش أوراق لتحرير مساحة التخزين.`); } catch {}
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e2) {
+      try { sessionStorage.setItem(key, value); } catch { /* ignore */ }
+      try { console.warn('تعذر الكتابة إلى localStorage حتى بعد التنظيف؛ استُخدم sessionStorage كخطة بديلة.', e2); } catch {}
+      return false;
+    }
+  }
+}
+
 export function getSession(): Session | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { try { raw = sessionStorage.getItem(STORAGE_KEY); } catch { raw = null; } }
     if (!raw) return null;
     return JSON.parse(raw);
   } catch { return null; }
 }
 export function setSession(s: Session | null) {
-  if (s) localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  else localStorage.removeItem(STORAGE_KEY);
+  if (s) {
+    safeLocalSet(STORAGE_KEY, JSON.stringify(s));
+  } else {
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  }
 }
+
 
 async function call<T = any>(action: string, payload: Record<string, any> = {}): Promise<T> {
   const session = getSession();
