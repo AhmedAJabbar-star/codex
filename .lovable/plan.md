@@ -1,68 +1,43 @@
-## الهدف
-إضافة نظام "ثيمات تصميم" يتيح اختيار شكل الواجهة والبطاقات من لوحة التحكم، مع 5 أنماط CSS كاملة ومختلفة جذرياً، تُطبَّق على كل البطاقات في النظام (الرئيسية، صفحة المجموعة، صفحات الأنظمة).
+## السبب
 
-## الأنماط الخمسة
-1. **Executive** (رسمي تنفيذي) — حواف حادة، ظلال خفيفة طبقية، خطوط أكاديمية، ألوان كحلي/ذهبي. لا تأثيرات 3D.
-2. **Glass Pro** (زجاجي احترافي) — backdrop-blur، شفافية متدرجة، حواف رفيعة لامعة.
-3. **Neumorphic Soft** (نيومورفك ناعم) — ظلال داخلية/خارجية متطابقة، خلفية رمادية موحدة، حواف منحنية كبيرة.
-4. **Editorial Mono** (تحريري مونوكروم) — أبيض/أسود، خطوط Serif للعناوين، شريط جانبي ملون رفيع، بدون gradient.
-5. **Vivid 3D** (الحالي ثلاثي الأبعاد) — يبقى كخيار افتراضي.
+الرسالة `Setting the value of 'teacher_session_v2' exceeded the quota` لا تعني أن جلسة المعلّم كبيرة (فهي بضع مئات من البايتات فقط)، بل تعني أن **مساحة `localStorage` للنطاق المنشور امتلأت بالكامل** قبل محاولة كتابة الجلسة، فرفض المتصفح أي كتابة جديدة.
 
-كل نمط يعيد تعريف: خلفية الجسم، البطاقة (الرئيسية + الفرعية)، الأيقونة، الشارة، عداد السجلات، الهيدر، الأزرار، الـ select/input، الجداول.
+مصدر الامتلاء الفعلي داخل التطبيق:
 
-## التنفيذ التقني
+- `src/data/liveScheduleData.ts` يخزّن نسخة مؤقتة من **كل ورقة Google Sheet** يطلبها المستخدم تحت المفتاح `sheets:v3:<gid>` عبر `writeSheetCache`، بدون أي حدّ للحجم أو التقادم.
+- نفس الملف يخزّن نسخة مجمّعة إضافية تحت `live_schedule_v3` عبر `cacheLiveScheduleData` وتحتوي على أوراق الأنظمة كلها.
+- مع كثرة الأنظمة المخصّصة (منشئ الأنظمة بدون كود) وحجم كل ورقة (آلاف الصفوف مع أعمدة نصية طويلة)، يتراكم عدة ميغابايت بسرعة ويتجاوز حصّة النطاق (~5MB في أغلب المتصفحات على الموبايل، ~10MB على سطح المكتب).
+- عند تسجيل الدخول تُستدعى `setSession` التي تكتب `teacher_session_v2`، فتفشل الكتابة لأن الحصّة مستنفدة — والرسالة تُشير إلى المفتاح الأخير المحاول، لا إلى المفتاح الذي ملأ التخزين.
 
-### 1) ملف ثيمات جديد `src/styles/themes.css`
-يحتوي 5 كتل تحت سلكتورات:
-```css
-:root[data-ui-theme="executive"] .card3d { ... }
-:root[data-ui-theme="executive"] .schedule-card { ... }
-:root[data-ui-theme="executive"] .schedule-header { ... }
-:root[data-ui-theme="executive"] .schedule-btn { ... }
-...
-```
-يكرر لـ `glass`, `neumorphic`, `editorial`, `vivid3d` (الافتراضي = vivid3d لذا بدون override).
+يتضح ذلك من أن الخطأ يظهر على النسخة **المنشورة** فقط (حيث تراكم كاش الأوراق عبر عدة زيارات)، ولا يظهر على المعاينة الطازجة.
 
-كل ثيم يغيّر:
-- `.card3d` و pseudo-elements و hover transform
-- `.card3d__icon`, `.card3d__body`, `.card3d__count`, `.card3d__arrow`, `.card3d__orb`
-- `.schedule-card`, `.schedule-header`, `.schedule-body::before/::after`
-- `.schedule-btn`, `.schedule-select`, `.schedule-input`
-- `.schedule-table thead th`
-- بطاقات SystemGroup (الأزرار في `src/pages/SystemGroup.tsx`)
+## الحل المقترح
 
-ربط الملف عبر `import` في `src/index.css`.
+### 1) `src/lib/teacherAuth.ts` — كتابة الجلسة مع تنظيف عند الامتلاء
+- تعديل `setSession` بحيث إذا رمت `setItem` استثناء `QuotaExceededError` (أو الاسم القديم `NS_ERROR_DOM_QUOTA_REACHED`):
+  1. حذف كل مفاتيح `localStorage` التي تبدأ بـ `sheets:v3:` والمفتاح `live_schedule_v3` (كلها كاش قابل لإعادة الجلب من Google Sheets).
+  2. إعادة محاولة كتابة الجلسة.
+  3. إن فشلت مجدداً: كتابة الجلسة في `sessionStorage` كحل أخير مع تحذير في الكونسول، حتى لا يُحرم المستخدم من تسجيل الدخول.
+- تعديل `getSession` لقراءة `sessionStorage` كخطة بديلة عندما لا يوجد شيء في `localStorage`.
+- تطبيق نفس الحماية على `setConnectionConfig` (نفس النمط في try/catch).
 
-### 2) Hook + storage `src/lib/uiTheme.ts`
-```ts
-export type UiTheme = 'vivid3d'|'executive'|'glass'|'neumorphic'|'editorial';
-export const UI_THEMES: {id, label, description}[];
-export function getUiTheme(): UiTheme;       // من localStorage، fallback 'vivid3d'
-export function setUiTheme(t: UiTheme): void; // يكتب data-ui-theme على <html> ويُطلق event
-export function useUiTheme(): [UiTheme, setter];
-```
-يُطبَّق على `document.documentElement.setAttribute('data-ui-theme', t)`.
+### 2) `src/data/liveScheduleData.ts` — حماية كتابة الكاش وتقييد حجمه
+- تعديل `writeSheetCache` و`cacheLiveScheduleData`:
+  - قبل الكتابة: إن تجاوز حجم JSON حداً معقولاً (مثلاً 1.5MB لكل ورقة، 3MB للتجميعة) → تخطّي الكتابة إلى `localStorage` والاكتفاء بالكاش في الذاكرة (`sheetMemoryCache` / `liveMemoryCache`).
+  - عند `QuotaExceededError`: حذف كل مفاتيح `sheets:v3:*` القديمة (Least-recently-written عبر تخزين طابع زمني مبسّط في المفتاح نفسه، أو ببساطة حذف الجميع) ثم إعادة المحاولة مرة واحدة، وإلا الاكتفاء بالذاكرة.
+- إضافة دالة صغيرة `pruneSheetCaches()` تُستدعى من الحالتين لتوحيد المنطق.
 
-### 3) Bootstrap في `src/main.tsx`
-قراءة الثيم وتطبيقه قبل render حتى لا يومض.
+### 3) دون تغيير سلوك المستخدم
+- لا يتغير أي شيء في واجهة المستخدم أو تدفّق الدخول.
+- الأوراق ستعاد جلبها من الشبكة عند الحاجة، وهو ما يحدث أصلاً كل 60 ثانية.
 
-### 4) قسم في لوحة التحكم `src/pages/ControlPanel.tsx`
-إضافة بطاقة "🎨 نمط التصميم العام" مع 5 أزرار اختيار، معاينة مصغرة لكل نمط (sample card)، ووصف مختصر. عند الضغط يُحدّث الثيم فوراً ويظهر toast.
+## الملفات المعدَّلة
 
-### 5) ضمان التطبيق
-- `SystemGroup.tsx`: تحويل الأزرار لاستخدام كلاسات `card3d` الموحدة بدل inline classes حتى تتأثر بالثيم.
-- مراجعة `Dashboard.tsx` (يستخدم `card3d` أصلاً — سيعمل تلقائياً).
-- التحقق من `.schedule-card` في الصفحات الفرعية.
+- `src/lib/teacherAuth.ts` (setSession + getSession + setConnectionConfig)
+- `src/data/liveScheduleData.ts` (writeSheetCache + cacheLiveScheduleData + دالة تنظيف)
 
-## ملفات سيتم إنشاؤها/تعديلها
-- جديد: `src/styles/themes.css`
-- جديد: `src/lib/uiTheme.ts`
-- تعديل: `src/index.css` (import + متغيرات قابلة للـ override)
-- تعديل: `src/main.tsx` (bootstrap)
-- تعديل: `src/pages/ControlPanel.tsx` (قسم اختيار الثيم)
-- تعديل: `src/pages/SystemGroup.tsx` (توحيد كلاسات البطاقات مع `card3d`)
+## اختبار التحقّق
 
-## ملاحظات
-- لا تغيير على منطق البيانات أو الطباعة أو المصادقة.
-- الثيم الافتراضي يبقى الحالي (Vivid 3D) لمن لم يختر.
-- الثيم يُحفظ في `localStorage` لكل مستخدم/متصفح.
+بعد التطبيق أطلب من المستخدم:
+1. فتح النظام المنشور وإعادة محاولة الدخول → يجب أن يعمل مباشرةً.
+2. مراقبة الكونسول: عند أول امتلاء ستظهر رسالة تحذير واحدة عن تنظيف الكاش، ثم لا شيء بعدها.
