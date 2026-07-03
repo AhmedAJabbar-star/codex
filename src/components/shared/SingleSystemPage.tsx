@@ -53,6 +53,12 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [bookings, setBookings] = useState<Booking[]>(loadBookings);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
+  // Inline CRUD state (used only when system.crudContext is set)
+  const [crudSearch, setCrudSearch] = useState('');
+  const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
+  const [crudBusy, setCrudBusy] = useState(false);
+  const qc = useQueryClient();
+
 
   const systems = useMemo(() => {
     if (systemsOverride && systemsOverride.length > 0) return systemsOverride;
