@@ -3,16 +3,19 @@ import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
-import CrudPanel from '@/components/custom-systems/CrudPanel';
 import TeacherSessionBar from '@/components/shared/TeacherSessionBar';
-import { listCustomSystems, isCrudActive, type CustomSystemDef } from '@/data/customSystemsRegistry';
+import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
 import type { SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
+import { getEffectivePerms } from '@/lib/permissions';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
   evaluateAll, evaluateCondition, applyDerivedColumns,
 } from '@/lib/conditionEngine';
+
+const CRUD_SNAPSHOT_KEY = '__crud_snapshot__';
+
 
 export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult): SystemConfig {
   const colIdxs = parseColumnsRange(def.columns_range);
