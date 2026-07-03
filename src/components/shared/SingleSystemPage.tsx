@@ -432,6 +432,87 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return options.filter(o => o.includes(comboQuery));
   }, [filters, comboQuery, system, getFilterOptions, comboFilterKey]);
 
+  // ============ Inline CRUD helpers ============
+  const crudCtx = system.crudContext;
+  const crudPerms = crudCtx?.perms;
+  const showCrudActions = !!crudCtx && !!(crudPerms?.edit || crudPerms?.delete);
+
+  const parseSnapshot = useCallback((row: ScheduleRow): Record<string, string> => {
+    if (!crudCtx) return {};
+    try { return JSON.parse(row[crudCtx.snapshotKey] || '{}'); } catch { return {}; }
+  }, [crudCtx]);
+
+  const ensureAdminPassword = useCallback((forDelete: boolean): string | null => {
+    const cached = getCachedAdminPassword();
+    if (cached) return cached;
+    const msg = forDelete
+      ? '🔐 أدخل كلمة مرور المدير لتأكيد الحذف (تُحفظ لباقي الجلسة):'
+      : '🔐 أدخل كلمة مرور المدير لتفعيل العملية (تُحفظ لباقي الجلسة):';
+    const pw = window.prompt(msg) || '';
+    if (!pw) return null;
+    setCachedAdminPassword(pw);
+    return pw;
+  }, []);
+
+  const crudOpenAdd = useCallback(() => {
+    if (!crudCtx) return;
+    const init: Record<string, string> = {};
+    crudCtx.cols.forEach((c) => { init[c.letter] = ''; });
+    if (crudCtx.teacherCol && crudCtx.teacherName) init[crudCtx.teacherCol] = crudCtx.teacherName;
+    setCrudEditing({ mode: 'add', values: init });
+  }, [crudCtx]);
+
+  const crudOpenEdit = useCallback((snapshot: Record<string, string>) => {
+    setCrudEditing({ mode: 'edit', values: { ...snapshot }, snapshot });
+  }, []);
+
+  const crudSubmit = useCallback(async () => {
+    if (!crudCtx || !crudEditing) return;
+    const password = ensureAdminPassword(false);
+    if (!password) return;
+    setCrudBusy(true);
+    try {
+      const values: Record<string, string> = {};
+      crudCtx.cols.forEach((c) => {
+        if (c.type !== 'readonly') values[c.letter] = crudEditing.values[c.letter] || '';
+      });
+      if (crudEditing.mode === 'add') {
+        await sheetWrite({ op: 'append', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, values, password });
+        toast.success('تمت إضافة السجل بنجاح ✅');
+      } else {
+        await sheetWrite({
+          op: 'update', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl,
+          values, match: crudEditing.snapshot, password,
+        });
+        toast.success('تم تحديث السجل بنجاح ✅');
+      }
+      setCrudEditing(null);
+      crudCtx.refetchQueryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+    } catch (e) {
+      const m = (e as Error).message || '';
+      if (/كلمة المرور/.test(m)) setCachedAdminPassword(null);
+      toast.error(m);
+    } finally { setCrudBusy(false); }
+  }, [crudCtx, crudEditing, ensureAdminPassword, qc]);
+
+  const crudDelete = useCallback(async (snapshot: Record<string, string>) => {
+    if (!crudCtx) return;
+    if (!confirm('⚠️ حذف هذا السجل من ورقة Google Sheets نهائياً؟\nلا يمكن التراجع عن هذا الإجراء.')) return;
+    const password = ensureAdminPassword(true);
+    if (!password) return;
+    setCrudBusy(true);
+    try {
+      await sheetWrite({ op: 'delete', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, match: snapshot, password });
+      toast.success('تم حذف السجل ✅');
+      crudCtx.refetchQueryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+    } catch (e) {
+      const m = (e as Error).message || '';
+      if (/كلمة المرور/.test(m)) setCachedAdminPassword(null);
+      toast.error(m);
+    } finally { setCrudBusy(false); }
+  }, [crudCtx, ensureAdminPassword, qc]);
+
+
   return (
     <div className={`schedule-body ${isDark ? 'dark' : ''}`} dir="rtl">
       <div className="relative z-[1] w-full mx-auto my-4 px-3 sm:px-5 pb-7">
