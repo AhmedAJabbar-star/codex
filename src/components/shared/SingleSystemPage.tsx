@@ -182,7 +182,16 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       }
     }
 
+    // Inline-CRUD search (applies to all visible headers).
+    const q = crudSearch.trim().toLowerCase();
+    if (q && system.crudContext) {
+      result = result.filter((r) =>
+        system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
+      );
+    }
+
     return result;
+
   }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters]);
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
