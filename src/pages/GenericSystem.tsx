@@ -303,23 +303,25 @@ const GenericSystem = () => {
 
   const session = getSession();
 
+  const build = useCallback(
+    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any),
+    [def, session?.user],
+  );
+
   if (loadingSystems) return <LiveLoadingShell />;
   if (!def) return <Navigate to="/" replace />;
   if (!def.sheet_gid) return <LiveLoadingShell error={new Error('لم يتم تحديد GID للورقة المصدر')} />;
 
   const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
-  const crudOn = isCrudActive(def);
   const showSessionBar = !!(def.require_teacher_auth && session?.user);
 
   return (
     <div>
       {showSessionBar && <TeacherSessionBar user={session!.user} />}
-      {crudOn && (
-        <div className="px-4 pt-4" dir="rtl"><CrudPanel def={def} /></div>
-      )}
       <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />
     </div>
   );
 };
+
 
 export default GenericSystem;
