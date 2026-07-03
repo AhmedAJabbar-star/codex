@@ -902,7 +902,32 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           const note = getBookingNote(row['القاعة'], row['اليوم'], row['الفترة الشاغرة من'], row['الفترة الشاغرة الى']);
                           return <td className={note ? 'schedule-cell-warn' : ''}>{note || '—'}</td>;
                         })()}
+                        {showCrudActions && (
+                          <td>
+                            <div className="flex gap-1 justify-center">
+                              {crudPerms?.edit && (
+                                <button
+                                  onClick={() => crudOpenEdit(parseSnapshot(row))}
+                                  disabled={crudBusy}
+                                  className="w-8 h-8 rounded-lg grid place-items-center text-blue-600 bg-blue-50 hover:bg-blue-100 disabled:opacity-40"
+                                  title="تعديل"
+                                  type="button"
+                                >✏️</button>
+                              )}
+                              {crudPerms?.delete && (
+                                <button
+                                  onClick={() => crudDelete(parseSnapshot(row))}
+                                  disabled={crudBusy}
+                                  className="w-8 h-8 rounded-lg grid place-items-center text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-40"
+                                  title="حذف"
+                                  type="button"
+                                >🗑️</button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
+
                     );
                   })}
                 </tbody>
