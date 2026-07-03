@@ -199,9 +199,70 @@ export function buildConfigFromDef(
         );
         out[`__qf_${idx}`] = ok ? '1' : '';
       });
+      // Raw-sheet snapshot for CRUD (only the columns in columns_range).
+      const snap: Record<string, string> = {};
+      colIdxs.forEach((i) => {
+        const letter = colIndexToLetter(i);
+        const hk = sheet.headers[i];
+        snap[letter] = (hk ? r[hk] : '') || '';
+      });
+      out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
       rows.push(out);
     });
   });
+
+  // Build CRUD context (cols meta + perms) when the system enables CRUD and user can view.
+  let crudContext: CrudContext | undefined;
+  if (isCrudActive(def)) {
+    const perms = getEffectivePerms(def, user as any);
+    if (perms.view) {
+      const types = def.column_types || {};
+      const manualOpts = def.column_options || {};
+      const srcMap = def.column_select_source || {};
+      const allowMap = def.column_select_allow_custom || {};
+      const cols: CrudColMeta[] = colIdxs.map((i) => {
+        const letter = colIndexToLetter(i);
+        const realHeader = sheet.headers[i] || letter;
+        const labelOverride = (def.header_labels || {})[letter];
+        const type = ((types[letter] as any) || 'text') as CrudColMeta['type'];
+        const source = ((srcMap[letter] || 'manual') as 'manual' | 'column');
+        let options: string[] = [];
+        if (type === 'select') {
+          if (source === 'column') {
+            const set = new Set<string>();
+            sheet.rows.forEach((r) => {
+              const raw = (r[realHeader] || '').trim();
+              if (!raw) return;
+              raw.split(/\r?\n/).forEach((v) => { const t = v.trim(); if (t) set.add(t); });
+            });
+            options = Array.from(set).sort((a, b) => a.localeCompare(b, 'ar'));
+          } else {
+            options = (manualOpts[letter] || '')
+              .split(/[,،\n]+/).map((s) => s.trim()).filter(Boolean);
+          }
+        }
+        return {
+          letter,
+          header: labelOverride || realHeader,
+          type,
+          options,
+          allowCustom: !!allowMap[letter],
+          source,
+        };
+      });
+      const teacherName = (user as any)?.full_name || '';
+      crudContext = {
+        def,
+        externalUrl: def.sheet_source === 'external' ? def.sheet_url : undefined,
+        cols,
+        perms,
+        teacherCol: def.require_teacher_auth ? (def.teacher_column || '').toUpperCase() : undefined,
+        teacherName: def.require_teacher_auth ? teacherName : undefined,
+        snapshotKey: CRUD_SNAPSHOT_KEY,
+        refetchQueryKeys: [[`custom-${def.id}`]],
+      };
+    }
+  }
 
   return {
     id: `custom_${def.id}`,
@@ -218,8 +279,10 @@ export function buildConfigFromDef(
     requiredFilters: requiredFilterKeys.length > 0 ? requiredFilterKeys : undefined,
     quickFilters: quickFilterDefs.length > 0 ? quickFilterDefs : undefined,
     linkColumns: Object.keys(linkColumns).length > 0 ? linkColumns : undefined,
+    crudContext,
   };
 }
+
 
 const GenericSystem = () => {
   const { id = '' } = useParams<{ id: string }>();
