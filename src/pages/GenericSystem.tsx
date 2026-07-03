@@ -17,7 +17,12 @@ import {
 const CRUD_SNAPSHOT_KEY = '__crud_snapshot__';
 
 
-export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult): SystemConfig {
+export function buildConfigFromDef(
+  def: CustomSystemDef,
+  sheet: SheetFetchResult,
+  user?: { role?: string; permissions?: any } | null,
+): SystemConfig {
+
   const colIdxs = parseColumnsRange(def.columns_range);
   const labelMap = def.header_labels || {};
 
