@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { SystemConfig, ScheduleRow } from '@/data/scheduleData';
 import { TIME_OPTIONS_ARABIC } from '@/data/timeOptions';
@@ -12,6 +13,9 @@ import {
 import { fetchDepartmentHead } from '@/lib/departmentHeads';
 import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
+import { sheetWrite } from '@/data/customSystemsRegistry';
+import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
+
 
 interface Props {
   systemIds: string[];
