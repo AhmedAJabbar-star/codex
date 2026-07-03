@@ -192,7 +192,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
     return result;
 
-  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters]);
+  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, crudSearch]);
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterDef = system.filters.find(f => f.key === filterKey);
