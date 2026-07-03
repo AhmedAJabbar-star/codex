@@ -296,17 +296,13 @@ const GenericSystem = () => {
 
   const def = useMemo(() => (systems || []).find((s) => s.id === id), [systems, id]);
 
-  const build = useCallback(
-    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet),
-    [def],
-  );
-
   const session = getSession();
 
   const build = useCallback(
     (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any),
     [def, session?.user],
   );
+
 
   if (loadingSystems) return <LiveLoadingShell />;
   if (!def) return <Navigate to="/" replace />;
