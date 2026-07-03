@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { SystemConfig, ScheduleRow } from '@/data/scheduleData';
 import { TIME_OPTIONS_ARABIC } from '@/data/timeOptions';
@@ -12,6 +13,9 @@ import {
 import { fetchDepartmentHead } from '@/lib/departmentHeads';
 import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
+import { sheetWrite } from '@/data/customSystemsRegistry';
+import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
+
 
 interface Props {
   systemIds: string[];
@@ -49,6 +53,12 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [bookings, setBookings] = useState<Booking[]>(loadBookings);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
+  // Inline CRUD state (used only when system.crudContext is set)
+  const [crudSearch, setCrudSearch] = useState('');
+  const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
+  const [crudBusy, setCrudBusy] = useState(false);
+  const qc = useQueryClient();
+
 
   const systems = useMemo(() => {
     if (systemsOverride && systemsOverride.length > 0) return systemsOverride;
@@ -172,8 +182,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       }
     }
 
+    // Inline-CRUD search (applies to all visible headers).
+    const q = crudSearch.trim().toLowerCase();
+    if (q && system.crudContext) {
+      result = result.filter((r) =>
+        system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
+      );
+    }
+
     return result;
-  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters]);
+
+  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, crudSearch]);
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterDef = system.filters.find(f => f.key === filterKey);
@@ -413,6 +432,87 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return options.filter(o => o.includes(comboQuery));
   }, [filters, comboQuery, system, getFilterOptions, comboFilterKey]);
 
+  // ============ Inline CRUD helpers ============
+  const crudCtx = system.crudContext;
+  const crudPerms = crudCtx?.perms;
+  const showCrudActions = !!crudCtx && !!(crudPerms?.edit || crudPerms?.delete);
+
+  const parseSnapshot = useCallback((row: ScheduleRow): Record<string, string> => {
+    if (!crudCtx) return {};
+    try { return JSON.parse(row[crudCtx.snapshotKey] || '{}'); } catch { return {}; }
+  }, [crudCtx]);
+
+  const ensureAdminPassword = useCallback((forDelete: boolean): string | null => {
+    const cached = getCachedAdminPassword();
+    if (cached) return cached;
+    const msg = forDelete
+      ? '🔐 أدخل كلمة مرور المدير لتأكيد الحذف (تُحفظ لباقي الجلسة):'
+      : '🔐 أدخل كلمة مرور المدير لتفعيل العملية (تُحفظ لباقي الجلسة):';
+    const pw = window.prompt(msg) || '';
+    if (!pw) return null;
+    setCachedAdminPassword(pw);
+    return pw;
+  }, []);
+
+  const crudOpenAdd = useCallback(() => {
+    if (!crudCtx) return;
+    const init: Record<string, string> = {};
+    crudCtx.cols.forEach((c) => { init[c.letter] = ''; });
+    if (crudCtx.teacherCol && crudCtx.teacherName) init[crudCtx.teacherCol] = crudCtx.teacherName;
+    setCrudEditing({ mode: 'add', values: init });
+  }, [crudCtx]);
+
+  const crudOpenEdit = useCallback((snapshot: Record<string, string>) => {
+    setCrudEditing({ mode: 'edit', values: { ...snapshot }, snapshot });
+  }, []);
+
+  const crudSubmit = useCallback(async () => {
+    if (!crudCtx || !crudEditing) return;
+    const password = ensureAdminPassword(false);
+    if (!password) return;
+    setCrudBusy(true);
+    try {
+      const values: Record<string, string> = {};
+      crudCtx.cols.forEach((c) => {
+        if (c.type !== 'readonly') values[c.letter] = crudEditing.values[c.letter] || '';
+      });
+      if (crudEditing.mode === 'add') {
+        await sheetWrite({ op: 'append', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, values, password });
+        toast.success('تمت إضافة السجل بنجاح ✅');
+      } else {
+        await sheetWrite({
+          op: 'update', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl,
+          values, match: crudEditing.snapshot, password,
+        });
+        toast.success('تم تحديث السجل بنجاح ✅');
+      }
+      setCrudEditing(null);
+      crudCtx.refetchQueryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+    } catch (e) {
+      const m = (e as Error).message || '';
+      if (/كلمة المرور/.test(m)) setCachedAdminPassword(null);
+      toast.error(m);
+    } finally { setCrudBusy(false); }
+  }, [crudCtx, crudEditing, ensureAdminPassword, qc]);
+
+  const crudDelete = useCallback(async (snapshot: Record<string, string>) => {
+    if (!crudCtx) return;
+    if (!confirm('⚠️ حذف هذا السجل من ورقة Google Sheets نهائياً؟\nلا يمكن التراجع عن هذا الإجراء.')) return;
+    const password = ensureAdminPassword(true);
+    if (!password) return;
+    setCrudBusy(true);
+    try {
+      await sheetWrite({ op: 'delete', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, match: snapshot, password });
+      toast.success('تم حذف السجل ✅');
+      crudCtx.refetchQueryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+    } catch (e) {
+      const m = (e as Error).message || '';
+      if (/كلمة المرور/.test(m)) setCachedAdminPassword(null);
+      toast.error(m);
+    } finally { setCrudBusy(false); }
+  }, [crudCtx, ensureAdminPassword, qc]);
+
+
   return (
     <div className={`schedule-body ${isDark ? 'dark' : ''}`} dir="rtl">
       <div className="relative z-[1] w-full mx-auto my-4 px-3 sm:px-5 pb-7">
@@ -591,9 +691,99 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             {activeSystem === 'emptyRooms' && (
               <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(5,150,105,.28)' }} onClick={() => setShowBookingDialog(true)}>📅 حجز مؤقت</button>
             )}
+            {crudCtx && crudPerms?.add && (
+              <button
+                className="schedule-btn schedule-btn-primary"
+                style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(8,145,178,.28)' }}
+                onClick={crudOpenAdd}
+                disabled={crudBusy}
+              >➕ إضافة سجل</button>
+            )}
+            {crudCtx && (
+              <div className="relative" style={{ flex: '1 1 220px', minWidth: 220 }}>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
+                <input
+                  className="w-full pr-9 pl-3 py-2 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-slate-400 bg-white"
+                  placeholder="بحث سريع في السجلات..."
+                  value={crudSearch}
+                  onChange={(e) => setCrudSearch(e.target.value)}
+                  style={{ minHeight: 42 }}
+                />
+              </div>
+            )}
             <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
             <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
           </div>
+
+          {/* Inline CRUD editor — replaces the old modal (never overlays the data). */}
+          {crudCtx && crudEditing && (
+            <div className="mx-3 mb-3 rounded-2xl border-2 shadow-sm bg-white overflow-hidden" style={{ borderColor: '#0891b240' }} dir="rtl">
+              <header className="px-4 py-3 flex items-center justify-between gap-3" style={{ background: 'linear-gradient(135deg, #0891b2, #0e7490)', color: 'white' }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{crudEditing.mode === 'add' ? '➕' : '✏️'}</span>
+                  <h3 className="text-sm font-black">{crudEditing.mode === 'add' ? 'إضافة سجل جديد' : 'تعديل السجل'}</h3>
+                </div>
+                <button
+                  className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 text-lg"
+                  onClick={() => !crudBusy && setCrudEditing(null)}
+                  aria-label="إغلاق"
+                >✕</button>
+              </header>
+              <div className="p-4 bg-slate-50/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {crudCtx.cols.map((c) => {
+                    const v = crudEditing.values[c.letter] || '';
+                    const set = (val: string) => setCrudEditing({ ...crudEditing, values: { ...crudEditing.values, [c.letter]: val } });
+                    const lockTeacher = !!(crudCtx.teacherCol && crudCtx.teacherName && crudCtx.teacherCol === c.letter);
+                    const base = "w-full px-3 py-2 rounded-lg border-2 border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400";
+                    if (c.type === 'readonly' || lockTeacher) {
+                      return (
+                        <div key={c.letter}>
+                          <label className="block text-xs font-black mb-1.5 text-slate-700">{c.header} <span className="text-[10px] text-slate-400 font-normal">(قراءة فقط)</span></label>
+                          <input className={`${base} bg-slate-100 text-slate-500`} value={v} disabled />
+                        </div>
+                      );
+                    }
+                    const dlId = `dl-${crudCtx.def.id}-${c.letter}`;
+                    return (
+                      <div key={c.letter}>
+                        <label className="block text-xs font-black mb-1.5 text-slate-700">{c.header}</label>
+                        {c.type === 'select' ? (
+                          c.allowCustom ? (
+                            <>
+                              <input list={dlId} className={base} value={v} onChange={(e) => set(e.target.value)} placeholder="اختر أو اكتب..." />
+                              <datalist id={dlId}>{c.options.map((o) => <option key={o} value={o} />)}</datalist>
+                            </>
+                          ) : (
+                            <select className={base} value={v} onChange={(e) => set(e.target.value)}>
+                              <option value="">— اختر —</option>
+                              {c.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          )
+                        ) : c.type === 'date' ? (
+                          <input type="date" className={base} value={v} onChange={(e) => set(e.target.value)} />
+                        ) : c.type === 'number' ? (
+                          <input type="number" className={base} value={v} onChange={(e) => set(e.target.value)} />
+                        ) : (
+                          <textarea className={base} rows={2} value={v} onChange={(e) => set(e.target.value)} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-500">🔐 يتطلب الحفظ كلمة مرور المدير</span>
+                  <div className="flex gap-2">
+                    <button className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm font-bold hover:bg-slate-50" onClick={() => setCrudEditing(null)} disabled={crudBusy}>إلغاء</button>
+                    <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm disabled:opacity-50" style={{ background: '#0891b2' }} onClick={crudSubmit} disabled={crudBusy}>
+                      {crudBusy ? '⏳ جاري الحفظ...' : '💾 حفظ'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
 
           {/* Bookings */}
           {activeSystem === 'emptyRooms' && bookings.length > 0 && (
@@ -657,7 +847,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   <tr>
                     {system.headers.map(h => <th key={h} className={(h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : undefined}>{h}</th>)}
                     {activeSystem === 'emptyRooms' && <th>ملاحظة الحجز</th>}
+                    {showCrudActions && <th style={{ width: 100 }}>إجراءات</th>}
                   </tr>
+
                 </thead>
                 <tbody>
                   {filteredRows.map((row, i) => {
@@ -710,7 +902,32 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           const note = getBookingNote(row['القاعة'], row['اليوم'], row['الفترة الشاغرة من'], row['الفترة الشاغرة الى']);
                           return <td className={note ? 'schedule-cell-warn' : ''}>{note || '—'}</td>;
                         })()}
+                        {showCrudActions && (
+                          <td>
+                            <div className="flex gap-1 justify-center">
+                              {crudPerms?.edit && (
+                                <button
+                                  onClick={() => crudOpenEdit(parseSnapshot(row))}
+                                  disabled={crudBusy}
+                                  className="w-8 h-8 rounded-lg grid place-items-center text-blue-600 bg-blue-50 hover:bg-blue-100 disabled:opacity-40"
+                                  title="تعديل"
+                                  type="button"
+                                >✏️</button>
+                              )}
+                              {crudPerms?.delete && (
+                                <button
+                                  onClick={() => crudDelete(parseSnapshot(row))}
+                                  disabled={crudBusy}
+                                  className="w-8 h-8 rounded-lg grid place-items-center text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-40"
+                                  title="حذف"
+                                  type="button"
+                                >🗑️</button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
+
                     );
                   })}
                 </tbody>

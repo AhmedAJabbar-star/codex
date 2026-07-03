@@ -3,18 +3,26 @@ import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
-import CrudPanel from '@/components/custom-systems/CrudPanel';
 import TeacherSessionBar from '@/components/shared/TeacherSessionBar';
-import { listCustomSystems, isCrudActive, type CustomSystemDef } from '@/data/customSystemsRegistry';
+import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
 import type { SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
+import { getEffectivePerms } from '@/lib/permissions';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
   evaluateAll, evaluateCondition, applyDerivedColumns,
 } from '@/lib/conditionEngine';
 
-export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult): SystemConfig {
+const CRUD_SNAPSHOT_KEY = '__crud_snapshot__';
+
+
+export function buildConfigFromDef(
+  def: CustomSystemDef,
+  sheet: SheetFetchResult,
+  user?: { role?: string; permissions?: any } | null,
+): SystemConfig {
+
   const colIdxs = parseColumnsRange(def.columns_range);
   const labelMap = def.header_labels || {};
 
@@ -191,9 +199,70 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
         );
         out[`__qf_${idx}`] = ok ? '1' : '';
       });
+      // Raw-sheet snapshot for CRUD (only the columns in columns_range).
+      const snap: Record<string, string> = {};
+      colIdxs.forEach((i) => {
+        const letter = colIndexToLetter(i);
+        const hk = sheet.headers[i];
+        snap[letter] = (hk ? r[hk] : '') || '';
+      });
+      out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
       rows.push(out);
     });
   });
+
+  // Build CRUD context (cols meta + perms) when the system enables CRUD and user can view.
+  let crudContext: CrudContext | undefined;
+  if (isCrudActive(def)) {
+    const perms = getEffectivePerms(def, user as any);
+    if (perms.view) {
+      const types = def.column_types || {};
+      const manualOpts = def.column_options || {};
+      const srcMap = def.column_select_source || {};
+      const allowMap = def.column_select_allow_custom || {};
+      const cols: CrudColMeta[] = colIdxs.map((i) => {
+        const letter = colIndexToLetter(i);
+        const realHeader = sheet.headers[i] || letter;
+        const labelOverride = (def.header_labels || {})[letter];
+        const type = ((types[letter] as any) || 'text') as CrudColMeta['type'];
+        const source = ((srcMap[letter] || 'manual') as 'manual' | 'column');
+        let options: string[] = [];
+        if (type === 'select') {
+          if (source === 'column') {
+            const set = new Set<string>();
+            sheet.rows.forEach((r) => {
+              const raw = (r[realHeader] || '').trim();
+              if (!raw) return;
+              raw.split(/\r?\n/).forEach((v) => { const t = v.trim(); if (t) set.add(t); });
+            });
+            options = Array.from(set).sort((a, b) => a.localeCompare(b, 'ar'));
+          } else {
+            options = (manualOpts[letter] || '')
+              .split(/[,،\n]+/).map((s) => s.trim()).filter(Boolean);
+          }
+        }
+        return {
+          letter,
+          header: labelOverride || realHeader,
+          type,
+          options,
+          allowCustom: !!allowMap[letter],
+          source,
+        };
+      });
+      const teacherName = (user as any)?.full_name || '';
+      crudContext = {
+        def,
+        externalUrl: def.sheet_source === 'external' ? def.sheet_url : undefined,
+        cols,
+        perms,
+        teacherCol: def.require_teacher_auth ? (def.teacher_column || '').toUpperCase() : undefined,
+        teacherName: def.require_teacher_auth ? teacherName : undefined,
+        snapshotKey: CRUD_SNAPSHOT_KEY,
+        refetchQueryKeys: [[`custom-${def.id}`]],
+      };
+    }
+  }
 
   return {
     id: `custom_${def.id}`,
@@ -210,8 +279,10 @@ export function buildConfigFromDef(def: CustomSystemDef, sheet: SheetFetchResult
     requiredFilters: requiredFilterKeys.length > 0 ? requiredFilterKeys : undefined,
     quickFilters: quickFilterDefs.length > 0 ? quickFilterDefs : undefined,
     linkColumns: Object.keys(linkColumns).length > 0 ? linkColumns : undefined,
+    crudContext,
   };
 }
+
 
 const GenericSystem = () => {
   const { id = '' } = useParams<{ id: string }>();
@@ -225,30 +296,28 @@ const GenericSystem = () => {
 
   const def = useMemo(() => (systems || []).find((s) => s.id === id), [systems, id]);
 
+  const session = getSession();
+
   const build = useCallback(
-    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet),
-    [def],
+    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any),
+    [def, session?.user],
   );
 
-  const session = getSession();
 
   if (loadingSystems) return <LiveLoadingShell />;
   if (!def) return <Navigate to="/" replace />;
   if (!def.sheet_gid) return <LiveLoadingShell error={new Error('لم يتم تحديد GID للورقة المصدر')} />;
 
   const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
-  const crudOn = isCrudActive(def);
   const showSessionBar = !!(def.require_teacher_auth && session?.user);
 
   return (
     <div>
       {showSessionBar && <TeacherSessionBar user={session!.user} />}
-      {crudOn && (
-        <div className="px-4 pt-4" dir="rtl"><CrudPanel def={def} /></div>
-      )}
       <SupervisionBasePage queryKey={`custom-${def.id}`} gid={def.sheet_gid} externalUrl={externalUrl} build={build} />
     </div>
   );
 };
+
 
 export default GenericSystem;

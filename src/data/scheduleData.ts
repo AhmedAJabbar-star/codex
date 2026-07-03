@@ -45,7 +45,10 @@ export interface SystemConfig {
   /** Per-column link button label (display header name -> button text). When set, cells with a URL
    *  in that column render as a clickable button instead of plain text. */
   linkColumns?: Record<string, string>;
+  /** When set, the main table renders inline Add/Edit/Delete controls (no separate CRUD panel). */
+  crudContext?: import('./customSystemsRegistry').CrudContext;
 }
+
 
 const teacherRows: ScheduleRow[] = [
   { 'اسم التدريسي': 'أحمد شمخي جبر كريم', 'الكلية': 'الهندسة المدنية', 'القسم': 'هندسة البناء وادارة المشاريع الانشائية', 'الدراسة': 'الصباحية', 'المرحلة': 'الثالثة', 'الشعبة': 'B', 'النظام الدراسي': 'بولونيا', 'الفصل الدراسي': 'الثاني', 'المجموعة': '', 'اليوم': 'الأحد', 'بدء المحاضرة': '8:30:00 AM', 'نهاية المحاضرة': '10:30:00 AM', 'المادة': 'تصميم المنشآت-الخرسانة المسلحة (2)', 'نوع المحاضرة': 'نظري', 'القاعة أو المختبر': '209', 'القسم الذي تنتمي اليه': 'قسم هندسة البناء وإدارة المشاريع الانشائية', 'الكلية التي تنتمي اليها': 'الهندسة المدنية' },

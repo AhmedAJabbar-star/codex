@@ -228,6 +228,32 @@ export async function deleteCustomSystem(id: string, password: string): Promise<
   if ((data as any)?.error) throw new Error((data as any).error);
 }
 
+/** Column metadata for inline CRUD forms (built from CustomSystemDef + live sheet). */
+export interface CrudColMeta {
+  letter: string;
+  header: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'readonly';
+  options: string[];
+  allowCustom: boolean;
+  source: 'manual' | 'column';
+}
+
+/** Data passed from a custom system to SingleSystemPage so that Add/Edit/Delete
+ *  can render inline (adjacent to the main table) instead of in a duplicate panel. */
+export interface CrudContext {
+  def: CustomSystemDef;
+  externalUrl?: string;
+  cols: CrudColMeta[];
+  perms: { view: boolean; add: boolean; edit: boolean; delete: boolean };
+  teacherCol?: string;
+  teacherName?: string;
+  /** Row key holding the JSON-encoded raw-sheet snapshot (Excel letter -> value). */
+  snapshotKey: string;
+  /** React-Query keys to invalidate after a successful write. */
+  refetchQueryKeys: string[][];
+}
+
+
 export const CUSTOM_SYSTEMS_UPDATED_EVENT = 'custom-systems-updated';
 
 /** CRUD against the source Google Sheet for a custom system. Admin password required. */
