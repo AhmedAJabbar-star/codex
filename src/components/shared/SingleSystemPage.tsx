@@ -691,9 +691,99 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             {activeSystem === 'emptyRooms' && (
               <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(5,150,105,.28)' }} onClick={() => setShowBookingDialog(true)}>📅 حجز مؤقت</button>
             )}
+            {crudCtx && crudPerms?.add && (
+              <button
+                className="schedule-btn schedule-btn-primary"
+                style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(8,145,178,.28)' }}
+                onClick={crudOpenAdd}
+                disabled={crudBusy}
+              >➕ إضافة سجل</button>
+            )}
+            {crudCtx && (
+              <div className="relative" style={{ flex: '1 1 220px', minWidth: 220 }}>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
+                <input
+                  className="w-full pr-9 pl-3 py-2 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-slate-400 bg-white"
+                  placeholder="بحث سريع في السجلات..."
+                  value={crudSearch}
+                  onChange={(e) => setCrudSearch(e.target.value)}
+                  style={{ minHeight: 42 }}
+                />
+              </div>
+            )}
             <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
             <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
           </div>
+
+          {/* Inline CRUD editor — replaces the old modal (never overlays the data). */}
+          {crudCtx && crudEditing && (
+            <div className="mx-3 mb-3 rounded-2xl border-2 shadow-sm bg-white overflow-hidden" style={{ borderColor: '#0891b240' }} dir="rtl">
+              <header className="px-4 py-3 flex items-center justify-between gap-3" style={{ background: 'linear-gradient(135deg, #0891b2, #0e7490)', color: 'white' }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{crudEditing.mode === 'add' ? '➕' : '✏️'}</span>
+                  <h3 className="text-sm font-black">{crudEditing.mode === 'add' ? 'إضافة سجل جديد' : 'تعديل السجل'}</h3>
+                </div>
+                <button
+                  className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 text-lg"
+                  onClick={() => !crudBusy && setCrudEditing(null)}
+                  aria-label="إغلاق"
+                >✕</button>
+              </header>
+              <div className="p-4 bg-slate-50/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {crudCtx.cols.map((c) => {
+                    const v = crudEditing.values[c.letter] || '';
+                    const set = (val: string) => setCrudEditing({ ...crudEditing, values: { ...crudEditing.values, [c.letter]: val } });
+                    const lockTeacher = !!(crudCtx.teacherCol && crudCtx.teacherName && crudCtx.teacherCol === c.letter);
+                    const base = "w-full px-3 py-2 rounded-lg border-2 border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400";
+                    if (c.type === 'readonly' || lockTeacher) {
+                      return (
+                        <div key={c.letter}>
+                          <label className="block text-xs font-black mb-1.5 text-slate-700">{c.header} <span className="text-[10px] text-slate-400 font-normal">(قراءة فقط)</span></label>
+                          <input className={`${base} bg-slate-100 text-slate-500`} value={v} disabled />
+                        </div>
+                      );
+                    }
+                    const dlId = `dl-${crudCtx.def.id}-${c.letter}`;
+                    return (
+                      <div key={c.letter}>
+                        <label className="block text-xs font-black mb-1.5 text-slate-700">{c.header}</label>
+                        {c.type === 'select' ? (
+                          c.allowCustom ? (
+                            <>
+                              <input list={dlId} className={base} value={v} onChange={(e) => set(e.target.value)} placeholder="اختر أو اكتب..." />
+                              <datalist id={dlId}>{c.options.map((o) => <option key={o} value={o} />)}</datalist>
+                            </>
+                          ) : (
+                            <select className={base} value={v} onChange={(e) => set(e.target.value)}>
+                              <option value="">— اختر —</option>
+                              {c.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          )
+                        ) : c.type === 'date' ? (
+                          <input type="date" className={base} value={v} onChange={(e) => set(e.target.value)} />
+                        ) : c.type === 'number' ? (
+                          <input type="number" className={base} value={v} onChange={(e) => set(e.target.value)} />
+                        ) : (
+                          <textarea className={base} rows={2} value={v} onChange={(e) => set(e.target.value)} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-500">🔐 يتطلب الحفظ كلمة مرور المدير</span>
+                  <div className="flex gap-2">
+                    <button className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm font-bold hover:bg-slate-50" onClick={() => setCrudEditing(null)} disabled={crudBusy}>إلغاء</button>
+                    <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm disabled:opacity-50" style={{ background: '#0891b2' }} onClick={crudSubmit} disabled={crudBusy}>
+                      {crudBusy ? '⏳ جاري الحفظ...' : '💾 حفظ'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
 
           {/* Bookings */}
           {activeSystem === 'emptyRooms' && bookings.length > 0 && (
