@@ -847,7 +847,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   <tr>
                     {system.headers.map(h => <th key={h} className={(h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : undefined}>{h}</th>)}
                     {activeSystem === 'emptyRooms' && <th>ملاحظة الحجز</th>}
+                    {showCrudActions && <th style={{ width: 100 }}>إجراءات</th>}
                   </tr>
+
                 </thead>
                 <tbody>
                   {filteredRows.map((row, i) => {
