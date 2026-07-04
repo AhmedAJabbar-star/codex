@@ -323,6 +323,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         <option value="select">قائمة منسدلة</option>
                         <option value="combo">قائمة + بحث</option>
                         <option value="text">نص حر</option>
+                        <option value="numberRange">نطاق رقمي (من — إلى)</option>
+                        <option value="dateRange">نطاق تاريخ (من — إلى)</option>
                       </select>
                       <div className="col-span-2 flex items-center justify-end gap-1">
                         <button onClick={() => moveFilter(i, -1)} disabled={i === 0} className="px-2 py-1 rounded border text-xs font-black disabled:opacity-30" title="نقل لأعلى">▲</button>

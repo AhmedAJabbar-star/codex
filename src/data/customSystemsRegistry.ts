@@ -42,7 +42,7 @@ export interface FilterRule {
 export interface FilterConfigItem {
   column: string; // Excel letter
   label?: string; // optional override
-  control?: 'select' | 'combo' | 'text';
+  control?: 'select' | 'combo' | 'text' | 'numberRange' | 'dateRange';
   /** Custom placeholder text for the search input when control = 'combo'. */
   search_placeholder?: string;
   /** Optional named rules — appear in the dropdown as choices. */
@@ -52,6 +52,7 @@ export interface FilterConfigItem {
   /** When true, the user MUST choose a value before any data renders (مثل «الفصل الدراسي» في تكليفات التدريسي). */
   required?: boolean;
 }
+
 
 /** Quick-filter button (toggle) shown above the table — same UX as «غير مستوفي» in تدقيق النصاب. */
 export interface QuickFilterConfig {

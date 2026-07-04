@@ -102,6 +102,24 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           const cellNum = parseFloat(row[f.key] || '0');
           return !isNaN(inputNum) && !isNaN(cellNum) && cellNum >= inputNum;
         }
+        if (f.control === 'numberRange' || f.control === 'dateRange') {
+          const [fromStr = '', toStr = ''] = String(val).split('|');
+          if (!fromStr && !toStr) return true;
+          const cellRaw = (row[f.key] || '').trim();
+          if (!cellRaw) return false;
+          if (f.control === 'numberRange') {
+            const cell = parseFloat(cellRaw.replace(/[^\d.\-]/g, ''));
+            if (isNaN(cell)) return false;
+            if (fromStr !== '' && cell < parseFloat(fromStr)) return false;
+            if (toStr !== '' && cell > parseFloat(toStr)) return false;
+            return true;
+          }
+          const cell = Date.parse(cellRaw);
+          if (isNaN(cell)) return false;
+          if (fromStr && cell < Date.parse(fromStr)) return false;
+          if (toStr && cell > Date.parse(toStr) + 86_400_000 - 1) return false;
+          return true;
+        }
         if (f.matchMode === 'contains') return (row[f.key] || '').includes(val);
         if (f.matchMode === 'token') return (row[f.key] || '').split('\n').map((t) => t.trim()).includes(val);
         return row[f.key] === val;
@@ -198,7 +216,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const filterDef = system.filters.find(f => f.key === filterKey);
     if (filterDef?.fixedOptions) return filterDef.fixedOptions;
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
-    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number');
+    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number' && f.control !== 'numberRange' && f.control !== 'dateRange');
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
@@ -218,7 +236,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const newFilters = { ...filters };
     newFilters[key] = value;
     system.filters.slice(filterIndex + 1).forEach(f => {
-      if (f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number') delete newFilters[f.key];
+      if (f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number' && f.control !== 'numberRange' && f.control !== 'dateRange') delete newFilters[f.key];
     });
     setFilters(newFilters);
   };
@@ -669,6 +687,31 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     }}
                     style={{ cursor: 'pointer', paddingInlineEnd: 16, minHeight: 52 }}
                   />
+                ) : f.control === 'numberRange' || f.control === 'dateRange' ? (
+                  (() => {
+                    const raw = filters[f.key] || '';
+                    const [fromStr = '', toStr = ''] = raw.split('|');
+                    const inputType = f.control === 'dateRange' ? 'date' : 'number';
+                    const setRange = (nf: string, nt: string) => {
+                      const combined = (nf || nt) ? `${nf}|${nt}` : '';
+                      handleFilterChange(f.key, combined);
+                    };
+                    return (
+                      <div className="flex items-center gap-1.5" dir="rtl">
+                        <input type={inputType} className="schedule-select flex-1" placeholder="من" value={fromStr}
+                          onChange={(e) => setRange(e.target.value, toStr)}
+                          style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        <span className="text-xs font-black text-[var(--schedule-muted)] px-1">—</span>
+                        <input type={inputType} className="schedule-select flex-1" placeholder="إلى" value={toStr}
+                          onChange={(e) => setRange(fromStr, e.target.value)}
+                          style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        {(fromStr || toStr) && (
+                          <button className="schedule-btn" style={{ minHeight: 40, padding: '0 8px' }}
+                            onClick={() => handleFilterChange(f.key, '')} title="مسح">✕</button>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <select className="schedule-select" value={filters[f.key] || ''} onChange={e => handleFilterChange(f.key, e.target.value)} style={{ cursor: 'pointer', paddingInlineEnd: 44 }}>
                     <option value="">— الكل —</option>
