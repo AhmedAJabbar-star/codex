@@ -216,7 +216,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const filterDef = system.filters.find(f => f.key === filterKey);
     if (filterDef?.fixedOptions) return filterDef.fixedOptions;
     const filterIndex = system.filters.findIndex(f => f.key === filterKey);
-    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number');
+    const upstreamFilters = system.filters.slice(0, filterIndex).filter(f => f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number' && f.control !== 'numberRange' && f.control !== 'dateRange');
     let rows = system.rows;
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
@@ -236,7 +236,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const newFilters = { ...filters };
     newFilters[key] = value;
     system.filters.slice(filterIndex + 1).forEach(f => {
-      if (f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number') delete newFilters[f.key];
+      if (f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number' && f.control !== 'numberRange' && f.control !== 'dateRange') delete newFilters[f.key];
     });
     setFilters(newFilters);
   };
