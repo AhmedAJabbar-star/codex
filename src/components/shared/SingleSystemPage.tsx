@@ -687,6 +687,31 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     }}
                     style={{ cursor: 'pointer', paddingInlineEnd: 16, minHeight: 52 }}
                   />
+                ) : f.control === 'numberRange' || f.control === 'dateRange' ? (
+                  (() => {
+                    const raw = filters[f.key] || '';
+                    const [fromStr = '', toStr = ''] = raw.split('|');
+                    const inputType = f.control === 'dateRange' ? 'date' : 'number';
+                    const setRange = (nf: string, nt: string) => {
+                      const combined = (nf || nt) ? `${nf}|${nt}` : '';
+                      handleFilterChange(f.key, combined);
+                    };
+                    return (
+                      <div className="flex items-center gap-1.5" dir="rtl">
+                        <input type={inputType} className="schedule-select flex-1" placeholder="من" value={fromStr}
+                          onChange={(e) => setRange(e.target.value, toStr)}
+                          style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        <span className="text-xs font-black text-[var(--schedule-muted)] px-1">—</span>
+                        <input type={inputType} className="schedule-select flex-1" placeholder="إلى" value={toStr}
+                          onChange={(e) => setRange(fromStr, e.target.value)}
+                          style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        {(fromStr || toStr) && (
+                          <button className="schedule-btn" style={{ minHeight: 40, padding: '0 8px' }}
+                            onClick={() => handleFilterChange(f.key, '')} title="مسح">✕</button>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <select className="schedule-select" value={filters[f.key] || ''} onChange={e => handleFilterChange(f.key, e.target.value)} style={{ cursor: 'pointer', paddingInlineEnd: 44 }}>
                     <option value="">— الكل —</option>
