@@ -102,6 +102,24 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           const cellNum = parseFloat(row[f.key] || '0');
           return !isNaN(inputNum) && !isNaN(cellNum) && cellNum >= inputNum;
         }
+        if (f.control === 'numberRange' || f.control === 'dateRange') {
+          const [fromStr = '', toStr = ''] = String(val).split('|');
+          if (!fromStr && !toStr) return true;
+          const cellRaw = (row[f.key] || '').trim();
+          if (!cellRaw) return false;
+          if (f.control === 'numberRange') {
+            const cell = parseFloat(cellRaw.replace(/[^\d.\-]/g, ''));
+            if (isNaN(cell)) return false;
+            if (fromStr !== '' && cell < parseFloat(fromStr)) return false;
+            if (toStr !== '' && cell > parseFloat(toStr)) return false;
+            return true;
+          }
+          const cell = Date.parse(cellRaw);
+          if (isNaN(cell)) return false;
+          if (fromStr && cell < Date.parse(fromStr)) return false;
+          if (toStr && cell > Date.parse(toStr) + 86_400_000 - 1) return false;
+          return true;
+        }
         if (f.matchMode === 'contains') return (row[f.key] || '').includes(val);
         if (f.matchMode === 'token') return (row[f.key] || '').split('\n').map((t) => t.trim()).includes(val);
         return row[f.key] === val;
