@@ -29,6 +29,11 @@ export interface PrintPrefs {
   /** When true, the preview toolbar is shown by default. When false/undefined, it is hidden
    *  (a small floating settings button is shown so the user can still adjust if needed). */
   show_toolbar?: boolean;
+  /** Fixed report title. When set, the title input in the preview is read-only. */
+  title?: string;
+  /** When true, all preview controls are locked (disabled) and the floating settings toggle
+   *  is removed — the user cannot change or re-show anything hidden by the admin. */
+  lock_settings?: boolean;
 }
 
 /** A named rule attached to a filter. When the user picks it, only rows whose source cell satisfies the rule pass. */
