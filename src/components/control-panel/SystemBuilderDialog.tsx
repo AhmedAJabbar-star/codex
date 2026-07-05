@@ -807,7 +807,17 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   </div>
                 </div>
 
-                <div className="border-2 border-amber-300 rounded-lg p-3 bg-amber-50/60">
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <strong className="text-sm">عنوان الطباعة (ثابت)</strong>
+                  <input
+                    className="schedule-select w-full text-xs"
+                    value={pp.title || ''}
+                    onChange={(e) => setPP({ title: e.target.value || undefined })}
+                    placeholder="اتركه فارغاً لاستخدام عنوان النظام — عند تعبئته يصبح ثابتاً ولا يمكن للمستخدم تعديله"
+                  />
+                </div>
+
+                <div className="border-2 border-amber-300 rounded-lg p-3 bg-amber-50/60 space-y-2">
                   <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
                     <input
                       type="checkbox"
@@ -817,8 +827,22 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     <span>
                       إظهار شريط الإعدادات في المعاينة تلقائياً
                       <span className="block text-[11px] font-normal text-slate-600 mt-1">
-                        افتراضياً يكون الشريط مخفياً عند ضبط أي قيمة هنا، ويستطيع المستخدم إظهاره من زر «⚙️ إعدادات الطباعة» العائم.
-                        فعّل هذا الخيار إذا أردت أن يبقى الشريط ظاهراً دائماً.
+                        افتراضياً يكون الشريط مخفياً، ويستطيع المستخدم إظهاره من زر «⚙️ الإعدادات» العائم
+                        <strong> ما لم تُفعّل «قفل الإعدادات» أدناه</strong>.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!pp.lock_settings}
+                      onChange={(e) => setPP({ lock_settings: e.target.checked })}
+                    />
+                    <span>
+                      🔒 قفل إعدادات المعاينة والطباعة نهائياً
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        عند التفعيل: يُلغى زر «⚙️ الإعدادات» العائم، وتُعطَّل كل عناصر التحكم في الشريط،
+                        فلا يستطيع المستخدم إعادة إظهار أي عنصر أخفيته أو تغيير أي إعداد ضبطتَه هنا.
                       </span>
                     </span>
                   </label>
