@@ -339,9 +339,28 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     Object.keys(mapped).forEach(function(k){ if(mapped[k] !== undefined) prefs[k] = mapped[k]; });
     // Hide the preview toolbar unless the system explicitly asks to keep it visible.
     if(!SP.show_toolbar) body.classList.add('toolbar-hidden');
+    // Fixed title override
+    if(SP.title){ var _ti=$('pv-title-input'); if(_ti){ _ti.value=SP.title; } }
   }
+  // Lock mode: disable ALL preview controls and remove the floating toggle so users
+  // cannot re-show or change anything the admin hid/configured.
+  var LOCKED = !!(SYSTEM_PREFS && SYSTEM_PREFS.lock_settings);
+  var TITLE_LOCKED = !!(SYSTEM_PREFS && SYSTEM_PREFS.title);
   var tog = $('pv-toggle');
-  if(tog) tog.addEventListener('click', function(){ body.classList.toggle('toolbar-hidden'); });
+  if(LOCKED){
+    if(tog && tog.parentNode) tog.parentNode.removeChild(tog);
+    // Disable every input/select/button inside the preview bar (keep print & close).
+    document.querySelectorAll('.preview-bar input, .preview-bar select').forEach(function(el){
+      el.disabled = true;
+      el.title = 'مقفل من قبل المسؤول';
+      if(el.parentElement) el.parentElement.style.opacity = '0.55';
+    });
+  } else if(tog){
+    tog.addEventListener('click', function(){ body.classList.toggle('toolbar-hidden'); });
+  }
+  if(TITLE_LOCKED){
+    var _ti2=$('pv-title-input'); if(_ti2){ _ti2.readOnly=true; _ti2.title='العنوان مضبوط من قبل المسؤول'; _ti2.style.opacity='0.7'; }
+  }
 
 
   // Title sync (applies to BOTH banner instances via class selector)
