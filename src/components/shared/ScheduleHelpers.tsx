@@ -474,6 +474,8 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
   togRepH(); togCompact();
   togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount(); togWM();
   applyRepeatSigs(); applyFit();
+  // Apply admin-fixed title to the banner and document title
+  if(SYSTEM_PREFS && SYSTEM_PREFS.title){ syncTitle(); }
 })();
 </script>
 </body></html>`);
