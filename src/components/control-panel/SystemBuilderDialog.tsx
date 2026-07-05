@@ -846,6 +846,22 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       </span>
                     </span>
                   </label>
+                  {pp.lock_settings && (
+                    <label className="flex items-start gap-2 text-sm font-bold cursor-pointer mr-6 border-r-4 border-amber-400 pr-3">
+                      <input
+                        type="checkbox"
+                        checked={!!pp.title_editable}
+                        onChange={(e) => setPP({ title_editable: e.target.checked || undefined })}
+                      />
+                      <span>
+                        ✏️ استثناء «العنوان» من القفل — السماح للمستخدم بتغييره
+                        <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                          عند التفعيل يبقى حقل العنوان قابلاً للتعديل من قبل المستخدم في شريط المعاينة،
+                          بينما تبقى بقية الإعدادات مقفلة. عند إيقافه: العنوان مقفل أيضاً.
+                        </span>
+                      </span>
+                    </label>
+                  )}
                 </div>
 
                 {hasPrefs && (

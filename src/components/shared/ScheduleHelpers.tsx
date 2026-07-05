@@ -345,12 +345,17 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   // Lock mode: disable ALL preview controls and remove the floating toggle so users
   // cannot re-show or change anything the admin hid/configured.
   var LOCKED = !!(SYSTEM_PREFS && SYSTEM_PREFS.lock_settings);
-  var TITLE_LOCKED = !!(SYSTEM_PREFS && SYSTEM_PREFS.title);
+  var TITLE_EDITABLE = !!(SYSTEM_PREFS && SYSTEM_PREFS.title_editable);
+  var TITLE_LOCKED = !!(SYSTEM_PREFS && SYSTEM_PREFS.title) && !TITLE_EDITABLE;
   var tog = $('pv-toggle');
   if(LOCKED){
     if(tog && tog.parentNode) tog.parentNode.removeChild(tog);
-    // Disable every input/select/button inside the preview bar (keep print & close).
+    // When the title stays editable, keep the toolbar visible so the user can reach it.
+    if(TITLE_EDITABLE) body.classList.remove('toolbar-hidden');
+    // Disable every input/select inside the preview bar (keep print & close),
+    // but skip the title input when the admin allowed the user to edit it.
     document.querySelectorAll('.preview-bar input, .preview-bar select').forEach(function(el){
+      if(TITLE_EDITABLE && el.id === 'pv-title-input') return;
       el.disabled = true;
       el.title = 'مقفل من قبل المسؤول';
       if(el.parentElement) el.parentElement.style.opacity = '0.55';

@@ -34,6 +34,9 @@ export interface PrintPrefs {
   /** When true, all preview controls are locked (disabled) and the floating settings toggle
    *  is removed — the user cannot change or re-show anything hidden by the admin. */
   lock_settings?: boolean;
+  /** When true AND lock_settings is on, the title input stays editable by the user
+   *  even though every other preview control is locked. Ignored when lock_settings is false. */
+  title_editable?: boolean;
 }
 
 /** A named rule attached to a filter. When the user picks it, only rows whose source cell satisfies the rule pass. */
