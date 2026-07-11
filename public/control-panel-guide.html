@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>دليل لوحة التحكم — أكاديمي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#fff; --ink:#0f172a; --muted:#475569;
+    --brand:#0b2545; --accent:#f59e0b; --ok:#16a34a; --warn:#dc2626;
+    --line:#e2e8f0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Cairo',system-ui,sans-serif;line-height:1.85}
+  .wrap{max-width:960px;margin:24px auto;padding:0 16px}
+  .toolbar{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#0b2545,#1e3a5f);color:#fff;padding:12px 18px;border-radius:14px;box-shadow:0 8px 24px -12px rgba(0,0,0,.35);margin-bottom:18px}
+  .toolbar h1{margin:0;font-size:18px;font-weight:900}
+  .toolbar .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{background:#f59e0b;color:#0b2545;border:0;font-weight:900;padding:9px 16px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;transition:transform .15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.35)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 32px;box-shadow:0 10px 30px -20px rgba(15,23,42,.25)}
+  h1.title{font-size:28px;font-weight:900;margin:0 0 6px;color:var(--brand);text-align:center}
+  .sub{text-align:center;color:var(--muted);font-weight:600;margin-bottom:22px}
+  hr{border:0;border-top:2px dashed var(--line);margin:22px 0}
+  h2{color:var(--brand);font-weight:900;font-size:22px;margin-top:26px;padding-inline-start:10px;border-inline-start:5px solid var(--accent)}
+  h3{color:#1e3a5f;font-weight:800;font-size:17px;margin-top:18px}
+  blockquote{background:#fff7ed;border-inline-start:4px solid var(--accent);margin:12px 0;padding:10px 14px;border-radius:8px;color:#7c2d12;font-weight:600}
+  code{background:#f1f5f9;padding:2px 6px;border-radius:5px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;color:#0b2545}
+  ul,ol{padding-inline-start:22px}
+  li{margin:4px 0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px -10px rgba(0,0,0,.2)}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:right;vertical-align:top}
+  th{background:linear-gradient(135deg,#0b2545,#1e3a5f);color:#fff;font-weight:800}
+  tr:nth-child(even) td{background:#f8fafc}
+  .foot{text-align:center;color:var(--muted);margin-top:18px;font-size:13px}
+  a.back{color:#fff;text-decoration:none}
+  @media print{
+    body{background:#fff}
+    .toolbar{display:none}
+    .wrap{max-width:none;margin:0;padding:0}
+    .card{border:0;box-shadow:none;padding:0}
+    h2{break-after:avoid}
+    tr,li{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <h1>📘 دليل لوحة التحكم</h1>
+    <div class="btns">
+      <button class="btn" onclick="window.print()">🖨️ حفظ كـ PDF / طباعة</button>
+      <button class="btn ghost" onclick="copyLink()">🔗 نسخ الرابط</button>
+      <a class="btn ghost" href="/control-panel-guide.md" download>⬇️ تحميل Markdown</a>
+      <a class="btn ghost back" href="/">🏠 الرئيسية</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h1 class="title">📘 دليل لوحة التحكم</h1>
+    <div class="sub">أكاديمي — كلية الهندسة المدنية / الجامعة التكنولوجية</div>
+    <blockquote>دليل شامل للمشرف/المدير لاستخدام <b>لوحة التحكم</b> والتحكم الكامل بكافة أنظمة التطبيق دون الحاجة إلى كتابة أي كود.</blockquote>
+
+    <h2>🔐 1. الدخول إلى لوحة التحكم</h2>
+    <ul>
+      <li><b>المسار:</b> من الصفحة الرئيسية اضغط بطاقة «لوحة التحكم»، أو انتقل مباشرة إلى <code>/control-panel</code>.</li>
+      <li><b>كلمة المرور الافتراضية:</b> <code>2021</code> (يمكن تغييرها من داخل اللوحة نفسها — انظر القسم 3).</li>
+      <li><b>نصيحة أمنية:</b> غيّر كلمة المرور فور أول دخول، ولا تشاركها إلا مع من يحق له الإدارة الكاملة.</li>
+    </ul>
+
+    <h2>🧭 2. الأقسام الرئيسية</h2>
+    <table>
+      <thead><tr><th>الصندوق</th><th>الوظيفة</th></tr></thead>
+      <tbody>
+        <tr><td>👥 <b>إدارة التدريسيين</b></td><td>إضافة/حذف حسابات التدريسيين، تعيين الأقسام، إعادة تعيين كلمات المرور.</td></tr>
+        <tr><td>🎨 <b>نمط الواجهة</b></td><td>10 ثيمات، الوضع الليلي، التأثير ثلاثي الأبعاد.</td></tr>
+        <tr><td>🔐 <b>كلمة مرور اللوحة</b></td><td>تغيير كلمة دخول اللوحة نفسها.</td></tr>
+        <tr><td>🛡️ <b>كلمة مرور المدير</b></td><td>للعمليات الحسّاسة في نظام التكليفات الفردية.</td></tr>
+        <tr><td>📦 <b>مجموعات الأنظمة</b></td><td>تجميع عدة أنظمة في بطاقة واحدة على الرئيسية.</td></tr>
+        <tr><td>🧩 <b>منشئ الأنظمة</b></td><td>إنشاء نظام كامل من جدول Google Sheets — بدون كود.</td></tr>
+        <tr><td>👁️ <b>إظهار/إخفاء + حماية</b></td><td>التحكم برؤية كل نظام وقفله بكلمة مرور.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>👥 3. إدارة التدريسيين</h2>
+    <ul>
+      <li><b>إضافة تدريسي:</b> الاسم الكامل + القسم + كلمة مرور مبدئية (افتراضياً <code>123</code>).</li>
+      <li><b>تعديل:</b> غيّر القسم أو الاسم، أو أعد تعيين كلمة المرور.</li>
+      <li><b>حذف:</b> يُنقل التدريسي تلقائياً إلى ورقة <code>archive</code> كنسخة احتياطية.</li>
+      <li><b>تسجيل دخول التدريسي:</b> من بطاقة «التكليفات الفردية» في الرئيسية.</li>
+    </ul>
+
+    <h2>🎨 4. نمط الواجهة</h2>
+    <ul>
+      <li><b>10 ثيمات</b> بمستوى جامعي رسمي — يُطبَّق الاختيار فوراً على كل الشاشات.</li>
+      <li><b>الوضع الليلي 🌙 / النهاري ☀️:</b> زر واحد يعمل مع أي ثيم.</li>
+      <li><b>الوضع ثلاثي الأبعاد 🟢:</b> يفعّل تأثيرات العمق على البطاقات.</li>
+    </ul>
+
+    <h2>🔐 5. كلمات المرور</h2>
+    <ul>
+      <li><b>كلمة مرور اللوحة:</b> لدخول لوحة التحكم فقط.</li>
+      <li><b>كلمة مرور المدير:</b> داخل نظام التكليفات الفردية للعمليات الحسّاسة.</li>
+      <li><b>كلمة مرور كل نظام:</b> من صندوق «إظهار/إخفاء الأنظمة».</li>
+    </ul>
+    <blockquote>⚠️ عند تغيير أي كلمة مرور، سيُطلب إدخال كلمة مرور اللوحة الحالية للتأكيد.</blockquote>
+
+    <h2>📦 6. مجموعات الأنظمة</h2>
+    <p>تسمح بتجميع عدة بطاقات (مثلاً كل ما يخص «الإشراف») في بطاقة واحدة على الرئيسية.</p>
+    <ol>
+      <li>اضغط «➕ إضافة مجموعة».</li>
+      <li>أدخل: الاسم، الوصف، الأيقونة، اللون.</li>
+      <li>حدد الأنظمة المراد ضمّها.</li>
+      <li>اضغط «💾 حفظ المجموعة» — سيُطلب كلمة مرور اللوحة.</li>
+      <li>ستظهر المجموعة كبطاقة موحّدة على الرئيسية.</li>
+    </ol>
+    <p><b>حذف مجموعة:</b> يعيد أنظمتها للظهور بشكل منفرد.</p>
+
+    <h2>🧩 7. منشئ الأنظمة بدون كود</h2>
+    <p>أهم ميزة في اللوحة — تُنشئ نظاماً كاملاً (واجهة، فلاتر، طباعة، صلاحيات) من جدول Google Sheets.</p>
+
+    <h3>7.1 الحقول الأساسية</h3>
+    <ul>
+      <li>العنوان، الوصف، الأيقونة، اللون، ترتيب الظهور.</li>
+      <li><b>مصدر البيانات:</b> جدول المشروع الحالي أو رابط Google Sheet خارجي.</li>
+      <li><b>معرّف الورقة (GID):</b> الأرقام في نهاية رابط الورقة.</li>
+      <li><b>نطاق الأعمدة:</b> مثل <code>F:N</code>.</li>
+    </ul>
+
+    <h3>7.2 الفلاتر</h3>
+    <ul>
+      <li><b>العمود</b> بحرف Excel (مثل <code>F</code>).</li>
+      <li><b>نوع التحكم:</b> قائمة منسدلة / بحث + قائمة / نص حر / <b>نطاق رقمي (من — إلى)</b> ✨ / <b>نطاق تاريخ (من — إلى)</b> ✨.</li>
+      <li><b>إلزامي؟</b> إن فُعّل، لا تظهر بيانات قبل الاختيار.</li>
+      <li><b>قواعد مسمّاة:</b> خيارات جاهزة مثل «أقل من 10» أو «بين 5 و20».</li>
+    </ul>
+
+    <h3>7.3 الشروط والأعمدة المشتقّة</h3>
+    <ul>
+      <li><b>الشروط:</b> لإخفاء الصفوف التي لا تحقق شرطاً (مثل <code>H = "نظري"</code>).</li>
+      <li><b>AND / OR:</b> طريقة الدمج.</li>
+      <li><b>الأعمدة المشتقّة:</b> إنشاء عمود جديد بمعادلة أو تحويل قيم.</li>
+    </ul>
+
+    <h3>7.4 صلاحيات CRUD</h3>
+    <p>لكل نظام: عرض / إضافة / تعديل / حذف — كل صلاحية مستقلة.</p>
+    <blockquote>عند التفعيل: أزرار <b>تعديل/حذف</b> تظهر مجاورة لكل صف، وأزرار <b>إضافة/بحث</b> في أعلى الجدول، <b>فقط للمستخدمين الذين لديهم الصلاحية</b>.</blockquote>
+    <ul>
+      <li><b>أنواع الأعمدة:</b> <code>text</code> / <code>number</code> / <code>date</code> / <code>select</code> / <code>readonly</code>.</li>
+      <li>خيارات القائمة يدوية أو مستخرَجة تلقائياً من العمود.</li>
+      <li><b>زر رابط:</b> يعرض «افتح الملف» بدلاً من الرابط الخام.</li>
+    </ul>
+
+    <h3>7.5 قفل الوصول للتدريسي</h3>
+    <ul>
+      <li><code>require_teacher_auth</code>: يفرض تسجيل الدخول.</li>
+      <li><code>teacher_column</code> / <code>teacher_department_column</code>: أعمدة الاسم والقسم.</li>
+      <li><b>نطاق التصفية:</b> <code>name</code> / <code>department</code> / <code>name_or_department</code> / <code>all</code>.</li>
+    </ul>
+
+    <h3>7.6 إعدادات الطباعة والمعاينة 🖨️</h3>
+    <table>
+      <thead><tr><th>الخيار</th><th>الوصف</th></tr></thead>
+      <tbody>
+        <tr><td>الاتجاه</td><td>Portrait / Landscape</td></tr>
+        <tr><td>الحجم</td><td>A4 / A3 / Letter</td></tr>
+        <tr><td>الهامش</td><td>5 / 8 / 12 مم</td></tr>
+        <tr><td>تكرار الرأس / التواقيع</td><td>على كل صفحة</td></tr>
+        <tr><td>إظهار العناصر</td><td>الشعار، العنوان، معلومات الكلية، الفلاتر، التاريخ، رقم الوثيقة، العدّاد، التواقيع — كل عنصر مستقل</td></tr>
+        <tr><td>العلامة المائية</td><td>نص قطري قابل للتخصيص أو الإخفاء</td></tr>
+        <tr><td>عنوان الطباعة الثابت</td><td>يُقفل ولا يستطيع المستخدم تغييره</td></tr>
+        <tr><td>إظهار شريط المعاينة</td><td>إن أُطفئ يظهر زر عائم ⚙️ فقط</td></tr>
+        <tr><td>🔒 قفل الإعدادات</td><td>يُلغي زر الإعدادات ويعطّل كل الحقول</td></tr>
+        <tr><td>✏️ استثناء العنوان</td><td>يبقي حقل العنوان قابلاً للتعديل رغم القفل</td></tr>
+      </tbody>
+    </table>
+    <blockquote><b>مثال:</b> اتجاه أفقي + هامش 8 + إخفاء الفلاتر والتاريخ + قفل الإعدادات + استثناء العنوان → المستخدم يستطيع فقط تغيير نص العنوان، وكل شيء آخر ثابت.</blockquote>
+
+    <h3>7.7 التواقيع</h3>
+    <p>أضف عدة تواقيع (اسم + مسمى وظيفي) تظهر أسفل الطباعة.</p>
+
+    <h2>👁️ 8. إظهار/إخفاء الأنظمة وحمايتها</h2>
+    <ul>
+      <li><b>مرئي / مخفي</b> — يختفي من الرئيسية.</li>
+      <li><b>محمي بكلمة مرور</b> — يطلبها عند الدخول.</li>
+      <li><b>العنوان / الوصف / الأيقونة / اللون</b> — قابلة للتخصيص هنا.</li>
+      <li><b>ترتيب الظهور</b> — رقم أصغر يظهر أولاً.</li>
+    </ul>
+
+    <h2>💾 9. الحفظ والمزامنة</h2>
+    <ul>
+      <li>كل عملية حفظ تطلب كلمة مرور اللوحة.</li>
+      <li>الإعدادات تُحفظ على الخادم وتُزامن لجميع المستخدمين خلال ثوانٍ.</li>
+      <li>الواجهة تتحدث تلقائياً دون الحاجة لإعادة تحميل.</li>
+    </ul>
+
+    <h2>🆘 10. حل المشاكل الشائعة</h2>
+    <table>
+      <thead><tr><th>المشكلة</th><th>الحل</th></tr></thead>
+      <tbody>
+        <tr><td>«كلمة مرور خاطئة» عند الحفظ</td><td>تأكد من كلمة مرور اللوحة الحالية.</td></tr>
+        <tr><td>النظام الجديد لا يظهر</td><td>تأكد أن <code>enabled = true</code> وأنه ليس مخفياً.</td></tr>
+        <tr><td>الفلتر لا يعمل</td><td>تحقق من حرف العمود ومن أنه ضمن <code>columns_range</code>.</td></tr>
+        <tr><td>المستخدم يرى بيانات ليست له</td><td>فعّل <code>require_teacher_auth</code> واضبط نطاق التصفية.</td></tr>
+        <tr><td>زر «⚙️» يظهر رغم القفل</td><td>تأكد أن <code>lock_settings = true</code>.</td></tr>
+        <tr><td>العنوان لا يُعدَّل بعد القفل</td><td>فعّل «✏️ استثناء العنوان من القفل».</td></tr>
+      </tbody>
+    </table>
+
+    <h2>📞 11. الدعم</h2>
+    <ul>
+      <li><b>الإشراف:</b> الأستاذ الدكتور علي مجيد خضير الدهوي — عميد كلية الهندسة المدنية.</li>
+      <li>لأي طلب تعديل جوهري أو نظام معقّد، تواصل مع فريق التطوير.</li>
+    </ul>
+
+    <div class="foot">آخر تحديث: 2026 — كلية الهندسة المدنية / الجامعة التكنولوجية</div>
+  </div>
+</div>
+<script>
+  function copyLink(){
+    navigator.clipboard.writeText(window.location.href).then(()=>{
+      alert('✅ تم نسخ رابط الدليل — يمكنك مشاركته الآن');
+    }).catch(()=>{ prompt('انسخ الرابط:', window.location.href); });
+  }
+</script>
+</body>
+</html>
