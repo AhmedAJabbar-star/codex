@@ -129,7 +129,17 @@ const ControlPanel = () => {
         <div className="schedule-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
             <h1 className="text-2xl font-black">لوحة التحكم</h1>
-            <button className="schedule-btn" onClick={() => navigate('/')}>🏠 الرئيسية</button>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="/control-panel-guide.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="schedule-btn"
+                style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#0b2545', fontWeight: 900, border: 0 }}
+                title="افتح الدليل في تبويب جديد — يمكنك حفظه PDF أو مشاركة الرابط"
+              >📘 دليل لوحة التحكم (PDF / مشاركة)</a>
+              <button className="schedule-btn" onClick={() => navigate('/')}>🏠 الرئيسية</button>
+            </div>
           </div>
           <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">إظهار/إخفاء الأنظمة، التحكم بكلمات المرور، وتجميع الأنظمة في مجموعات.</p>
 
