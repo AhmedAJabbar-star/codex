@@ -44,6 +44,8 @@ const HEADERS = [
   "print_prefs_json",
   // v8 additions:
   "column_link_labels_json",
+  // v9 additions (OCR):
+  "ocr_enabled", "ocr_prompt", "ocr_fields_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
