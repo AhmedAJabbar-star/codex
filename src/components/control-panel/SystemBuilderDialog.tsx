@@ -172,6 +172,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
           <Step n={5} label="الحماية والصلاحيات" />
           <Step n={6} label="أزرار سريعة" />
           <Step n={7} label="إعدادات الطباعة" />
+          <Step n={8} label="ميزات متقدمة" />
         </div>
 
         <div className="px-5 py-4 overflow-auto flex-1">
