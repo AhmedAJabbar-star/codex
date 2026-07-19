@@ -210,9 +210,9 @@ export async function listCustomSystems(): Promise<CustomSystemDef[]> {
   return ((data as any)?.systems || []) as CustomSystemDef[];
 }
 
-export async function saveCustomSystem(system: CustomSystemDef, password: string): Promise<void> {
+export async function saveCustomSystem(system: CustomSystemDef, password: string, originalId?: string): Promise<void> {
   const { data, error } = await supabase.functions.invoke('custom-systems', {
-    body: { action: 'save', password, system },
+    body: { action: 'save', password, system, original_id: originalId },
   });
   if (error) {
     const ctx: any = (error as any).context;

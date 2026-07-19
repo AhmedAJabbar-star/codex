@@ -113,7 +113,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     if (password === null) return;
     setBusy(true);
     try {
-      await saveCustomSystem(s, password);
+      await saveCustomSystem(s, password, initial?.id && initial.id !== s.id ? initial.id : undefined);
       toast.success('تم حفظ النظام بنجاح');
       onSaved();
       onClose();
@@ -180,6 +180,29 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
               <div>
                 <label className="block text-sm font-black mb-1">عنوان النظام *</label>
                 <input className="schedule-select w-full" value={s.title} onChange={(e) => patch({ title: e.target.value })} placeholder="مثال: التدريسيون غير المكلفين" />
+                <p className="text-xs text-slate-500 mt-1">هذا العنوان يظهر للمستخدم في البطاقات وشريط النظام.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-black mb-1">اسم الرابط بالإنكليزية (URL slug)</label>
+                <input
+                  className="schedule-select w-full"
+                  dir="ltr"
+                  value={s.id}
+                  onChange={(e) => {
+                    const v = e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9_-]+/g, '-')
+                      .replace(/^-+|-+$/g, '')
+                      .slice(0, 60);
+                    patch({ id: v });
+                  }}
+                  placeholder="مثال: monthly-assignments"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  يظهر في رابط الوصول للنظام: <code dir="ltr">/custom/{s.id || '<اترك-فارغاً-للتوليد-التلقائي>'}</code>.
+                  اسمح فقط بحروف إنكليزية صغيرة وأرقام و <code>-</code> و <code>_</code>.
+                  {initial && <span className="text-red-600 font-black"> — تحذير: تغيير هذا الحقل لنظام موجود يكسر الروابط المحفوظة.</span>}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-black mb-1">الوصف</label>

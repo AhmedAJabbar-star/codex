@@ -310,11 +310,23 @@ Deno.serve(async (req) => {
 
     if (action === "save") {
       const sys = body?.system || {};
+      const originalId = clean(body?.original_id || "");
       if (!sys.title) return json({ error: "العنوان مطلوب" }, 400);
       if (!sys.sheet_gid) return json({ error: "GID للورقة المصدر مطلوب" }, 400);
+      // Sanitize manual slug (English/URL-safe) if provided.
+      if (sys.id) {
+        sys.id = String(sys.id).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+      }
       const all = await readAll();
       if (!sys.id) sys.id = slugify(sys.title);
-      const idx = all.findIndex((r) => clean(r.id) === clean(sys.id));
+      // Rename: locate row by originalId when it changed.
+      const lookupId = originalId && originalId !== sys.id ? originalId : sys.id;
+      // If renaming, ensure new id doesn't collide with another row.
+      if (originalId && originalId !== sys.id) {
+        const collision = all.findIndex((r) => clean(r.id) === clean(sys.id));
+        if (collision >= 0) return json({ error: "اسم الرابط مستخدم لنظام آخر — اختر اسماً مختلفاً" }, 400);
+      }
+      const idx = all.findIndex((r) => clean(r.id) === clean(lookupId));
       if (idx >= 0) {
         sys.created_at = clean(all[idx].created_at) || new Date().toISOString();
         const rowVals = await systemToRow(sys);
