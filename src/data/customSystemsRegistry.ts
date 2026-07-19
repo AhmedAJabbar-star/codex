@@ -203,6 +203,9 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   column_select_source: {},
   column_select_allow_custom: {},
   column_link_labels: {},
+  ocr_enabled: false,
+  ocr_prompt: '',
+  ocr_fields: [],
 };
 
 
