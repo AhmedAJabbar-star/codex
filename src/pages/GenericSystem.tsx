@@ -208,6 +208,16 @@ export function buildConfigFromDef(
         snap[letter] = (hk ? r[hk] : '') || '';
       });
       out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
+      // Row-highlighting rules: first matching wins.
+      const rr = def.row_rules || [];
+      for (const rule of rr) {
+        const conds = rule.conditions || [];
+        if (conds.length === 0) continue;
+        const ok = (rule.logic || 'AND') === 'OR'
+          ? conds.some((c) => evaluateCondition(c, r, sheet.headers))
+          : evaluateAll(conds, r, sheet.headers);
+        if (ok) { out[ROW_COLOR_KEY] = rule.color || ''; break; }
+      }
       rows.push(out);
     });
   });
