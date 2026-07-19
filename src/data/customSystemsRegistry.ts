@@ -227,6 +227,9 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   ocr_enabled: false,
   ocr_prompt: '',
   ocr_fields: [],
+  row_rules: [],
+  aggregations: [],
+  global_search: false,
 };
 
 
