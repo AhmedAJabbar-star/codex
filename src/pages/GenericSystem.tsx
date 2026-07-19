@@ -15,6 +15,7 @@ import {
 } from '@/lib/conditionEngine';
 
 const CRUD_SNAPSHOT_KEY = '__crud_snapshot__';
+const ROW_COLOR_KEY = '__row_color__';
 
 
 export function buildConfigFromDef(
