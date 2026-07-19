@@ -141,6 +141,12 @@ export interface CustomSystemDef {
    *  in this column render as a clickable button («افتح الملف» / «Open» ...) opening the URL
    *  in a new tab instead of showing the raw URL. */
   column_link_labels?: Record<string, string>;
+  /** 📸 OCR — extract field values from an uploaded image into the CRUD form. */
+  ocr_enabled?: boolean;
+  /** Optional custom Arabic prompt override for the OCR model. */
+  ocr_prompt?: string;
+  /** Excel letters the OCR should populate. Empty = all editable columns. */
+  ocr_fields?: string[];
 }
 
 /** Resolve effective CRUD permissions with backward compatibility. */
