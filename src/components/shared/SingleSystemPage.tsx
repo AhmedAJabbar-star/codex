@@ -15,6 +15,7 @@ import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
 import { sheetWrite } from '@/data/customSystemsRegistry';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 
 interface Props {
@@ -57,6 +58,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [crudSearch, setCrudSearch] = useState('');
   const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
   const [crudBusy, setCrudBusy] = useState(false);
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const ocrFileRef = useRef<HTMLInputElement | null>(null);
   const qc = useQueryClient();
 
 
@@ -530,6 +533,54 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     } finally { setCrudBusy(false); }
   }, [crudCtx, ensureAdminPassword, qc]);
 
+  // 📸 OCR — استخراج قيم الحقول من صورة عبر Lovable AI (Gemini)
+  const runOcrExtraction = useCallback(async (file: File) => {
+    if (!crudCtx || !crudEditing) return;
+    const ocr = crudCtx.def as any;
+    if (!ocr.ocr_enabled) return;
+    // Read file as data URL
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ''));
+      r.onerror = () => reject(new Error('تعذر قراءة الصورة'));
+      r.readAsDataURL(file);
+    });
+    // Restrict OCR to selected fields (or all non-readonly cols).
+    const restrict: string[] = Array.isArray(ocr.ocr_fields) ? ocr.ocr_fields : [];
+    const fields = crudCtx.cols
+      .filter((c) => c.type !== 'readonly')
+      .filter((c) => restrict.length === 0 || restrict.includes(c.letter))
+      .map((c) => ({ letter: c.letter, header: c.header, type: c.type }));
+    if (fields.length === 0) { toast.error('لا توجد حقول قابلة للاستخراج'); return; }
+    setOcrBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ocr-extract', {
+        body: { image_data_url: dataUrl, fields, prompt: ocr.ocr_prompt || '' },
+      });
+      if (error) throw new Error(error.message || 'فشل استدعاء الخدمة');
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const values: Record<string, string> = (data as any)?.values || {};
+      const filled = Object.entries(values).filter(([, v]) => v && String(v).trim()).length;
+      if (filled === 0) { toast.warning('لم يتم استخراج أي قيمة — جرب صورة أوضح'); return; }
+      // Merge into current form; do not overwrite fields the user already typed.
+      setCrudEditing((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev.values };
+        Object.entries(values).forEach(([letter, v]) => {
+          if (v && String(v).trim() && !(next[letter] || '').trim()) next[letter] = String(v);
+        });
+        return { ...prev, values: next };
+      });
+      toast.success(`✅ تم استخراج ${filled} حقلاً — راجعها ثم اضغط حفظ`);
+    } catch (e) {
+      toast.error((e as Error).message || 'فشل الاستخراج');
+    } finally {
+      setOcrBusy(false);
+      if (ocrFileRef.current) ocrFileRef.current.value = '';
+    }
+  }, [crudCtx, crudEditing]);
+
+
 
   return (
     <div className={`schedule-body ${isDark ? 'dark' : ''}`} dir="rtl">
@@ -766,11 +817,36 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   <span className="text-xl">{crudEditing.mode === 'add' ? '➕' : '✏️'}</span>
                   <h3 className="text-sm font-black">{crudEditing.mode === 'add' ? 'إضافة سجل جديد' : 'تعديل السجل'}</h3>
                 </div>
-                <button
-                  className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 text-lg"
-                  onClick={() => !crudBusy && setCrudEditing(null)}
-                  aria-label="إغلاق"
-                >✕</button>
+                <div className="flex items-center gap-2">
+                  {crudEditing.mode === 'add' && (crudCtx.def as any).ocr_enabled && (
+                    <>
+                      <input
+                        ref={ocrFileRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) runOcrExtraction(f);
+                        }}
+                      />
+                      <button
+                        className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-black flex items-center gap-1.5 disabled:opacity-60"
+                        onClick={() => ocrFileRef.current?.click()}
+                        disabled={ocrBusy || crudBusy}
+                        title="ارفع أو التقط صورة (وثيقة/جدول/بطاقة) ليقوم الذكاء الاصطناعي بتعبئة الحقول تلقائياً"
+                      >
+                        {ocrBusy ? '⏳ جارٍ الاستخراج…' : '📷 استخراج من صورة'}
+                      </button>
+                    </>
+                  )}
+                  <button
+                    className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 text-lg"
+                    onClick={() => !crudBusy && setCrudEditing(null)}
+                    aria-label="إغلاق"
+                  >✕</button>
+                </div>
               </header>
               <div className="p-4 bg-slate-50/50">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">

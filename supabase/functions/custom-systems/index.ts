@@ -44,6 +44,8 @@ const HEADERS = [
   "print_prefs_json",
   // v8 additions:
   "column_link_labels_json",
+  // v9 additions (OCR):
+  "ocr_enabled", "ocr_prompt", "ocr_fields_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
@@ -208,6 +210,9 @@ function rowToSystem(r: Record<string, string>) {
     quick_filters: parseJson(r.quick_filters_json || "[]", []),
     print_prefs: parseJson(r.print_prefs_json || "null", undefined) || undefined,
     column_link_labels: parseJson(r.column_link_labels_json || "{}", {}),
+    ocr_enabled: String(r.ocr_enabled || "").toLowerCase() === "true",
+    ocr_prompt: clean(r.ocr_prompt),
+    ocr_fields: parseJson(r.ocr_fields_json || "[]", []),
   };
 }
 
@@ -253,6 +258,9 @@ async function systemToRow(s: any): Promise<string[]> {
     quick_filters_json: JSON.stringify(s.quick_filters || []),
     print_prefs_json: (s.print_prefs && Object.keys(s.print_prefs).length > 0) ? JSON.stringify(s.print_prefs) : "",
     column_link_labels_json: JSON.stringify(s.column_link_labels || {}),
+    ocr_enabled: String(!!s.ocr_enabled),
+    ocr_prompt: String(s.ocr_prompt || ""),
+    ocr_fields_json: JSON.stringify(s.ocr_fields || []),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
