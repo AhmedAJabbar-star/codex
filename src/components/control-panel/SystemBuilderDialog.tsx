@@ -681,6 +681,64 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   </div>
                 );
               })()}
+
+              {/* 📸 OCR — استخراج البيانات بالذكاء الاصطناعي */}
+              <div className="mt-4 rounded-xl border-2 border-purple-200 bg-purple-50/40 p-4" dir="rtl">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5"
+                    checked={!!s.ocr_enabled}
+                    onChange={(e) => patch({ ocr_enabled: e.target.checked })}
+                  />
+                  <strong className="text-sm">📸 تفعيل الاستخراج التلقائي من الصور (OCR بالذكاء الاصطناعي)</strong>
+                </label>
+                <p className="text-xs text-slate-600 mt-2 leading-6">
+                  عند تفعيل هذا الخيار سيظهر زر <strong>📷 استخراج من صورة</strong> داخل نموذج «إضافة سجل»،
+                  ويستطيع المستخدم رفع صورة (أو التقاطها بالكاميرا) لبطاقة/جدول/وثيقة، فيقوم النظام تلقائياً
+                  بتعبئة حقول النموذج بالقيم المستخرجة (يمكن للمستخدم مراجعتها وتعديلها قبل الحفظ).
+                  يعتمد على Lovable AI (نموذج Gemini) — لا يتطلب أي مفتاح خارجي.
+                </p>
+                {s.ocr_enabled && (
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <label className="block text-xs font-black mb-1">تعليمات مخصصة للنموذج (اختياري)</label>
+                      <textarea
+                        className="schedule-select w-full text-xs"
+                        rows={3}
+                        value={s.ocr_prompt || ''}
+                        onChange={(e) => patch({ ocr_prompt: e.target.value })}
+                        placeholder={'مثال: استخرج بيانات طالب من هوية جامعية. النص العربي كما هو، والأرقام لاتينية. إن كانت الصورة بطاقة تعريف فاستخرج فقط: الاسم الكامل، الرقم الجامعي، القسم، المرحلة.'}
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        اترك الحقل فارغاً لاستخدام تعليمة عربية افتراضية تناسب أغلب الوثائق.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black mb-1">
+                        حصر الاستخراج بأعمدة محددة (اختياري)
+                      </label>
+                      <input
+                        className="schedule-select w-full text-xs"
+                        dir="ltr"
+                        value={(s.ocr_fields || []).join(', ')}
+                        onChange={(e) => {
+                          const letters = e.target.value
+                            .toUpperCase()
+                            .split(/[,\s]+/)
+                            .map((x) => x.trim())
+                            .filter((x) => /^[A-Z]{1,3}$/.test(x));
+                          patch({ ocr_fields: letters });
+                        }}
+                        placeholder="F, G, H, I (اتركه فارغاً ليشمل كل أعمدة الإضافة)"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        أحرف أعمدة Excel مفصولة بفاصلة. إن ترك فارغاً سيحاول تعبئة جميع الحقول القابلة للتعديل.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
