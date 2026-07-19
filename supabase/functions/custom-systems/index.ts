@@ -266,6 +266,9 @@ async function systemToRow(s: any): Promise<string[]> {
     ocr_enabled: String(!!s.ocr_enabled),
     ocr_prompt: String(s.ocr_prompt || ""),
     ocr_fields_json: JSON.stringify(s.ocr_fields || []),
+    row_rules_json: JSON.stringify(s.row_rules || []),
+    aggregations_json: JSON.stringify(s.aggregations || []),
+    global_search: String(!!s.global_search),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
