@@ -533,6 +533,54 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     } finally { setCrudBusy(false); }
   }, [crudCtx, ensureAdminPassword, qc]);
 
+  // 📸 OCR — استخراج قيم الحقول من صورة عبر Lovable AI (Gemini)
+  const runOcrExtraction = useCallback(async (file: File) => {
+    if (!crudCtx || !crudEditing) return;
+    const ocr = crudCtx.def as any;
+    if (!ocr.ocr_enabled) return;
+    // Read file as data URL
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ''));
+      r.onerror = () => reject(new Error('تعذر قراءة الصورة'));
+      r.readAsDataURL(file);
+    });
+    // Restrict OCR to selected fields (or all non-readonly cols).
+    const restrict: string[] = Array.isArray(ocr.ocr_fields) ? ocr.ocr_fields : [];
+    const fields = crudCtx.cols
+      .filter((c) => c.type !== 'readonly')
+      .filter((c) => restrict.length === 0 || restrict.includes(c.letter))
+      .map((c) => ({ letter: c.letter, header: c.header, type: c.type }));
+    if (fields.length === 0) { toast.error('لا توجد حقول قابلة للاستخراج'); return; }
+    setOcrBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ocr-extract', {
+        body: { image_data_url: dataUrl, fields, prompt: ocr.ocr_prompt || '' },
+      });
+      if (error) throw new Error(error.message || 'فشل استدعاء الخدمة');
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const values: Record<string, string> = (data as any)?.values || {};
+      const filled = Object.entries(values).filter(([, v]) => v && String(v).trim()).length;
+      if (filled === 0) { toast.warning('لم يتم استخراج أي قيمة — جرب صورة أوضح'); return; }
+      // Merge into current form; do not overwrite fields the user already typed.
+      setCrudEditing((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev.values };
+        Object.entries(values).forEach(([letter, v]) => {
+          if (v && String(v).trim() && !(next[letter] || '').trim()) next[letter] = String(v);
+        });
+        return { ...prev, values: next };
+      });
+      toast.success(`✅ تم استخراج ${filled} حقلاً — راجعها ثم اضغط حفظ`);
+    } catch (e) {
+      toast.error((e as Error).message || 'فشل الاستخراج');
+    } finally {
+      setOcrBusy(false);
+      if (ocrFileRef.current) ocrFileRef.current.value = '';
+    }
+  }, [crudCtx, crudEditing]);
+
+
 
   return (
     <div className={`schedule-body ${isDark ? 'dark' : ''}`} dir="rtl">
