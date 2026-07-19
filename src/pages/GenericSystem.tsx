@@ -275,6 +275,19 @@ export function buildConfigFromDef(
     }
   }
 
+  // Translate aggregations from Excel letters to display headers.
+  const aggregations = (def.aggregations || [])
+    .map((a) => {
+      const i = colLetterToIndex(a.column);
+      const real = i >= 0 ? sheet.headers[i] : '';
+      const vIdx = real ? sourceHeaders.indexOf(real) : -1;
+      const header = vIdx >= 0 ? displayHeaders[vIdx] : '';
+      return header ? { header, op: a.op, label: a.label } : null;
+    })
+    .filter(Boolean) as { header: string; op: any; label?: string }[];
+
+  const hasRowColors = (def.row_rules || []).length > 0;
+
   return {
     id: `custom_${def.id}`,
     title: def.title,
@@ -291,6 +304,9 @@ export function buildConfigFromDef(
     quickFilters: quickFilterDefs.length > 0 ? quickFilterDefs : undefined,
     linkColumns: Object.keys(linkColumns).length > 0 ? linkColumns : undefined,
     crudContext,
+    rowColorKey: hasRowColors ? ROW_COLOR_KEY : undefined,
+    aggregations: aggregations.length > 0 ? aggregations : undefined,
+    globalSearch: !!def.global_search,
   };
 }
 
