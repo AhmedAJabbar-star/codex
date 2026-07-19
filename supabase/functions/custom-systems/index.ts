@@ -210,6 +210,9 @@ function rowToSystem(r: Record<string, string>) {
     quick_filters: parseJson(r.quick_filters_json || "[]", []),
     print_prefs: parseJson(r.print_prefs_json || "null", undefined) || undefined,
     column_link_labels: parseJson(r.column_link_labels_json || "{}", {}),
+    ocr_enabled: String(r.ocr_enabled || "").toLowerCase() === "true",
+    ocr_prompt: clean(r.ocr_prompt),
+    ocr_fields: parseJson(r.ocr_fields_json || "[]", []),
   };
 }
 
