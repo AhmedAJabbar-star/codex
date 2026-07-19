@@ -15,6 +15,7 @@ import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
 import { sheetWrite } from '@/data/customSystemsRegistry';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 
 interface Props {
