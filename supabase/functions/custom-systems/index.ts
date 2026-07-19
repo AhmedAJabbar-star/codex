@@ -46,6 +46,8 @@ const HEADERS = [
   "column_link_labels_json",
   // v9 additions (OCR):
   "ocr_enabled", "ocr_prompt", "ocr_fields_json",
+  // v10 additions (advanced power features):
+  "row_rules_json", "aggregations_json", "global_search",
 ];
 
 const SHEET_TITLE = "systems_registry";
@@ -213,6 +215,9 @@ function rowToSystem(r: Record<string, string>) {
     ocr_enabled: String(r.ocr_enabled || "").toLowerCase() === "true",
     ocr_prompt: clean(r.ocr_prompt),
     ocr_fields: parseJson(r.ocr_fields_json || "[]", []),
+    row_rules: parseJson(r.row_rules_json || "[]", []),
+    aggregations: parseJson(r.aggregations_json || "[]", []),
+    global_search: String(r.global_search || "").toLowerCase() === "true",
   };
 }
 
@@ -261,6 +266,9 @@ async function systemToRow(s: any): Promise<string[]> {
     ocr_enabled: String(!!s.ocr_enabled),
     ocr_prompt: String(s.ocr_prompt || ""),
     ocr_fields_json: JSON.stringify(s.ocr_fields || []),
+    row_rules_json: JSON.stringify(s.row_rules || []),
+    aggregations_json: JSON.stringify(s.aggregations || []),
+    global_search: String(!!s.global_search),
   };
   return order.map((h) => valByCol[h] ?? "");
 }

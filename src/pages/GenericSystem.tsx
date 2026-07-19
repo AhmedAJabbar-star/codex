@@ -15,6 +15,7 @@ import {
 } from '@/lib/conditionEngine';
 
 const CRUD_SNAPSHOT_KEY = '__crud_snapshot__';
+const ROW_COLOR_KEY = '__row_color__';
 
 
 export function buildConfigFromDef(
@@ -207,6 +208,16 @@ export function buildConfigFromDef(
         snap[letter] = (hk ? r[hk] : '') || '';
       });
       out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
+      // Row-highlighting rules: first matching wins.
+      const rr = def.row_rules || [];
+      for (const rule of rr) {
+        const conds = rule.conditions || [];
+        if (conds.length === 0) continue;
+        const ok = (rule.logic || 'AND') === 'OR'
+          ? conds.some((c) => evaluateCondition(c, r, sheet.headers))
+          : evaluateAll(conds, r, sheet.headers);
+        if (ok) { out[ROW_COLOR_KEY] = rule.color || ''; break; }
+      }
       rows.push(out);
     });
   });
@@ -264,6 +275,19 @@ export function buildConfigFromDef(
     }
   }
 
+  // Translate aggregations from Excel letters to display headers.
+  const aggregations = (def.aggregations || [])
+    .map((a) => {
+      const i = colLetterToIndex(a.column);
+      const real = i >= 0 ? sheet.headers[i] : '';
+      const vIdx = real ? sourceHeaders.indexOf(real) : -1;
+      const header = vIdx >= 0 ? displayHeaders[vIdx] : '';
+      return header ? { header, op: a.op, label: a.label } : null;
+    })
+    .filter(Boolean) as { header: string; op: any; label?: string }[];
+
+  const hasRowColors = (def.row_rules || []).length > 0;
+
   return {
     id: `custom_${def.id}`,
     title: def.title,
@@ -280,6 +304,9 @@ export function buildConfigFromDef(
     quickFilters: quickFilterDefs.length > 0 ? quickFilterDefs : undefined,
     linkColumns: Object.keys(linkColumns).length > 0 ? linkColumns : undefined,
     crudContext,
+    rowColorKey: hasRowColors ? ROW_COLOR_KEY : undefined,
+    aggregations: aggregations.length > 0 ? aggregations : undefined,
+    globalSearch: !!def.global_search,
   };
 }
 

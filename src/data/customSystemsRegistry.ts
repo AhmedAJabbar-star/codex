@@ -147,6 +147,27 @@ export interface CustomSystemDef {
   ocr_prompt?: string;
   /** Excel letters the OCR should populate. Empty = all editable columns. */
   ocr_fields?: string[];
+  /** 🎨 Highlight rows with a background color when conditions match. First matching rule wins. */
+  row_rules?: RowRule[];
+  /** 📊 Aggregation footer — SUM/AVG/COUNT/MIN/MAX/COUNT_UNIQUE per column on visible rows. */
+  aggregations?: AggregationCfg[];
+  /** 🔍 Enable a global search box above the table (filters across all visible columns). */
+  global_search?: boolean;
+}
+
+/** Row-highlighting rule: when conditions pass, apply `color` as row background. */
+export interface RowRule {
+  color: string;
+  label?: string;
+  logic?: 'AND' | 'OR';
+  conditions: Condition[];
+}
+
+/** Aggregation column configuration. */
+export interface AggregationCfg {
+  column: string; // Excel letter
+  op: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'countUnique';
+  label?: string;
 }
 
 /** Resolve effective CRUD permissions with backward compatibility. */
@@ -206,6 +227,9 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   ocr_enabled: false,
   ocr_prompt: '',
   ocr_fields: [],
+  row_rules: [],
+  aggregations: [],
+  global_search: false,
 };
 
 

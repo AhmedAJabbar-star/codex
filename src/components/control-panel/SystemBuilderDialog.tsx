@@ -172,6 +172,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
           <Step n={5} label="الحماية والصلاحيات" />
           <Step n={6} label="أزرار سريعة" />
           <Step n={7} label="إعدادات الطباعة" />
+          <Step n={8} label="ميزات متقدمة" />
         </div>
 
         <div className="px-5 py-4 overflow-auto flex-1">
@@ -952,6 +953,125 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     style={{ color: '#b91c1c', fontSize: 12 }}
                   >🗑️ إعادة تعيين جميع إعدادات الطباعة لهذا النظام</button>
                 )}
+              </div>
+            );
+          })()}
+
+          {step === 8 && (() => {
+            const rules = (s as any).row_rules || [];
+            const aggs = (s as any).aggregations || [];
+            const updRule = (i: number, p: any) => patch({ row_rules: rules.map((r: any, idx: number) => idx === i ? { ...r, ...p } : r) } as any);
+            const delRule = (i: number) => patch({ row_rules: rules.filter((_: any, idx: number) => idx !== i) } as any);
+            const addRule = () => patch({ row_rules: [...rules, { color: '#fee2e2', label: '', logic: 'AND', conditions: [{ column: 'A', op: 'is_not_empty' }] }] } as any);
+            const updRuleCond = (i: number, ci: number, p: any) => {
+              const r = rules[i]; const cs = (r.conditions || []).map((c: any, idx: number) => idx === ci ? { ...c, ...p } : c);
+              updRule(i, { conditions: cs });
+            };
+            const addRuleCond = (i: number) => updRule(i, { conditions: [...(rules[i].conditions || []), { column: 'A', op: 'is_not_empty' }] });
+            const delRuleCond = (i: number, ci: number) => updRule(i, { conditions: (rules[i].conditions || []).filter((_: any, idx: number) => idx !== ci) });
+            const addAgg = () => patch({ aggregations: [...aggs, { column: 'A', op: 'sum', label: '' }] } as any);
+            const updAgg = (i: number, p: any) => patch({ aggregations: aggs.map((a: any, idx: number) => idx === i ? { ...a, ...p } : a) } as any);
+            const delAgg = (i: number) => patch({ aggregations: aggs.filter((_: any, idx: number) => idx !== i) } as any);
+            const PRESET_COLORS = ['#fee2e2','#fef3c7','#dcfce7','#dbeafe','#f3e8ff','#ffedd5','#fce7f3','#e0e7ff'];
+            return (
+              <div className="space-y-5">
+                <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-3">
+                  <strong className="text-sm block mb-1">✨ ميزات متقدمة</strong>
+                  <p className="text-[11px] text-slate-600">
+                    ثلاث ميزات احترافية: تلوين الصفوف بناءً على شرط، ذيل مجاميع/متوسطات للأعمدة الرقمية، وشريط بحث عام فوق الجدول.
+                  </p>
+                </div>
+
+                {/* Global search */}
+                <div className="border rounded-lg p-3 bg-slate-50">
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input type="checkbox" checked={!!(s as any).global_search} onChange={(e) => patch({ global_search: e.target.checked } as any)} />
+                    <span>
+                      🔍 تفعيل شريط البحث العام فوق الجدول
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        عند التفعيل يظهر مربع بحث يفلتر السجلات عبر جميع الأعمدة الظاهرة بشكل فوري.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                {/* Row highlighting */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong className="text-sm">🎨 قواعد تلوين الصفوف</strong>
+                      <p className="text-[11px] text-slate-500 mt-0.5">أول قاعدة يتحقق شرطها = يُطبَّق لونها على خلفية الصف.</p>
+                    </div>
+                    <button className="schedule-btn schedule-btn-primary" onClick={addRule} style={{ minHeight: 32, padding: '4px 10px' }}>➕ قاعدة</button>
+                  </div>
+                  {rules.length === 0 && <p className="text-xs text-slate-500 text-center py-3 bg-white rounded border border-dashed">لا توجد قواعد تلوين.</p>}
+                  {rules.map((r: any, i: number) => (
+                    <div key={i} className="bg-white border rounded-lg p-3 space-y-2">
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-3 flex items-center gap-1">
+                          <input type="color" className="h-9 w-12 rounded border cursor-pointer" value={r.color || '#fee2e2'} onChange={(e) => updRule(i, { color: e.target.value })} />
+                          <div className="flex flex-wrap gap-0.5">
+                            {PRESET_COLORS.map((c) => (
+                              <button key={c} onClick={() => updRule(i, { color: c })} className="w-4 h-4 rounded-full border" style={{ background: c, borderColor: r.color === c ? '#111' : '#e2e8f0' }} title={c} />
+                            ))}
+                          </div>
+                        </div>
+                        <input className="schedule-select col-span-5" value={r.label || ''} onChange={(e) => updRule(i, { label: e.target.value })} placeholder="وصف القاعدة (اختياري) — مثل: متأخر / منتهي" />
+                        <select className="schedule-select col-span-2" value={r.logic || 'AND'} onChange={(e) => updRule(i, { logic: e.target.value })}>
+                          <option value="AND">كل الشروط</option>
+                          <option value="OR">أي شرط</option>
+                        </select>
+                        <button className="schedule-btn schedule-btn-secondary col-span-1" onClick={() => addRuleCond(i)} style={{ minHeight: 32, padding: '4px 6px' }}>➕</button>
+                        <button onClick={() => delRule(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                      </div>
+                      <div className="space-y-1 pl-2">
+                        {(r.conditions || []).map((c: any, ci: number) => (
+                          <div key={ci} className="grid grid-cols-12 gap-2 items-center">
+                            <input className="schedule-select col-span-2 text-center font-mono" value={c.column} onChange={(e) => updRuleCond(i, ci, { column: e.target.value.toUpperCase() })} placeholder="عمود" />
+                            <select className="schedule-select col-span-4" value={c.op} onChange={(e) => updRuleCond(i, ci, { op: e.target.value, value: '', values: [] })}>
+                              {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
+                            </select>
+                            {c.op === 'contains_any' ? (
+                              <input className="schedule-select col-span-5" value={(c.values || []).join(', ')} onChange={(e) => updRuleCond(i, ci, { values: splitMulti(e.target.value) })} placeholder="قيم مفصولة" />
+                            ) : NEEDS_VALUE[c.op as ConditionOp] ? (
+                              <input className="schedule-select col-span-5" value={String(c.value ?? '')} onChange={(e) => updRuleCond(i, ci, { value: e.target.value })} placeholder="القيمة" />
+                            ) : (
+                              <div className="col-span-5 text-xs text-slate-400 text-center">— لا قيمة —</div>
+                            )}
+                            <button onClick={() => delRuleCond(i, ci)} className="col-span-1 text-red-500 text-sm">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Aggregations */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong className="text-sm">📊 ذيل المجاميع (Aggregations)</strong>
+                      <p className="text-[11px] text-slate-500 mt-0.5">يضيف صفاً في أسفل الجدول بمجموع/متوسط/عدد لكل عمود مختار (يُحسب على الصفوف بعد التصفية).</p>
+                    </div>
+                    <button className="schedule-btn schedule-btn-primary" onClick={addAgg} style={{ minHeight: 32, padding: '4px 10px' }}>➕ عمود</button>
+                  </div>
+                  {aggs.length === 0 && <p className="text-xs text-slate-500 text-center py-3 bg-white rounded border border-dashed">لم يتم إضافة أي تجميع.</p>}
+                  {aggs.map((a: any, i: number) => (
+                    <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded-lg border">
+                      <input className="schedule-select col-span-2 text-center font-mono" value={a.column} onChange={(e) => updAgg(i, { column: e.target.value.toUpperCase() })} placeholder="عمود" />
+                      <select className="schedule-select col-span-3" value={a.op} onChange={(e) => updAgg(i, { op: e.target.value })}>
+                        <option value="sum">Σ المجموع</option>
+                        <option value="avg">x̄ المتوسط</option>
+                        <option value="count"># عدد القيم</option>
+                        <option value="countUnique">#∪ عدد القيم الفريدة</option>
+                        <option value="min">↓ الأصغر</option>
+                        <option value="max">↑ الأكبر</option>
+                      </select>
+                      <input className="schedule-select col-span-6" value={a.label || ''} onChange={(e) => updAgg(i, { label: e.target.value })} placeholder="التسمية الظاهرة (اختياري) — مثال: مجموع الساعات" />
+                      <button onClick={() => delAgg(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })()}

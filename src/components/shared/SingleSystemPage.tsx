@@ -203,9 +203,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       }
     }
 
-    // Inline-CRUD search (applies to all visible headers).
+    // Global / Inline-CRUD search (applies to all visible headers).
     const q = crudSearch.trim().toLowerCase();
-    if (q && system.crudContext) {
+    if (q && (system.crudContext || system.globalSearch)) {
       result = result.filter((r) =>
         system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
       );
@@ -793,7 +793,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 disabled={crudBusy}
               >➕ إضافة سجل</button>
             )}
-            {crudCtx && (
+            {(crudCtx || system.globalSearch) && (
               <div className="relative" style={{ flex: '1 1 220px', minWidth: 220 }}>
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
                 <input
@@ -983,8 +983,13 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                       (row['نقص البيانات'] && row['نقص البيانات'] !== 'سليم') ||
                       (row['التضارب'] && row['التضارب'] !== '')
                     )) || lectureTypeMissing || assignmentsAuditIssue;
+                    const rowBg = system.rowColorKey ? (row[system.rowColorKey] || '') : '';
                     return (
-                      <tr key={i} className={hasWarning ? 'schedule-row-warning' : ''}>
+                      <tr
+                        key={i}
+                        className={hasWarning ? 'schedule-row-warning' : ''}
+                        style={rowBg ? { background: rowBg } : undefined}
+                      >
                         {system.headers.map(h => {
                           let cellClass = '';
                           const val = row[h] || '';
@@ -1050,6 +1055,36 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     );
                   })}
                 </tbody>
+                {system.aggregations && system.aggregations.length > 0 && (
+                  <tfoot>
+                    <tr style={{ background: '#f1f5f9', fontWeight: 900 }}>
+                      {system.headers.map((h) => {
+                        const agg = system.aggregations!.find((a) => a.header === h);
+                        if (!agg) return <td key={h} />;
+                        const vals = filteredRows.map((r) => (r[h] || '').trim()).filter(Boolean);
+                        const nums = vals
+                          .map((v) => parseFloat(v.replace(/[^\d.\-]/g, '')))
+                          .filter((n) => !isNaN(n));
+                        let out = '—';
+                        switch (agg.op) {
+                          case 'sum': out = nums.reduce((a, b) => a + b, 0).toLocaleString('ar'); break;
+                          case 'avg': out = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '0'; break;
+                          case 'count': out = String(vals.length); break;
+                          case 'countUnique': out = String(new Set(vals).size); break;
+                          case 'min': out = nums.length ? String(Math.min(...nums)) : '—'; break;
+                          case 'max': out = nums.length ? String(Math.max(...nums)) : '—'; break;
+                        }
+                        const opLabel = { sum: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
+                        return (
+                          <td key={h} style={{ color: '#0f172a', borderTop: '2px solid #94a3b8' }}>
+                            <span style={{ color: '#64748b', marginLeft: 4 }}>{agg.label || opLabel}:</span> {out}
+                          </td>
+                        );
+                      })}
+                      {showCrudActions && <td />}
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             )}
           </div>
