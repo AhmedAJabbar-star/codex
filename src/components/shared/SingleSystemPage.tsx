@@ -983,8 +983,13 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                       (row['نقص البيانات'] && row['نقص البيانات'] !== 'سليم') ||
                       (row['التضارب'] && row['التضارب'] !== '')
                     )) || lectureTypeMissing || assignmentsAuditIssue;
+                    const rowBg = system.rowColorKey ? (row[system.rowColorKey] || '') : '';
                     return (
-                      <tr key={i} className={hasWarning ? 'schedule-row-warning' : ''}>
+                      <tr
+                        key={i}
+                        className={hasWarning ? 'schedule-row-warning' : ''}
+                        style={rowBg ? { background: rowBg } : undefined}
+                      >
                         {system.headers.map(h => {
                           let cellClass = '';
                           const val = row[h] || '';
