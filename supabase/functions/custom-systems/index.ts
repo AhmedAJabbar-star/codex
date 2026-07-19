@@ -46,6 +46,8 @@ const HEADERS = [
   "column_link_labels_json",
   // v9 additions (OCR):
   "ocr_enabled", "ocr_prompt", "ocr_fields_json",
+  // v10 additions (advanced power features):
+  "row_rules_json", "aggregations_json", "global_search",
 ];
 
 const SHEET_TITLE = "systems_registry";
