@@ -215,6 +215,9 @@ function rowToSystem(r: Record<string, string>) {
     ocr_enabled: String(r.ocr_enabled || "").toLowerCase() === "true",
     ocr_prompt: clean(r.ocr_prompt),
     ocr_fields: parseJson(r.ocr_fields_json || "[]", []),
+    row_rules: parseJson(r.row_rules_json || "[]", []),
+    aggregations: parseJson(r.aggregations_json || "[]", []),
+    global_search: String(r.global_search || "").toLowerCase() === "true",
   };
 }
 
