@@ -817,11 +817,36 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   <span className="text-xl">{crudEditing.mode === 'add' ? '➕' : '✏️'}</span>
                   <h3 className="text-sm font-black">{crudEditing.mode === 'add' ? 'إضافة سجل جديد' : 'تعديل السجل'}</h3>
                 </div>
-                <button
-                  className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 text-lg"
-                  onClick={() => !crudBusy && setCrudEditing(null)}
-                  aria-label="إغلاق"
-                >✕</button>
+                <div className="flex items-center gap-2">
+                  {crudEditing.mode === 'add' && (crudCtx.def as any).ocr_enabled && (
+                    <>
+                      <input
+                        ref={ocrFileRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) runOcrExtraction(f);
+                        }}
+                      />
+                      <button
+                        className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-black flex items-center gap-1.5 disabled:opacity-60"
+                        onClick={() => ocrFileRef.current?.click()}
+                        disabled={ocrBusy || crudBusy}
+                        title="ارفع أو التقط صورة (وثيقة/جدول/بطاقة) ليقوم الذكاء الاصطناعي بتعبئة الحقول تلقائياً"
+                      >
+                        {ocrBusy ? '⏳ جارٍ الاستخراج…' : '📷 استخراج من صورة'}
+                      </button>
+                    </>
+                  )}
+                  <button
+                    className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 text-lg"
+                    onClick={() => !crudBusy && setCrudEditing(null)}
+                    aria-label="إغلاق"
+                  >✕</button>
+                </div>
               </header>
               <div className="p-4 bg-slate-50/50">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
