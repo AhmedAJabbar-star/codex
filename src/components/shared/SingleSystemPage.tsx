@@ -793,7 +793,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 disabled={crudBusy}
               >➕ إضافة سجل</button>
             )}
-            {crudCtx && (
+            {(crudCtx || system.globalSearch) && (
               <div className="relative" style={{ flex: '1 1 220px', minWidth: 220 }}>
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
                 <input
