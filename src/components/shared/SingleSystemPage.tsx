@@ -58,6 +58,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [crudSearch, setCrudSearch] = useState('');
   const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
   const [crudBusy, setCrudBusy] = useState(false);
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const ocrFileRef = useRef<HTMLInputElement | null>(null);
   const qc = useQueryClient();
 
 
