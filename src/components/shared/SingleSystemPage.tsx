@@ -203,9 +203,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       }
     }
 
-    // Inline-CRUD search (applies to all visible headers).
+    // Global / Inline-CRUD search (applies to all visible headers).
     const q = crudSearch.trim().toLowerCase();
-    if (q && system.crudContext) {
+    if (q && (system.crudContext || system.globalSearch)) {
       result = result.filter((r) =>
         system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
       );
