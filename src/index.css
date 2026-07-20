@@ -1187,7 +1187,7 @@ select option, select optgroup {
   background:#0f172a !important;
   border-color:rgba(148,163,184,.18) !important;
 }
-.schedule-select{
+select.schedule-select{
   background-image:
     linear-gradient(45deg, transparent 50%, var(--schedule-muted) 50%),
     linear-gradient(135deg, var(--schedule-muted) 50%, transparent 50%) !important;
