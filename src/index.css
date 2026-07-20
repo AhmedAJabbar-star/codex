@@ -699,8 +699,8 @@
   border-bottom-color: rgba(239,68,68,.15);
 }
 
-/* Select arrow fix */
-.schedule-select {
+/* Select arrow fix — only for real <select> elements, not inputs/textareas */
+select.schedule-select {
   background-image:
     linear-gradient(45deg, transparent 50%, var(--schedule-muted) 50%),
     linear-gradient(135deg, var(--schedule-muted) 50%, transparent 50%);
