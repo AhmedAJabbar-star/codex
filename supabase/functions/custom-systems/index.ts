@@ -48,6 +48,8 @@ const HEADERS = [
   "ocr_enabled", "ocr_prompt", "ocr_fields_json",
   // v10 additions (advanced power features):
   "row_rules_json", "aggregations_json", "global_search",
+  // v11 additions (Google Drive uploads):
+  "drive_folder_id", "column_drive_folders_json",
 ];
 
 const SHEET_TITLE = "systems_registry";
@@ -218,6 +220,8 @@ function rowToSystem(r: Record<string, string>) {
     row_rules: parseJson(r.row_rules_json || "[]", []),
     aggregations: parseJson(r.aggregations_json || "[]", []),
     global_search: String(r.global_search || "").toLowerCase() === "true",
+    drive_folder_id: clean(r.drive_folder_id),
+    column_drive_folders: parseJson(r.column_drive_folders_json || "{}", {}),
   };
 }
 
@@ -269,6 +273,8 @@ async function systemToRow(s: any): Promise<string[]> {
     row_rules_json: JSON.stringify(s.row_rules || []),
     aggregations_json: JSON.stringify(s.aggregations || []),
     global_search: String(!!s.global_search),
+    drive_folder_id: String(s.drive_folder_id || ""),
+    column_drive_folders_json: JSON.stringify(s.column_drive_folders || {}),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
