@@ -335,7 +335,7 @@ async function getAllUsers() {
 async function getFallbackUsersFromAssignments(): Promise<Record<string, string>[]> {
   const nowMs = Date.now();
   if (fallbackUsersCache && fallbackUsersCache.exp > nowMs) return fallbackUsersCache.users;
-  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store" });
+  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
   const text = (await res.text()).replace(/^\uFEFF/, "");
   const [head = [], ...data] = parseCsv(text);
