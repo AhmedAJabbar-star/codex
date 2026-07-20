@@ -883,6 +883,64 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           <input type="date" className={base} value={v} onChange={(e) => set(e.target.value)} />
                         ) : c.type === 'number' ? (
                           <input type="number" className={base} value={v} onChange={(e) => set(e.target.value)} />
+                        ) : c.type === 'file' ? (
+                          <div className="space-y-2">
+                            {v && (
+                              <div className="flex items-center gap-2 text-xs">
+                                <a href={v} target="_blank" rel="noopener noreferrer"
+                                   className="px-2 py-1 rounded bg-emerald-100 text-emerald-800 font-bold hover:bg-emerald-200 truncate">
+                                  📎 افتح الملف الحالي
+                                </a>
+                                <button type="button" className="text-red-600 font-black" onClick={() => set('')}>✕</button>
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              className={`${base} text-xs file:mr-2 file:px-3 file:py-1 file:rounded file:border-0 file:bg-emerald-600 file:text-white file:font-bold`}
+                              accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 25 * 1024 * 1024) {
+                                  toast.error('حجم الملف يتجاوز 25 ميغابايت');
+                                  return;
+                                }
+                                const readAsBase64 = (f: File) => new Promise<string>((res, rej) => {
+                                  const r = new FileReader();
+                                  r.onload = () => {
+                                    const s = String(r.result || '');
+                                    res(s.split(',')[1] || s);
+                                  };
+                                  r.onerror = () => rej(r.error);
+                                  r.readAsDataURL(f);
+                                });
+                                try {
+                                  toast.loading('جاري رفع الملف إلى Google Drive...', { id: 'drv' });
+                                  const b64 = await readAsBase64(file);
+                                  const { data, error } = await supabase.functions.invoke('drive-upload', {
+                                    body: {
+                                      file_base64: b64,
+                                      file_name: file.name,
+                                      mime_type: file.type || 'application/octet-stream',
+                                      folder_id: c.driveFolder || '',
+                                    },
+                                  });
+                                  if (error) throw error;
+                                  if ((data as any)?.error) throw new Error((data as any).error);
+                                  const url = (data as any)?.url;
+                                  if (!url) throw new Error('لم يتم استلام رابط الملف');
+                                  set(url);
+                                  toast.success('تم رفع الملف بنجاح ✅', { id: 'drv' });
+                                } catch (err: any) {
+                                  toast.error(`فشل الرفع: ${err?.message || err}`, { id: 'drv' });
+                                }
+                                e.target.value = '';
+                              }}
+                            />
+                            <p className="text-[10px] text-slate-500">
+                              يُرفع الملف إلى Google Drive ويُحفظ رابط «افتح الملف» في هذه الخلية.
+                            </p>
+                          </div>
                         ) : (
                           <textarea className={base} rows={2} value={v} onChange={(e) => set(e.target.value)} />
                         )}
