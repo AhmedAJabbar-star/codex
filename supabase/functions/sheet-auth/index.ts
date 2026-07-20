@@ -587,7 +587,7 @@ Deno.serve(async (req) => {
 
     // Try to initialize sheets/admin once per cold start to avoid Sheets API quota burn.
     let sheetsReady = bootstrapState.ready;
-    if (!bootstrapState.done || (Date.now() - bootstrapState.lastTry) > 60_000) {
+    if (!bootstrapState.done || (!bootstrapState.ready && (Date.now() - bootstrapState.lastTry) > 300_000)) {
       try {
         await ensureSheet("users", USERS_HEADERS);
         await ensureSheet("archive", ARCHIVE_HEADERS);
