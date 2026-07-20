@@ -700,6 +700,27 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 );
               })()}
 
+              {/* 📁 Google Drive — الفولدر الافتراضي لرفع الملفات */}
+              <div className="mt-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/40 p-4" dir="rtl">
+                <strong className="text-sm">📁 Google Drive — الفولدر الافتراضي لرفع الملفات</strong>
+                <p className="text-xs text-slate-600 mt-2 leading-6">
+                  عند اختيار نوع الحقل <strong>«📎 ملف»</strong> لأي عمود، سيتم رفع الملف تلقائياً إلى Google Drive
+                  ويُخزَّن رابط <strong>«افتح الملف»</strong> في الخلية. يمكنك تحديد فولدر افتراضي لكل النظام هنا،
+                  وتخصيص فولدر مختلف لكل عمود من قسم «أنواع حقول الإدخال» أعلاه.
+                </p>
+                <label className="block text-xs font-black mt-3 mb-1">رابط أو معرّف الفولدر الافتراضي</label>
+                <input
+                  className="schedule-select w-full text-xs"
+                  value={s.drive_folder_id || ''}
+                  onChange={(e) => patch({ drive_folder_id: e.target.value })}
+                  placeholder="https://drive.google.com/drive/folders/XXXXXXXXXX  أو  1AbCdEfGhIjKlMnOp"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  💡 يمكن لصق رابط الفولدر كاملاً من Drive — سيُستخرج المعرّف تلقائياً. اترك الحقل فارغاً لرفع الملفات
+                  إلى «My Drive» الجذر.
+                </p>
+              </div>
+
               {/* 📸 OCR — استخراج البيانات بالذكاء الاصطناعي */}
               <div className="mt-4 rounded-xl border-2 border-purple-200 bg-purple-50/40 p-4" dir="rtl">
                 <label className="flex items-center gap-2 cursor-pointer">
