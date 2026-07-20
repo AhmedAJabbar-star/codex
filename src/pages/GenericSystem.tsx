@@ -252,6 +252,8 @@ export function buildConfigFromDef(
               .split(/[,،\n]+/).map((s) => s.trim()).filter(Boolean);
           }
         }
+        const perColFolder = (def.column_drive_folders || {})[letter];
+        const driveFolder = type === 'file' ? (perColFolder || def.drive_folder_id || '') : undefined;
         return {
           letter,
           header: labelOverride || realHeader,
@@ -259,6 +261,7 @@ export function buildConfigFromDef(
           options,
           allowCustom: !!allowMap[letter],
           source,
+          driveFolder,
         };
       });
       const teacherName = (user as any)?.full_name || '';
