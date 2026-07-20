@@ -443,7 +443,7 @@ async function ensureAdmin() {
 }
 
 async function syncFromAssignments(performedBy: string): Promise<{added:number; total:number; removedDuplicates:number}> {
-  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store" });
+  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
   const text = (await res.text()).replace(/^\uFEFF/, "");
   const [head = [], ...data] = parseCsv(text);
