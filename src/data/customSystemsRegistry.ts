@@ -130,7 +130,11 @@ export interface CustomSystemDef {
   /** Fine-grained CRUD permissions (preferred over crud_enabled). */
   crud_permissions?: CrudPermissions;
   /** Per-column input type for the CRUD form. Key = Excel letter, value = type. */
-  column_types?: Record<string, 'text' | 'number' | 'date' | 'select' | 'readonly'>;
+  column_types?: Record<string, 'text' | 'number' | 'date' | 'select' | 'readonly' | 'file'>;
+  /** Default Google Drive folder (URL or ID) used to store uploaded files for this system. */
+  drive_folder_id?: string;
+  /** Per-column override of the Google Drive folder (Excel letter -> folder URL/ID). */
+  column_drive_folders?: Record<string, string>;
   /** Comma-separated select options per column letter (used when column_types[letter] === 'select' AND source = 'manual'). */
   column_options?: Record<string, string>;
   /** Source of the dropdown options: 'manual' (default, from column_options) or 'column' (unique values from the column itself). */
@@ -220,6 +224,8 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   crud_enabled: false,
   crud_permissions: { view: false, add: false, edit: false, delete: false },
   column_types: {},
+  drive_folder_id: '',
+  column_drive_folders: {},
   column_options: {},
   column_select_source: {},
   column_select_allow_custom: {},
@@ -274,10 +280,12 @@ export async function deleteCustomSystem(id: string, password: string): Promise<
 export interface CrudColMeta {
   letter: string;
   header: string;
-  type: 'text' | 'number' | 'date' | 'select' | 'readonly';
+  type: 'text' | 'number' | 'date' | 'select' | 'readonly' | 'file';
   options: string[];
   allowCustom: boolean;
   source: 'manual' | 'column';
+  /** For 'file' type: Google Drive folder URL/ID used to store the upload. */
+  driveFolder?: string;
 }
 
 /** Data passed from a custom system to SingleSystemPage so that Add/Edit/Delete
