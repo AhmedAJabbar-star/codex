@@ -238,6 +238,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   row_rules: [],
   aggregations: [],
   global_search: false,
+  ui_theme: '',
 };
 
 
