@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote,
@@ -28,6 +28,7 @@ const ControlPanel = () => {
   const [uiTheme, setUi] = useUiTheme();
   const [isDark, setIsDark] = useDarkMode();
   const [is3D, setIs3D] = use3DEnabled();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const { data: customSystems = [], refetch: refetchCustom } = useQuery({
@@ -496,7 +497,10 @@ const ControlPanel = () => {
         <SystemBuilderDialog
           initial={builderInitial}
           onClose={() => setBuilderOpen(false)}
-          onSaved={() => { void refetchCustom(); }}
+          onSaved={() => {
+            void queryClient.invalidateQueries({ queryKey: ['custom-systems-list'] });
+            void refetchCustom();
+          }}
         />
       )}
     </div>

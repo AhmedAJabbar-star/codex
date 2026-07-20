@@ -244,13 +244,23 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
 
 
 export async function listCustomSystems(): Promise<CustomSystemDef[]> {
+  const forceUntil = typeof window !== 'undefined'
+    ? Number(window.sessionStorage.getItem('custom-systems-force-refresh-until') || 0)
+    : 0;
+  const noCache = Date.now() < forceUntil;
   const { data, error } = await supabase.functions.invoke('custom-systems', {
-    body: { action: 'list' },
+    body: { action: 'list', no_cache: noCache },
   });
   if (error) throw new Error(error.message || 'فشل تحميل الأنظمة المخصّصة');
   if ((data as any)?.error) throw new Error((data as any).error);
   return ((data as any)?.systems || []) as CustomSystemDef[];
 }
+
+const notifyCustomSystemsUpdated = () => {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.setItem('custom-systems-force-refresh-until', String(Date.now() + 30_000));
+  window.dispatchEvent(new Event(CUSTOM_SYSTEMS_UPDATED_EVENT));
+};
 
 export async function saveCustomSystem(system: CustomSystemDef, password: string, originalId?: string): Promise<void> {
   const { data, error } = await supabase.functions.invoke('custom-systems', {
@@ -269,6 +279,7 @@ export async function saveCustomSystem(system: CustomSystemDef, password: string
     throw new Error(msg || 'فشل الحفظ');
   }
   if ((data as any)?.error) throw new Error((data as any).error);
+  notifyCustomSystemsUpdated();
 }
 
 export async function deleteCustomSystem(id: string, password: string): Promise<void> {
@@ -277,6 +288,7 @@ export async function deleteCustomSystem(id: string, password: string): Promise<
   });
   if (error) throw new Error(error.message || 'فشل الحذف');
   if ((data as any)?.error) throw new Error((data as any).error);
+  notifyCustomSystemsUpdated();
 }
 
 /** Column metadata for inline CRUD forms (built from CustomSystemDef + live sheet). */

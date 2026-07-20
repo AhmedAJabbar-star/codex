@@ -314,7 +314,8 @@ Deno.serve(async (req) => {
     const action = String(body?.action || "list");
 
     if (action === "list") {
-      if (listCache && Date.now() - listCache.at < LIST_TTL_MS) {
+      const noCache = body?.no_cache === true || String(body?.no_cache || "").toLowerCase() === "true";
+      if (!noCache && listCache && Date.now() - listCache.at < LIST_TTL_MS) {
         return json(listCache.payload);
       }
       try {
@@ -339,8 +340,10 @@ Deno.serve(async (req) => {
       const originalId = clean(body?.original_id || "");
       if (!sys.title) return json({ error: "العنوان مطلوب" }, 400);
       if (!sys.sheet_gid) return json({ error: "GID للورقة المصدر مطلوب" }, 400);
-      // Sanitize manual slug (English/URL-safe) if provided.
-      if (sys.id) {
+      // Sanitize only newly typed / changed slugs. Preserve legacy Arabic IDs when editing
+      // an existing system whose URL was created before the English slug field existed.
+      const rawId = String(sys.id || "");
+      if (sys.id && !(originalId && rawId === originalId)) {
         sys.id = String(sys.id).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
       }
       const all = await readAll();
