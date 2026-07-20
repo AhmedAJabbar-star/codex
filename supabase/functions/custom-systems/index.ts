@@ -50,6 +50,8 @@ const HEADERS = [
   "row_rules_json", "aggregations_json", "global_search",
   // v11 additions (Google Drive uploads):
   "drive_folder_id", "column_drive_folders_json",
+  // v12 additions (per-system UI theme):
+  "ui_theme",
 ];
 
 const SHEET_TITLE = "systems_registry";
