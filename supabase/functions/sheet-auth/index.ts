@@ -201,6 +201,7 @@ async function getAccessToken(): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    signal: AbortSignal.timeout(15_000),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`OAuth failed: ${JSON.stringify(data)}`);
