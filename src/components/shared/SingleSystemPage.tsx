@@ -1103,19 +1103,34 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           }
                           const tdClass = [cellClass, (h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : ''].filter(Boolean).join(' ');
                           const linkLabel = system.linkColumns?.[h];
-                          const isUrl = !!val && /^https?:\/\//i.test(val.trim());
-                          if (linkLabel && isUrl) {
+                          const urls = linkLabel ? splitUrls(val) : [];
+                          if (linkLabel && urls.length > 0) {
                             return (
                               <td key={h} className={tdClass}>
-                                <a
-                                  href={val.trim()}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="schedule-btn schedule-btn-primary"
-                                  style={{ minHeight: 28, padding: '4px 12px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-                                >
-                                  🔗 {linkLabel}
-                                </a>
+                                <div className="flex flex-wrap gap-1 justify-center">
+                                  {urls.map((u, idx) => (
+                                    <span key={idx} className="inline-flex items-center gap-1">
+                                      {isPreviewable(u) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewUrl(u)}
+                                          title="معاينة سريعة"
+                                          className="schedule-btn"
+                                          style={{ minHeight: 26, padding: '2px 6px', fontSize: 11, background: '#f1f5f9', color: '#0f172a' }}
+                                        >👁️</button>
+                                      )}
+                                      <a
+                                        href={u}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="schedule-btn schedule-btn-primary"
+                                        style={{ minHeight: 26, padding: '3px 10px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+                                      >
+                                        🔗 {urls.length > 1 ? `${linkLabel} ${idx + 1}` : linkLabel}
+                                      </a>
+                                    </span>
+                                  ))}
+                                </div>
                               </td>
                             );
                           }
