@@ -1267,6 +1267,49 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           </div>
         </div>
       )}
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 print:hidden"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 p-2.5 border-b bg-slate-50">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 truncate">
+                <span>👁️ معاينة الملف</span>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate max-w-[420px]">{previewUrl}</a>
+              </div>
+              <div className="flex gap-1.5">
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700"
+                >⬇️ تحميل / فتح</a>
+                <button
+                  onClick={() => setPreviewUrl(null)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800 text-xs font-black hover:bg-slate-300"
+                >✕ إغلاق</button>
+              </div>
+            </div>
+            <div className="flex-1 bg-slate-100">
+              {/\.(png|jpe?g|gif|webp|svg)($|\?)/i.test(previewUrl) ? (
+                <img src={previewUrl} alt="preview" className="w-full h-full object-contain" />
+              ) : (
+                <iframe
+                  src={toPreviewSrc(previewUrl)}
+                  className="w-full h-full border-0"
+                  title="file-preview"
+                  allow="autoplay"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
