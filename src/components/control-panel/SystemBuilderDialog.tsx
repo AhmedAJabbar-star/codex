@@ -47,14 +47,27 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const [previewOn, setPreviewOn] = useState(false);
   useEffect(() => {
     originalThemeRef.current = getUiTheme();
-    return () => { applyUiTheme(originalThemeRef.current); };
+    return () => {
+      applyUiTheme(originalThemeRef.current);
+      document.body.removeAttribute('data-system-theme-preview');
+    };
   }, []);
   const previewTheme = (t: UiTheme | '') => {
-    if (!t) { applyUiTheme(originalThemeRef.current); setPreviewOn(false); return; }
+    if (!t) {
+      applyUiTheme(originalThemeRef.current);
+      document.body.removeAttribute('data-system-theme-preview');
+      setPreviewOn(false);
+      return;
+    }
     applyUiTheme(t);
+    document.body.setAttribute('data-system-theme-preview', t);
     setPreviewOn(true);
   };
-  const stopPreview = () => { applyUiTheme(originalThemeRef.current); setPreviewOn(false); };
+  const stopPreview = () => {
+    applyUiTheme(originalThemeRef.current);
+    document.body.removeAttribute('data-system-theme-preview');
+    setPreviewOn(false);
+  };
 
   const patch = (p: Partial<CustomSystemDef>) => setS((prev) => ({ ...prev, ...p }));
 
@@ -129,7 +142,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     if (password === null) return;
     setBusy(true);
     try {
-      await saveCustomSystem(s, password, initial?.id && initial.id !== s.id ? initial.id : undefined);
+      await saveCustomSystem(s, password, initial?.id || undefined);
       toast.success('تم حفظ النظام بنجاح');
       onSaved();
       onClose();
@@ -309,6 +322,54 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <div className="text-[10px] text-slate-500 leading-tight mt-0.5 line-clamp-2">{t.description}</div>
                     </button>
                   ))}
+                </div>
+
+                <div className="mt-4 rounded-2xl border-2 border-dashed border-slate-300 p-3 bg-slate-50/70">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <strong className="text-sm">👁️ معاينة فورية داخلية</strong>
+                    <span className="text-[11px] font-bold text-slate-500">
+                      {s.ui_theme ? 'التصميم المختار مطبّق الآن على النموذج أدناه وعلى الواجهة خلف النافذة' : 'يتبع المظهر العام حالياً'}
+                    </span>
+                  </div>
+                  <div className="schedule-card" style={{ borderRadius: 18, overflow: 'hidden' }}>
+                    <div className="schedule-header" style={{ padding: 16 }}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="card3d__icon w-12 h-12 grid place-items-center text-2xl flex-shrink-0">{s.icon || '📋'}</div>
+                          <div className="min-w-0">
+                            <h3 className="m-0 text-base font-black text-[var(--schedule-text)] truncate">{s.title || 'عنوان النظام'}</h3>
+                            <p className="m-0 text-xs font-bold text-[var(--schedule-muted)] truncate">{s.description || 'وصف مختصر للنظام وبياناته'}</p>
+                          </div>
+                        </div>
+                        <span className="schedule-badge">جاهز</span>
+                      </div>
+                    </div>
+                    <div className="schedule-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', padding: 14 }}>
+                      <label>
+                        <span className="schedule-filter-label">القسم</span>
+                        <select className="schedule-select w-full" value="" onChange={() => {}}>
+                          <option value="">اختر القسم</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span className="schedule-filter-label">الفصل</span>
+                        <input className="schedule-select w-full" value="الفصل الثاني" onChange={() => {}} />
+                      </label>
+                    </div>
+                    <div className="schedule-toolbar" style={{ padding: 14 }}>
+                      <button type="button" className="schedule-btn schedule-btn-primary">🖨️ طباعة</button>
+                      <button type="button" className="schedule-btn schedule-btn-secondary">📥 تصدير</button>
+                    </div>
+                    <div className="schedule-table-wrap" style={{ margin: 14, maxHeight: 140 }}>
+                      <table className="schedule-table" style={{ minWidth: 520 }}>
+                        <thead><tr><th>التدريسي</th><th>القسم</th><th>الحالة</th></tr></thead>
+                        <tbody>
+                          <tr><td>نموذج بيانات</td><td>هندسة مدنية</td><td>مكتمل</td></tr>
+                          <tr><td>سجل تجريبي</td><td>الدراسات الأولية</td><td>قيد المتابعة</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

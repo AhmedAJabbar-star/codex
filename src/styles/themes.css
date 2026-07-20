@@ -1782,4 +1782,131 @@
   filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
 }
 
+/* ============================================================
+   PER-SYSTEM DETAIL SURFACES — make theme changes visible inside
+   the opened custom system, not only on dashboard cards.
+   These rules intentionally override the late "Polished System Page"
+   block in index.css and theme the filters, toolbar, inputs and table.
+   ============================================================ */
+
+:root[data-ui-theme] {
+  --theme-accent: #2563eb;
+  --theme-accent-2: #0ea5e9;
+  --theme-surface: rgba(255,255,255,.9);
+  --theme-surface-2: rgba(248,250,252,.82);
+  --theme-line: rgba(100,116,139,.24);
+  --theme-heading: #0f172a;
+}
+:root[data-ui-theme="royal"]{ --theme-accent:#0b2545; --theme-accent-2:#c9a24a; --theme-surface:#fffdf8; --theme-surface-2:#faf7ef; --theme-line:rgba(11,37,69,.18); --theme-heading:#0b2545; }
+:root[data-ui-theme="sapphire"]{ --theme-accent:#0a1f44; --theme-accent-2:#3b82f6; --theme-surface:#ffffff; --theme-surface-2:#f1f5fb; --theme-line:rgba(10,31,68,.18); --theme-heading:#0a1f44; }
+:root[data-ui-theme="burgundy"]{ --theme-accent:#6e1423; --theme-accent-2:#b8860b; --theme-surface:#fffdfa; --theme-surface-2:#fdf8f1; --theme-line:rgba(110,20,35,.22); --theme-heading:#6e1423; }
+:root[data-ui-theme="forest"]{ --theme-accent:#1f3a2e; --theme-accent-2:#8a6f3a; --theme-surface:#fdfcf8; --theme-surface-2:#f6f4ec; --theme-line:rgba(31,58,46,.22); --theme-heading:#1f3a2e; }
+:root[data-ui-theme="slate"]{ --theme-accent:#1f2937; --theme-accent-2:#64748b; --theme-surface:#ffffff; --theme-surface-2:#f5f7fa; --theme-line:rgba(31,41,55,.2); --theme-heading:#1f2937; }
+:root[data-ui-theme="bronze"]{ --theme-accent:#6b4423; --theme-accent-2:#c9a172; --theme-surface:#fdfaf2; --theme-surface-2:#faf6ee; --theme-line:rgba(107,68,35,.22); --theme-heading:#3a2410; }
+:root[data-ui-theme="pearl"]{ --theme-accent:#1e3a5f; --theme-accent-2:#b58a6f; --theme-surface:#fffefa; --theme-surface-2:#f3f0eb; --theme-line:rgba(30,58,95,.18); --theme-heading:#1e3a5f; }
+:root[data-ui-theme="emerald"]{ --theme-accent:#064e3b; --theme-accent-2:#c9a84c; --theme-surface:#ffffff; --theme-surface-2:#f0f7f4; --theme-line:rgba(6,78,59,.2); --theme-heading:#064e3b; }
+:root[data-ui-theme="onyx"]{ --theme-accent:#0d0d0d; --theme-accent-2:#71717a; --theme-surface:#ffffff; --theme-surface-2:#f4f4f5; --theme-line:rgba(13,13,13,.18); --theme-heading:#0d0d0d; }
+:root[data-ui-theme="crimson"]{ --theme-accent:#8b1a2e; --theme-accent-2:#c9a84c; --theme-surface:#fffafa; --theme-surface-2:#fbf1f3; --theme-line:rgba(139,26,46,.22); --theme-heading:#8b1a2e; }
+:root[data-ui-theme="oxford"]{ --theme-accent:#0a1e3d; --theme-accent-2:#d4af37; --theme-surface:#ffffff; --theme-surface-2:#f2f6fb; --theme-line:rgba(10,30,61,.2); --theme-heading:#0a1e3d; }
+:root[data-ui-theme="ivory"]{ --theme-accent:#3c2415; --theme-accent-2:#b7791f; --theme-surface:#fffdfa; --theme-surface-2:#fdfbf7; --theme-line:rgba(60,36,21,.18); --theme-heading:#3c2415; }
+:root[data-ui-theme="cobalt"]{ --theme-accent:#0047ab; --theme-accent-2:#64748b; --theme-surface:#ffffff; --theme-surface-2:#eef5ff; --theme-line:rgba(0,71,171,.2); --theme-heading:#003b8f; }
+:root[data-ui-theme="vivid3d"],
+:root[data-ui-theme="gradient"]{ --theme-accent:#6366f1; --theme-accent-2:#ec4899; --theme-surface:rgba(255,255,255,.86); --theme-surface-2:rgba(238,242,255,.72); --theme-line:rgba(99,102,241,.28); --theme-heading:#312e81; }
+:root[data-ui-theme="glasspro"],
+:root[data-ui-theme="holo"],
+:root[data-ui-theme="liquidglass"]{ --theme-accent:#0a84ff; --theme-accent-2:#5e5ce6; --theme-surface:rgba(255,255,255,.48); --theme-surface-2:rgba(255,255,255,.26); --theme-line:rgba(255,255,255,.58); --theme-heading:#0a0a0f; }
+:root[data-ui-theme="neon"]{ --theme-accent:#06b6d4; --theme-accent-2:#f0f; --theme-surface:rgba(7,12,28,.9); --theme-surface-2:rgba(12,18,38,.82); --theme-line:rgba(34,211,238,.36); --theme-heading:#e0faff; }
+:root[data-ui-theme="mesh"]{ --theme-accent:#7c3aed; --theme-accent-2:#06b6d4; --theme-surface:rgba(255,255,255,.86); --theme-surface-2:rgba(245,243,255,.78); --theme-line:rgba(124,58,237,.26); --theme-heading:#3b0764; }
+
+:root.dark[data-ui-theme]{ --theme-surface:rgba(15,23,42,.86); --theme-surface-2:rgba(15,23,42,.62); --theme-line:rgba(226,232,240,.18); --theme-heading:#f8fafc; }
+:root.dark[data-ui-theme="royal"]{ --theme-accent:#c9a24a; --theme-accent-2:#f7e6b0; }
+:root.dark[data-ui-theme="sapphire"]{ --theme-accent:#93c5fd; --theme-accent-2:#cbd5e1; }
+:root.dark[data-ui-theme="burgundy"]{ --theme-accent:#f5d27a; --theme-accent-2:#fca5a5; }
+:root.dark[data-ui-theme="forest"]{ --theme-accent:#e6d9b8; --theme-accent-2:#86efac; }
+:root.dark[data-ui-theme="bronze"]{ --theme-accent:#f5ead0; --theme-accent-2:#c9a172; }
+:root.dark[data-ui-theme="pearl"]{ --theme-accent:#f3e8d6; --theme-accent-2:#b58a6f; }
+:root.dark[data-ui-theme="emerald"]{ --theme-accent:#f5e6b8; --theme-accent-2:#34d399; }
+:root.dark[data-ui-theme="crimson"]{ --theme-accent:#f5d27a; --theme-accent-2:#fda4af; }
+:root.dark[data-ui-theme="oxford"]{ --theme-accent:#d4af37; --theme-accent-2:#bfdbfe; }
+:root.dark[data-ui-theme="ivory"]{ --theme-accent:#f8e7c3; --theme-accent-2:#fbbf24; }
+:root.dark[data-ui-theme="cobalt"]{ --theme-accent:#93c5fd; --theme-accent-2:#c0c0c0; }
+
+:root[data-ui-theme] .schedule-header{
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 13%, transparent), transparent 42%),
+    linear-gradient(180deg, var(--theme-surface), var(--theme-surface-2)) !important;
+  border-color:var(--theme-line) !important;
+}
+:root[data-ui-theme] .schedule-card,
+:root[data-ui-theme] .schedule-filters,
+:root[data-ui-theme] .schedule-toolbar,
+:root[data-ui-theme] .schedule-table-wrap,
+:root[data-ui-theme] .schedule-stats,
+:root[data-ui-theme] .schedule-stat-card,
+:root[data-ui-theme] .schedule-footer-card{
+  background:var(--theme-surface) !important;
+  border-color:var(--theme-line) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(150%) !important;
+          backdrop-filter: blur(22px) saturate(150%) !important;
+}
+:root[data-ui-theme] .schedule-select,
+:root[data-ui-theme] .schedule-input{
+  background:color-mix(in srgb, var(--theme-surface) 86%, white) !important;
+  border-color:var(--theme-line) !important;
+  color:var(--schedule-text) !important;
+}
+:root.dark[data-ui-theme] .schedule-select,
+:root.dark[data-ui-theme] .schedule-input{
+  background:rgba(2,6,23,.48) !important;
+  color:#f8fafc !important;
+}
+:root[data-ui-theme] .schedule-btn-primary,
+:root[data-ui-theme] .system-slide.active{
+  background:linear-gradient(135deg, var(--theme-accent), var(--theme-accent-2)) !important;
+  color:color-mix(in srgb, white 92%, var(--theme-heading)) !important;
+  border-color:transparent !important;
+  box-shadow:0 10px 24px -12px color-mix(in srgb, var(--theme-accent) 70%, transparent) !important;
+}
+:root[data-ui-theme] .schedule-btn-secondary{
+  background:linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 72%, #475569), color-mix(in srgb, var(--theme-accent-2) 55%, #334155)) !important;
+  color:#fff !important;
+}
+:root[data-ui-theme] .schedule-table thead th{
+  background:linear-gradient(180deg, color-mix(in srgb, var(--theme-accent) 14%, white), color-mix(in srgb, var(--theme-surface-2) 82%, white)) !important;
+  color:var(--theme-heading) !important;
+  border-color:var(--theme-line) !important;
+}
+:root.dark[data-ui-theme] .schedule-table thead th{
+  background:linear-gradient(180deg, color-mix(in srgb, var(--theme-accent) 20%, #0f172a), #0b1120) !important;
+  color:#f8fafc !important;
+}
+:root[data-ui-theme] .schedule-table tbody td{
+  border-color:color-mix(in srgb, var(--theme-line) 80%, transparent) !important;
+}
+:root[data-ui-theme] .schedule-table tbody tr:hover td{
+  background:color-mix(in srgb, var(--theme-accent) 8%, transparent) !important;
+}
+:root[data-ui-theme] .schedule-badge,
+:root[data-ui-theme] .schedule-counter,
+:root[data-ui-theme] .schedule-stats-tag{
+  background:color-mix(in srgb, var(--theme-accent) 12%, transparent) !important;
+  color:var(--theme-heading) !important;
+  border-color:color-mix(in srgb, var(--theme-accent) 26%, transparent) !important;
+}
+:root[data-ui-theme="glasspro"] .schedule-card,
+:root[data-ui-theme="holo"] .schedule-card,
+:root[data-ui-theme="liquidglass"] .schedule-card,
+:root[data-ui-theme="glasspro"] .schedule-filters,
+:root[data-ui-theme="holo"] .schedule-filters,
+:root[data-ui-theme="liquidglass"] .schedule-filters,
+:root[data-ui-theme="glasspro"] .schedule-toolbar,
+:root[data-ui-theme="holo"] .schedule-toolbar,
+:root[data-ui-theme="liquidglass"] .schedule-toolbar,
+:root[data-ui-theme="glasspro"] .schedule-table-wrap,
+:root[data-ui-theme="holo"] .schedule-table-wrap,
+:root[data-ui-theme="liquidglass"] .schedule-table-wrap{
+  border-color:rgba(255,255,255,.58) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65), 0 24px 60px -32px rgba(15,23,42,.32) !important;
+}
+
 

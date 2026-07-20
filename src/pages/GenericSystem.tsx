@@ -321,7 +321,8 @@ const GenericSystem = () => {
   const { data: systems, isLoading: loadingSystems } = useQuery({
     queryKey: ['custom-systems-list'],
     queryFn: () => listCustomSystems(),
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
 

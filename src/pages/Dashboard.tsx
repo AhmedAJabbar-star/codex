@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { SYSTEMS } from '@/data/scheduleData';
 import { useLiveScheduleData } from '@/hooks/useLiveSchedule';
 import { fetchIndividualAssignmentRows } from '@/data/individualAssignments';
@@ -257,6 +257,7 @@ const Dashboard = () => {
   const [isDark, setIsDark] = useDarkMode();
   const [rules, setRules] = useState(() => getRules());
   const [groups, setGroups] = useState<SystemGroup[]>(() => getGroups());
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: liveData } = useLiveScheduleData();
   const { data: assignmentsRows } = useQuery({
@@ -273,8 +274,8 @@ const Dashboard = () => {
   const { data: customSystems = [] } = useQuery({
     queryKey: ['custom-systems-list'],
     queryFn: () => listCustomSystems(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnMount: false,
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
     refetchInterval: 5 * 60 * 1000,
     retry: 1,
@@ -395,13 +396,18 @@ const Dashboard = () => {
     void syncRulesFromRemote().then((r) => { setRules(r); setGroups(getGroups()); });
 
     const refreshRules = () => { setRules(getRules()); setGroups(getGroups()); };
+    const refreshCustomSystems = () => {
+      void queryClient.invalidateQueries({ queryKey: ['custom-systems-list'] });
+    };
     window.addEventListener('storage', refreshRules);
     window.addEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+    window.addEventListener(CUSTOM_SYSTEMS_UPDATED_EVENT, refreshCustomSystems);
     return () => {
       window.removeEventListener('storage', refreshRules);
       window.removeEventListener(SYSTEM_ACCESS_RULES_UPDATED_EVENT, refreshRules);
+      window.removeEventListener(CUSTOM_SYSTEMS_UPDATED_EVENT, refreshCustomSystems);
     };
-  }, []);
+  }, [queryClient]);
 
   const getSystemRowCount = (id: string): number => {
     const liveMap: Record<string, number | undefined> = {
