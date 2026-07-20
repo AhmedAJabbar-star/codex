@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { CustomSystemDef, FilterConfigItem, FilterRule, SignatureItem } from '@/data/customSystemsRegistry';
 import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem } from '@/data/customSystemsRegistry';
 import { OP_LABELS, type Condition, type ConditionOp, parseColumnsRange, colIndexToLetter } from '@/lib/conditionEngine';
+import { UI_THEMES } from '@/lib/uiTheme';
 const COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1e40af','#be123c'];
 
 const ICONS = [
@@ -247,8 +248,42 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   ))}
                 </div>
               </div>
+
+              <div className="border-t pt-4">
+                <label className="block text-sm font-black mb-1">🎨 تصميم واجهة هذا النظام</label>
+                <p className="text-xs text-slate-500 mb-2">
+                  اختر مظهراً مستقلاً لهذا النظام يختلف عن باقي الأنظمة. سيُطبَّق تلقائياً عند فتح النظام ويعود المظهر العام عند الخروج منه.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-auto p-1">
+                  <button
+                    type="button"
+                    onClick={() => patch({ ui_theme: '' })}
+                    className={`text-right rounded-lg border-2 p-2 transition-all ${!s.ui_theme ? 'border-slate-900 ring-2 ring-slate-300' : 'border-slate-200 hover:border-slate-400'}`}
+                  >
+                    <div className="h-8 rounded mb-1.5 bg-gradient-to-br from-slate-200 to-slate-100 flex items-center justify-center text-xs font-black text-slate-500">
+                      اتّبع العام
+                    </div>
+                    <div className="text-xs font-black text-slate-900">🔗 المظهر العام</div>
+                    <div className="text-[10px] text-slate-500 leading-tight mt-0.5">يستخدم التصميم المختار في لوحة التحكم.</div>
+                  </button>
+                  {UI_THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => patch({ ui_theme: t.id })}
+                      className={`text-right rounded-lg border-2 p-2 transition-all ${s.ui_theme === t.id ? 'border-slate-900 ring-2 ring-slate-300' : 'border-slate-200 hover:border-slate-400'}`}
+                      title={t.description}
+                    >
+                      <div className="h-8 rounded mb-1.5" style={{ background: t.swatch }} />
+                      <div className="text-xs font-black text-slate-900 truncate">{t.label}</div>
+                      <div className="text-[10px] text-slate-500 leading-tight mt-0.5 line-clamp-2">{t.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
+
 
           {step === 2 && (
             <div className="space-y-4">

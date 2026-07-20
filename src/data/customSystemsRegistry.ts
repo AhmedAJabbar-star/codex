@@ -157,6 +157,8 @@ export interface CustomSystemDef {
   aggregations?: AggregationCfg[];
   /** 🔍 Enable a global search box above the table (filters across all visible columns). */
   global_search?: boolean;
+  /** 🎨 UI theme override for this system only. Empty/undefined = follow the global theme. */
+  ui_theme?: string;
 }
 
 /** Row-highlighting rule: when conditions pass, apply `color` as row background. */
@@ -236,6 +238,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   row_rules: [],
   aggregations: [],
   global_search: false,
+  ui_theme: '',
 };
 
 

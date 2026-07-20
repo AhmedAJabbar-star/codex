@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
@@ -9,6 +9,7 @@ import type { SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
 import { getEffectivePerms } from '@/lib/permissions';
+import { applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
   evaluateAll, evaluateCondition, applyDerivedColumns,
@@ -340,6 +341,15 @@ const GenericSystem = () => {
 
   const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
   const showSessionBar = !!(def.require_teacher_auth && session?.user);
+
+  // Apply per-system UI theme override on mount; restore global theme on unmount / def change.
+  useEffect(() => {
+    if (!def) return;
+    const override = (def.ui_theme || '').trim();
+    if (!override) return;
+    applyUiTheme(override as UiTheme);
+    return () => { applyUiTheme(getUiTheme()); };
+  }, [def?.id, def?.ui_theme]);
 
   return (
     <div>
