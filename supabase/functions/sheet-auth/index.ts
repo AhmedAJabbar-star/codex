@@ -214,6 +214,7 @@ async function gapi(path: string, init: RequestInit = {}) {
   const token = await getAccessToken();
   const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${getConnection().sheetId}${path}`, {
     ...init,
+    signal: (init as any).signal ?? AbortSignal.timeout(20_000),
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
