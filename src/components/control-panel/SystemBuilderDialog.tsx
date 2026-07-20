@@ -639,9 +639,26 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                     <option value="number">🔢 رقم</option>
                                     <option value="date">📅 تاريخ</option>
                                     <option value="select">📋 قائمة منسدلة</option>
+                                    <option value="file">📎 ملف (رفع إلى Google Drive)</option>
                                     <option value="readonly">🔒 قراءة فقط</option>
                                   </select>
                                 </div>
+                                {ct === 'file' && (
+                                  <div className="pt-1 border-t border-dashed">
+                                    <label className="block text-[11px] font-black text-slate-700 mb-1">
+                                      📁 رابط/معرّف فولدر Google Drive لهذا العمود (اختياري)
+                                    </label>
+                                    <input
+                                      className="schedule-select w-full text-xs"
+                                      value={(s.column_drive_folders || {})[L] || ''}
+                                      onChange={(e) => patch({ column_drive_folders: { ...(s.column_drive_folders || {}), [L]: e.target.value } })}
+                                      placeholder="https://drive.google.com/drive/folders/XXXXXXXXXX أو معرّف الفولدر مباشرةً"
+                                    />
+                                    <p className="text-[11px] text-slate-500 mt-1">
+                                      اترك الحقل فارغاً لاستخدام «الفولدر الافتراضي للنظام» أدناه. عند إدخال رابط فولدر كامل يُستخرج المعرّف تلقائياً.
+                                    </p>
+                                  </div>
+                                )}
                                 {ct === 'select' && (
                                   <div className="space-y-2 pt-1 border-t border-dashed">
                                     <div className="flex flex-wrap gap-3 text-[11px] font-bold">
