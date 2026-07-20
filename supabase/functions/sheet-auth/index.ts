@@ -201,6 +201,7 @@ async function getAccessToken(): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    signal: AbortSignal.timeout(15_000),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`OAuth failed: ${JSON.stringify(data)}`);
@@ -213,6 +214,7 @@ async function gapi(path: string, init: RequestInit = {}) {
   const token = await getAccessToken();
   const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${getConnection().sheetId}${path}`, {
     ...init,
+    signal: (init as any).signal ?? AbortSignal.timeout(20_000),
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -333,7 +335,7 @@ async function getAllUsers() {
 async function getFallbackUsersFromAssignments(): Promise<Record<string, string>[]> {
   const nowMs = Date.now();
   if (fallbackUsersCache && fallbackUsersCache.exp > nowMs) return fallbackUsersCache.users;
-  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store" });
+  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
   const text = (await res.text()).replace(/^\uFEFF/, "");
   const [head = [], ...data] = parseCsv(text);
@@ -441,7 +443,7 @@ async function ensureAdmin() {
 }
 
 async function syncFromAssignments(performedBy: string): Promise<{added:number; total:number; removedDuplicates:number}> {
-  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store" });
+  const res = await fetch(getConnection().assignmentsCsv, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`فشل قراءة شيت التكليفات: ${res.status}`);
   const text = (await res.text()).replace(/^\uFEFF/, "");
   const [head = [], ...data] = parseCsv(text);
@@ -585,7 +587,7 @@ Deno.serve(async (req) => {
 
     // Try to initialize sheets/admin once per cold start to avoid Sheets API quota burn.
     let sheetsReady = bootstrapState.ready;
-    if (!bootstrapState.done || (Date.now() - bootstrapState.lastTry) > 60_000) {
+    if (!bootstrapState.done || (!bootstrapState.ready && (Date.now() - bootstrapState.lastTry) > 300_000)) {
       try {
         await ensureSheet("users", USERS_HEADERS);
         await ensureSheet("archive", ARCHIVE_HEADERS);
