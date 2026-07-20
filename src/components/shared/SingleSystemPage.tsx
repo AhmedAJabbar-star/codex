@@ -60,7 +60,27 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [crudBusy, setCrudBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
   const ocrFileRef = useRef<HTMLInputElement | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const qc = useQueryClient();
+
+  // Split a cell value into multiple URLs (separator ' | ' or newline).
+  const splitUrls = (s: string): string[] =>
+    (s || '')
+      .split(/\s*\|\s*|\n+/)
+      .map(x => x.trim())
+      .filter(x => /^https?:\/\//i.test(x));
+
+  // Convert a Google Drive file URL to its embeddable /preview form.
+  const toPreviewSrc = (url: string): string => {
+    const m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+    if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+    const m2 = url.match(/[?&]id=([^&]+)/i);
+    if (m2 && /drive\.google\.com/i.test(url)) return `https://drive.google.com/file/d/${m2[1]}/preview`;
+    return url;
+  };
+
+  const isPreviewable = (url: string): boolean =>
+    /drive\.google\.com/i.test(url) || /\.pdf($|\?)/i.test(url) || /\.(png|jpe?g|gif|webp|svg)($|\?)/i.test(url);
 
 
   const systems = useMemo(() => {
