@@ -41,6 +41,21 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
 
+  // === Live theme preview ===
+  // Snapshot the global theme when the dialog opens, so we can restore it on close.
+  const originalThemeRef = useRef<UiTheme>(getUiTheme());
+  const [previewOn, setPreviewOn] = useState(false);
+  useEffect(() => {
+    originalThemeRef.current = getUiTheme();
+    return () => { applyUiTheme(originalThemeRef.current); };
+  }, []);
+  const previewTheme = (t: UiTheme | '') => {
+    if (!t) { applyUiTheme(originalThemeRef.current); setPreviewOn(false); return; }
+    applyUiTheme(t);
+    setPreviewOn(true);
+  };
+  const stopPreview = () => { applyUiTheme(originalThemeRef.current); setPreviewOn(false); };
+
   const patch = (p: Partial<CustomSystemDef>) => setS((prev) => ({ ...prev, ...p }));
 
   const addCondition = () => patch({ conditions: [...s.conditions, { column: 'A', op: 'eq', value: '' }] });
