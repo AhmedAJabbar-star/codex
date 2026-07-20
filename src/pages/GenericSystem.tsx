@@ -342,6 +342,15 @@ const GenericSystem = () => {
   const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
   const showSessionBar = !!(def.require_teacher_auth && session?.user);
 
+  // Apply per-system UI theme override on mount; restore global theme on unmount / def change.
+  useEffect(() => {
+    if (!def) return;
+    const override = (def.ui_theme || '').trim();
+    if (!override) return;
+    applyUiTheme(override as UiTheme);
+    return () => { applyUiTheme(getUiTheme()); };
+  }, [def?.id, def?.ui_theme]);
+
   return (
     <div>
       {showSessionBar && <TeacherSessionBar user={session!.user} />}
