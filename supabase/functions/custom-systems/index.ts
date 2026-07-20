@@ -224,6 +224,7 @@ function rowToSystem(r: Record<string, string>) {
     global_search: String(r.global_search || "").toLowerCase() === "true",
     drive_folder_id: clean(r.drive_folder_id),
     column_drive_folders: parseJson(r.column_drive_folders_json || "{}", {}),
+    ui_theme: clean(r.ui_theme),
   };
 }
 
@@ -277,6 +278,7 @@ async function systemToRow(s: any): Promise<string[]> {
     global_search: String(!!s.global_search),
     drive_folder_id: String(s.drive_folder_id || ""),
     column_drive_folders_json: JSON.stringify(s.column_drive_folders || {}),
+    ui_theme: String(s.ui_theme || ""),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
