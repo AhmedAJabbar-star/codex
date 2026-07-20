@@ -60,7 +60,27 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [crudBusy, setCrudBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
   const ocrFileRef = useRef<HTMLInputElement | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const qc = useQueryClient();
+
+  // Split a cell value into multiple URLs (separator ' | ' or newline).
+  const splitUrls = (s: string): string[] =>
+    (s || '')
+      .split(/\s*\|\s*|\n+/)
+      .map(x => x.trim())
+      .filter(x => /^https?:\/\//i.test(x));
+
+  // Convert a Google Drive file URL to its embeddable /preview form.
+  const toPreviewSrc = (url: string): string => {
+    const m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+    if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+    const m2 = url.match(/[?&]id=([^&]+)/i);
+    if (m2 && /drive\.google\.com/i.test(url)) return `https://drive.google.com/file/d/${m2[1]}/preview`;
+    return url;
+  };
+
+  const isPreviewable = (url: string): boolean =>
+    /drive\.google\.com/i.test(url) || /\.pdf($|\?)/i.test(url) || /\.(png|jpe?g|gif|webp|svg)($|\?)/i.test(url);
 
 
   const systems = useMemo(() => {
@@ -885,24 +905,37 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           <input type="number" className={base} value={v} onChange={(e) => set(e.target.value)} />
                         ) : c.type === 'file' ? (
                           <div className="space-y-2">
-                            {v && (
-                              <div className="flex items-center gap-2 text-xs">
-                                <a href={v} target="_blank" rel="noopener noreferrer"
-                                   className="px-2 py-1 rounded bg-emerald-100 text-emerald-800 font-bold hover:bg-emerald-200 truncate">
-                                  📎 افتح الملف الحالي
-                                </a>
-                                <button type="button" className="text-red-600 font-black" onClick={() => set('')}>✕</button>
+                            {splitUrls(v).length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                                {splitUrls(v).map((u, idx) => (
+                                  <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-100 text-emerald-800 font-bold">
+                                    {isPreviewable(u) && (
+                                      <button type="button" title="معاينة" className="hover:text-emerald-600"
+                                        onClick={() => setPreviewUrl(u)}>👁️</button>
+                                    )}
+                                    <a href={u} target="_blank" rel="noopener noreferrer" className="truncate max-w-[140px]">📎 ملف {idx + 1}</a>
+                                    <button type="button" className="text-red-600 font-black hover:text-red-800"
+                                      title="حذف"
+                                      onClick={() => {
+                                        const rest = splitUrls(v).filter((_, i) => i !== idx);
+                                        set(rest.join(' | '));
+                                      }}>✕</button>
+                                  </span>
+                                ))}
                               </div>
                             )}
                             <input
                               type="file"
+                              multiple
                               className={`${base} text-xs file:mr-2 file:px-3 file:py-1 file:rounded file:border-0 file:bg-emerald-600 file:text-white file:font-bold`}
                               accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
                               onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                if (file.size > 25 * 1024 * 1024) {
-                                  toast.error('حجم الملف يتجاوز 25 ميغابايت');
+                                const files = Array.from(e.target.files || []);
+                                if (files.length === 0) return;
+                                const over = files.find(f => f.size > 25 * 1024 * 1024);
+                                if (over) {
+                                  toast.error(`الملف "${over.name}" يتجاوز 25 ميغابايت`);
+                                  e.target.value = '';
                                   return;
                                 }
                                 const readAsBase64 = (f: File) => new Promise<string>((res, rej) => {
@@ -914,31 +947,39 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                                   r.onerror = () => rej(r.error);
                                   r.readAsDataURL(f);
                                 });
-                                try {
-                                  toast.loading('جاري رفع الملف إلى Google Drive...', { id: 'drv' });
-                                  const b64 = await readAsBase64(file);
-                                  const { data, error } = await supabase.functions.invoke('drive-upload', {
-                                    body: {
-                                      file_base64: b64,
-                                      file_name: file.name,
-                                      mime_type: file.type || 'application/octet-stream',
-                                      folder_id: c.driveFolder || '',
-                                    },
-                                  });
-                                  if (error) throw error;
-                                  if ((data as any)?.error) throw new Error((data as any).error);
-                                  const url = (data as any)?.url;
-                                  if (!url) throw new Error('لم يتم استلام رابط الملف');
-                                  set(url);
-                                  toast.success('تم رفع الملف بنجاح ✅', { id: 'drv' });
-                                } catch (err: any) {
-                                  toast.error(`فشل الرفع: ${err?.message || err}`, { id: 'drv' });
+                                const uploaded: string[] = [];
+                                for (let i = 0; i < files.length; i++) {
+                                  const file = files[i];
+                                  try {
+                                    toast.loading(`جاري رفع (${i + 1}/${files.length}): ${file.name}`, { id: 'drv' });
+                                    const b64 = await readAsBase64(file);
+                                    const { data, error } = await supabase.functions.invoke('drive-upload', {
+                                      body: {
+                                        file_base64: b64,
+                                        file_name: file.name,
+                                        mime_type: file.type || 'application/octet-stream',
+                                        folder_id: c.driveFolder || '',
+                                      },
+                                    });
+                                    if (error) throw error;
+                                    if ((data as any)?.error) throw new Error((data as any).error);
+                                    const url = (data as any)?.url;
+                                    if (!url) throw new Error('لم يتم استلام رابط');
+                                    uploaded.push(url);
+                                  } catch (err: any) {
+                                    toast.error(`فشل رفع ${file.name}: ${err?.message || err}`, { id: 'drv' });
+                                  }
+                                }
+                                if (uploaded.length > 0) {
+                                  const existing = splitUrls(v);
+                                  set([...existing, ...uploaded].join(' | '));
+                                  toast.success(`تم رفع ${uploaded.length} ملف ✅`, { id: 'drv' });
                                 }
                                 e.target.value = '';
                               }}
                             />
                             <p className="text-[10px] text-slate-500">
-                              يُرفع الملف إلى Google Drive ويُحفظ رابط «افتح الملف» في هذه الخلية.
+                              يمكنك رفع عدة ملفات دفعة واحدة (25MB لكل ملف). تُخزَّن الروابط في الخلية مفصولة بـ " | ".
                             </p>
                           </div>
                         ) : (
@@ -1062,19 +1103,34 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           }
                           const tdClass = [cellClass, (h || '').trim() === 'الملاحظات' ? 'schedule-col-notes' : ''].filter(Boolean).join(' ');
                           const linkLabel = system.linkColumns?.[h];
-                          const isUrl = !!val && /^https?:\/\//i.test(val.trim());
-                          if (linkLabel && isUrl) {
+                          const urls = linkLabel ? splitUrls(val) : [];
+                          if (linkLabel && urls.length > 0) {
                             return (
                               <td key={h} className={tdClass}>
-                                <a
-                                  href={val.trim()}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="schedule-btn schedule-btn-primary"
-                                  style={{ minHeight: 28, padding: '4px 12px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-                                >
-                                  🔗 {linkLabel}
-                                </a>
+                                <div className="flex flex-wrap gap-1 justify-center">
+                                  {urls.map((u, idx) => (
+                                    <span key={idx} className="inline-flex items-center gap-1">
+                                      {isPreviewable(u) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewUrl(u)}
+                                          title="معاينة سريعة"
+                                          className="schedule-btn"
+                                          style={{ minHeight: 26, padding: '2px 6px', fontSize: 11, background: '#f1f5f9', color: '#0f172a' }}
+                                        >👁️</button>
+                                      )}
+                                      <a
+                                        href={u}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="schedule-btn schedule-btn-primary"
+                                        style={{ minHeight: 26, padding: '3px 10px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+                                      >
+                                        🔗 {urls.length > 1 ? `${linkLabel} ${idx + 1}` : linkLabel}
+                                      </a>
+                                    </span>
+                                  ))}
+                                </div>
                               </td>
                             );
                           }
@@ -1207,6 +1263,49 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 <button className="schedule-btn schedule-btn-primary flex-1" onClick={addBooking} disabled={!bookingForm.room || !bookingForm.day || !bookingForm.date || !bookingForm.fromTime || !bookingForm.toTime}>✅ تأكيد الحجز</button>
                 <button className="schedule-btn flex-1" onClick={() => setShowBookingDialog(false)}>إلغاء</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 print:hidden"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 p-2.5 border-b bg-slate-50">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 truncate">
+                <span>👁️ معاينة الملف</span>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate max-w-[420px]">{previewUrl}</a>
+              </div>
+              <div className="flex gap-1.5">
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700"
+                >⬇️ تحميل / فتح</a>
+                <button
+                  onClick={() => setPreviewUrl(null)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800 text-xs font-black hover:bg-slate-300"
+                >✕ إغلاق</button>
+              </div>
+            </div>
+            <div className="flex-1 bg-slate-100">
+              {/\.(png|jpe?g|gif|webp|svg)($|\?)/i.test(previewUrl) ? (
+                <img src={previewUrl} alt="preview" className="w-full h-full object-contain" />
+              ) : (
+                <iframe
+                  src={toPreviewSrc(previewUrl)}
+                  className="w-full h-full border-0"
+                  title="file-preview"
+                  allow="autoplay"
+                />
+              )}
             </div>
           </div>
         </div>
