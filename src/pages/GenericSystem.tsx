@@ -334,6 +334,19 @@ const GenericSystem = () => {
     [def, session?.user],
   );
 
+  // Apply per-system UI theme override on mount; restore global theme on unmount / def change.
+  // NOTE: must be declared BEFORE any conditional early return to preserve hook order.
+  const themeOverride = (def?.ui_theme || '').trim();
+  useEffect(() => {
+    if (!themeOverride) return;
+    applyUiTheme(themeOverride as UiTheme);
+    // Also mark <body> so per-system CSS scoped to this attribute can react.
+    document.body.setAttribute('data-system-theme', themeOverride);
+    return () => {
+      applyUiTheme(getUiTheme());
+      document.body.removeAttribute('data-system-theme');
+    };
+  }, [themeOverride]);
 
   if (loadingSystems) return <LiveLoadingShell />;
   if (!def) return <Navigate to="/" replace />;
@@ -341,15 +354,6 @@ const GenericSystem = () => {
 
   const externalUrl = def.sheet_source === 'external' ? def.sheet_url : undefined;
   const showSessionBar = !!(def.require_teacher_auth && session?.user);
-
-  // Apply per-system UI theme override on mount; restore global theme on unmount / def change.
-  useEffect(() => {
-    if (!def) return;
-    const override = (def.ui_theme || '').trim();
-    if (!override) return;
-    applyUiTheme(override as UiTheme);
-    return () => { applyUiTheme(getUiTheme()); };
-  }, [def?.id, def?.ui_theme]);
 
   return (
     <div>
