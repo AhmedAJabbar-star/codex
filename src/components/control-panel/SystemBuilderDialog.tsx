@@ -214,6 +214,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     try {
       await deleteCustomSystem(initial.id, password);
       toast.success('تم حذف النظام');
+      clearDraft();
+      setDirty(false);
       onSaved();
       onClose();
     } catch (e) {
