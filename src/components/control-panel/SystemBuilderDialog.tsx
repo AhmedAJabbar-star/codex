@@ -1337,7 +1337,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 title="إنشاء نسخة بنفس الإعدادات وحفظها كنظام جديد"
               >📄 إنشاء نسخة</button>
             )}
-            <button className="schedule-btn" onClick={onClose}>إلغاء</button>
+            <button className="schedule-btn" onClick={requestClose}>إلغاء</button>
             <button className="schedule-btn schedule-btn-primary" disabled={busy} onClick={handleSave}>
               {busy ? '⏳ جاري الحفظ...' : '💾 حفظ النظام'}
             </button>
