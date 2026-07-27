@@ -196,6 +196,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     try {
       await saveCustomSystem(s, password, initial?.id || undefined);
       toast.success('تم حفظ النظام بنجاح');
+      clearDraft();
+      setDirty(false);
       onSaved();
       onClose();
     } catch (e) {
