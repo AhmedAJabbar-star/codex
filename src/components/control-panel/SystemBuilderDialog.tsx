@@ -121,7 +121,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     setPreviewOn(false);
   };
 
-  const patch = (p: Partial<CustomSystemDef>) => setS((prev) => ({ ...prev, ...p }));
+  const patch = (p: Partial<CustomSystemDef>) => { setDirty(true); setS((prev) => ({ ...prev, ...p })); };
 
   const addCondition = () => patch({ conditions: [...s.conditions, { column: 'A', op: 'eq', value: '' }] });
   const updCondition = (i: number, p: Partial<Condition>) =>
