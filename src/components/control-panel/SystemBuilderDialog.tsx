@@ -236,18 +236,40 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3" dir="rtl" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col">
         <header className="px-5 py-4 border-b flex items-center justify-between gap-3" style={{ background: `${s.color}15` }}>
           <div className="flex items-center gap-3">
             <div className="text-3xl">{s.icon || '📋'}</div>
             <div>
               <h2 className="text-lg font-black">{initial ? 'تعديل نظام' : 'نظام جديد'}</h2>
-              <p className="text-xs text-slate-500">{s.title || 'بدون عنوان'}</p>
+              <p className="text-xs text-slate-500">
+                {s.title || 'بدون عنوان'}
+                {dirty && <span className="mr-2 text-amber-600 font-bold">• تعديلات غير محفوظة (تُحفظ تلقائياً كمسوّدة)</span>}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-2xl text-slate-500 hover:text-slate-900">✕</button>
+          <button onClick={requestClose} className="text-2xl text-slate-500 hover:text-slate-900" title="إغلاق">✕</button>
         </header>
+
+        {draftFound && (
+          <div className="px-5 py-3 border-b bg-amber-50 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold text-amber-800">
+              📝 توجد مسوّدة غير محفوظة لهذا النظام «{draftFound.title || 'بدون عنوان'}». هل تريد استعادتها؟
+            </span>
+            <span className="flex gap-2">
+              <button
+                className="schedule-btn schedule-btn-primary"
+                onClick={() => { setS(draftFound); setDirty(true); setDraftFound(null); toast.success('تمت استعادة المسوّدة'); }}
+              >↩️ استعادة المسوّدة</button>
+              <button
+                className="schedule-btn"
+                onClick={() => { clearDraft(); setDraftFound(null); }}
+              >🗑️ تجاهل</button>
+            </span>
+          </div>
+        )}
+
 
         <div className="px-5 py-3 border-b flex flex-wrap gap-2 bg-slate-50">
           <Step n={1} label="الأساسيات" />
