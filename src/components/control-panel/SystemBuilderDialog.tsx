@@ -36,10 +36,62 @@ interface Props {
   onSaved: () => void;
 }
 
+const DRAFT_PREFIX = 'system-builder-draft:';
+
 const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
+  const draftKey = DRAFT_PREFIX + (initial?.id || '__new__');
   const [s, setS] = useState<CustomSystemDef>(() => initial ?? { ...EMPTY_SYSTEM });
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [draftFound, setDraftFound] = useState<CustomSystemDef | null>(null);
+
+  // === مسوّدة تلقائية: تحفظ كل تعديل محلياً حتى لا يضيع العمل أبداً ===
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) setDraftFound(JSON.parse(raw) as CustomSystemDef);
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const t = setTimeout(() => {
+      try { localStorage.setItem(draftKey, JSON.stringify(s)); } catch { /* ignore */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [s, dirty, draftKey]);
+
+  const clearDraft = () => { try { localStorage.removeItem(draftKey); } catch { /* ignore */ } };
+
+  // تحذير عند إغلاق/تحديث تبويب المتصفح أثناء وجود تعديلات غير محفوظة
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
+
+  /** الإغلاق الآمن — لا يُغلق أبداً بالضغط خارج النافذة، ويطلب تأكيداً عند وجود تعديلات. */
+  const requestClose = () => {
+    if (dirty && !window.confirm('لديك تعديلات غير محفوظة. الإغلاق الآن سيحتفظ بها كمسوّدة تُستعاد عند إعادة الفتح.\nهل تريد الإغلاق؟')) return;
+    onClose();
+  };
+
+  // منع الإغلاق بمفتاح Escape بشكل غير مقصود
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); requestClose(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty]);
+
 
   // === Live theme preview ===
   // Snapshot the global theme when the dialog opens, so we can restore it on close.
@@ -69,7 +121,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     setPreviewOn(false);
   };
 
-  const patch = (p: Partial<CustomSystemDef>) => setS((prev) => ({ ...prev, ...p }));
+  const patch = (p: Partial<CustomSystemDef>) => { setDirty(true); setS((prev) => ({ ...prev, ...p })); };
 
   const addCondition = () => patch({ conditions: [...s.conditions, { column: 'A', op: 'eq', value: '' }] });
   const updCondition = (i: number, p: Partial<Condition>) =>
@@ -144,6 +196,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     try {
       await saveCustomSystem(s, password, initial?.id || undefined);
       toast.success('تم حفظ النظام بنجاح');
+      clearDraft();
+      setDirty(false);
       onSaved();
       onClose();
     } catch (e) {
@@ -160,6 +214,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     try {
       await deleteCustomSystem(initial.id, password);
       toast.success('تم حذف النظام');
+      clearDraft();
+      setDirty(false);
       onSaved();
       onClose();
     } catch (e) {
@@ -180,18 +236,40 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3" dir="rtl" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col">
         <header className="px-5 py-4 border-b flex items-center justify-between gap-3" style={{ background: `${s.color}15` }}>
           <div className="flex items-center gap-3">
             <div className="text-3xl">{s.icon || '📋'}</div>
             <div>
               <h2 className="text-lg font-black">{initial ? 'تعديل نظام' : 'نظام جديد'}</h2>
-              <p className="text-xs text-slate-500">{s.title || 'بدون عنوان'}</p>
+              <p className="text-xs text-slate-500">
+                {s.title || 'بدون عنوان'}
+                {dirty && <span className="mr-2 text-amber-600 font-bold">• تعديلات غير محفوظة (تُحفظ تلقائياً كمسوّدة)</span>}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-2xl text-slate-500 hover:text-slate-900">✕</button>
+          <button onClick={requestClose} className="text-2xl text-slate-500 hover:text-slate-900" title="إغلاق">✕</button>
         </header>
+
+        {draftFound && (
+          <div className="px-5 py-3 border-b bg-amber-50 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold text-amber-800">
+              📝 توجد مسوّدة غير محفوظة لهذا النظام «{draftFound.title || 'بدون عنوان'}». هل تريد استعادتها؟
+            </span>
+            <span className="flex gap-2">
+              <button
+                className="schedule-btn schedule-btn-primary"
+                onClick={() => { setS(draftFound); setDirty(true); setDraftFound(null); toast.success('تمت استعادة المسوّدة'); }}
+              >↩️ استعادة المسوّدة</button>
+              <button
+                className="schedule-btn"
+                onClick={() => { clearDraft(); setDraftFound(null); }}
+              >🗑️ تجاهل</button>
+            </span>
+          </div>
+        )}
+
 
         <div className="px-5 py-3 border-b flex flex-wrap gap-2 bg-slate-50">
           <Step n={1} label="الأساسيات" />
@@ -1259,7 +1337,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 title="إنشاء نسخة بنفس الإعدادات وحفظها كنظام جديد"
               >📄 إنشاء نسخة</button>
             )}
-            <button className="schedule-btn" onClick={onClose}>إلغاء</button>
+            <button className="schedule-btn" onClick={requestClose}>إلغاء</button>
             <button className="schedule-btn schedule-btn-primary" disabled={busy} onClick={handleSave}>
               {busy ? '⏳ جاري الحفظ...' : '💾 حفظ النظام'}
             </button>
