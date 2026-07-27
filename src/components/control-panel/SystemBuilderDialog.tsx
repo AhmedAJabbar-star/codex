@@ -36,10 +36,62 @@ interface Props {
   onSaved: () => void;
 }
 
+const DRAFT_PREFIX = 'system-builder-draft:';
+
 const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
+  const draftKey = DRAFT_PREFIX + (initial?.id || '__new__');
   const [s, setS] = useState<CustomSystemDef>(() => initial ?? { ...EMPTY_SYSTEM });
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [draftFound, setDraftFound] = useState<CustomSystemDef | null>(null);
+
+  // === مسوّدة تلقائية: تحفظ كل تعديل محلياً حتى لا يضيع العمل أبداً ===
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) setDraftFound(JSON.parse(raw) as CustomSystemDef);
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const t = setTimeout(() => {
+      try { localStorage.setItem(draftKey, JSON.stringify(s)); } catch { /* ignore */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [s, dirty, draftKey]);
+
+  const clearDraft = () => { try { localStorage.removeItem(draftKey); } catch { /* ignore */ } };
+
+  // تحذير عند إغلاق/تحديث تبويب المتصفح أثناء وجود تعديلات غير محفوظة
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
+
+  /** الإغلاق الآمن — لا يُغلق أبداً بالضغط خارج النافذة، ويطلب تأكيداً عند وجود تعديلات. */
+  const requestClose = () => {
+    if (dirty && !window.confirm('لديك تعديلات غير محفوظة. الإغلاق الآن سيحتفظ بها كمسوّدة تُستعاد عند إعادة الفتح.\nهل تريد الإغلاق؟')) return;
+    onClose();
+  };
+
+  // منع الإغلاق بمفتاح Escape بشكل غير مقصود
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); requestClose(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty]);
+
 
   // === Live theme preview ===
   // Snapshot the global theme when the dialog opens, so we can restore it on close.
