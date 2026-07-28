@@ -28,17 +28,48 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   if (!w) return;
 
   const isNotes = (h: string) => (h || '').trim() === 'الملاحظات';
-  const tableRows = rows.map((r, i) =>
-    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td class="${isNotes(h) ? 'notes-col' : ''}">${(r[h] || '').toString().replace(/</g,'&lt;')}</td>`).join('')}</tr>`
-  ).join('');
+  const esc = (v: unknown) => (v == null ? '' : String(v)).replace(/</g, '&lt;');
+  // Build once as an array join — far cheaper than string concatenation for large sets.
+  const rowChunks: string[] = new Array(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    let cells = '';
+    for (let c = 0; c < headers.length; c++) {
+      const h = headers[c];
+      cells += `<td${isNotes(h) ? ' class="notes-col"' : ''}>${esc(r[h])}</td>`;
+    }
+    rowChunks[i] = `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${cells}</tr>`;
+  }
+  const tableRows = rowChunks.join('');
 
   const colCount = headers.length;
   const rowCount = rows.length;
+
+  /* Column widths: sampling the content lets us use table-layout:fixed, which is
+     dramatically faster to lay out than `auto` on thousands of rows — and it also
+     stops columns from being squeezed/clipped unpredictably. */
+  const sample = Math.min(rows.length, 400);
+  const weights = headers.map((h) => {
+    let max = (h || '').length;
+    for (let i = 0; i < sample; i++) {
+      const len = String(rows[i][h] ?? '').length;
+      if (len > max) max = len;
+    }
+    return Math.min(Math.max(max, 4), 42);
+  });
+  const weightSum = weights.reduce((a, b) => a + b, 0) || 1;
+  const colgroupHtml = `<colgroup>${weights.map((w) => `<col style="width:${((w / weightSum) * 100).toFixed(3)}%"/>`).join('')}</colgroup>`;
+
+  /* Very large reports are streamed into the table in chunks after the window paints,
+     so the preview opens instantly instead of freezing the browser. */
+  const DEFER_ROWS = rowCount > 600;
+
   const baseFont = colCount > 16 ? 7 : colCount > 14 ? 7.8 : colCount > 12 ? 8.6 : colCount > 10 ? 9.4 : colCount > 8 ? 10.2 : 11;
   const rowFactor = rowCount > 40 ? 0.9 : rowCount > 25 ? 0.95 : 1;
   const fontSize = singlePage ? '7.5px' : `${(baseFont * rowFactor).toFixed(1)}px`;
   const cellPadV = singlePage ? 2 : rowCount > 30 ? 3 : 5;
   const cellPadH = colCount > 14 ? 1.5 : colCount > 12 ? 2 : 4;
+
   const today = new Date().toLocaleDateString('ar-IQ');
   const docNumber = `${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`;
 
