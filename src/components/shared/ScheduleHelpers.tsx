@@ -28,17 +28,48 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   if (!w) return;
 
   const isNotes = (h: string) => (h || '').trim() === 'الملاحظات';
-  const tableRows = rows.map((r, i) =>
-    `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${headers.map(h => `<td class="${isNotes(h) ? 'notes-col' : ''}">${(r[h] || '').toString().replace(/</g,'&lt;')}</td>`).join('')}</tr>`
-  ).join('');
+  const esc = (v: unknown) => (v == null ? '' : String(v)).replace(/</g, '&lt;');
+  // Build once as an array join — far cheaper than string concatenation for large sets.
+  const rowChunks: string[] = new Array(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    let cells = '';
+    for (let c = 0; c < headers.length; c++) {
+      const h = headers[c];
+      cells += `<td${isNotes(h) ? ' class="notes-col"' : ''}>${esc(r[h])}</td>`;
+    }
+    rowChunks[i] = `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${cells}</tr>`;
+  }
+  const tableRows = rowChunks.join('');
 
   const colCount = headers.length;
   const rowCount = rows.length;
+
+  /* Column widths: sampling the content lets us use table-layout:fixed, which is
+     dramatically faster to lay out than `auto` on thousands of rows — and it also
+     stops columns from being squeezed/clipped unpredictably. */
+  const sample = Math.min(rows.length, 400);
+  const weights = headers.map((h) => {
+    let max = (h || '').length;
+    for (let i = 0; i < sample; i++) {
+      const len = String(rows[i][h] ?? '').length;
+      if (len > max) max = len;
+    }
+    return Math.min(Math.max(max, 4), 42);
+  });
+  const weightSum = weights.reduce((a, b) => a + b, 0) || 1;
+  const colgroupHtml = `<colgroup>${weights.map((w) => `<col style="width:${((w / weightSum) * 100).toFixed(3)}%"/>`).join('')}</colgroup>`;
+
+  /* Very large reports are streamed into the table in chunks after the window paints,
+     so the preview opens instantly instead of freezing the browser. */
+  const DEFER_ROWS = rowCount > 600;
+
   const baseFont = colCount > 16 ? 7 : colCount > 14 ? 7.8 : colCount > 12 ? 8.6 : colCount > 10 ? 9.4 : colCount > 8 ? 10.2 : 11;
   const rowFactor = rowCount > 40 ? 0.9 : rowCount > 25 ? 0.95 : 1;
   const fontSize = singlePage ? '7.5px' : `${(baseFont * rowFactor).toFixed(1)}px`;
   const cellPadV = singlePage ? 2 : rowCount > 30 ? 3 : 5;
   const cellPadH = colCount > 14 ? 1.5 : colCount > 12 ? 2 : 4;
+
   const today = new Date().toLocaleDateString('ar-IQ');
   const docNumber = `${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`;
 
@@ -195,14 +226,25 @@ body.hide-docnum  .banner .cell-docnum{display:none}
 body.hide-count   .banner .cell-count{display:none}
 
 /* ===== DATA TABLE ===== */
-table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto;margin-top:4px}
+table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:fixed;margin-top:4px}
 table.data thead{display:table-header-group}
 table.data th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;line-height:1.2;-webkit-print-color-adjust:exact;print-color-adjust:exact;word-break:break-word;white-space:normal}
 table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.3;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
 table.data .notes-col{min-width:38mm;white-space:pre-wrap;text-align:right}
 table.data tr.even{background:#f4f8fd;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table.data tr.odd{background:#fff}
-table.data tr:hover{background:#eaf1fb}
+/* No :hover rule on data rows — it forces a full repaint pass on very large tables. */
+
+/* ===== BUILD PROGRESS OVERLAY (large reports) ===== */
+#prep{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(238,242,247,.96);font-family:'Cairo',sans-serif}
+#prep .pbox{background:#fff;border:1.5px solid #c5d3e3;border-radius:14px;padding:26px 34px;box-shadow:0 18px 44px rgba(15,76,129,.18);text-align:center;min-width:320px}
+#prep .ptitle{font-weight:800;color:#0f4c81;font-size:16px;margin-bottom:12px}
+#prep .ptrack{height:10px;border-radius:99px;background:#e3ebf5;overflow:hidden}
+#prep .pfill{height:100%;width:0;background:linear-gradient(90deg,#0f4c81,#2d7dc4);transition:width .12s linear}
+#prep .pnum{margin-top:10px;font-size:12.5px;font-weight:700;color:#44566b}
+body.ready #prep{display:none}
+@media print{#prep{display:none!important}}
+
 table.data > tfoot{display:table-footer-group}
 table.data .footer-cell{padding:0!important;border:0!important;background:#fff!important}
 table.data > tfoot .signatures-wrap{margin-top:6px}
@@ -286,40 +328,49 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
   <div class="sep"></div>
-  <span class="pv-title" style="font-size:12px;opacity:.85">🧾 الطباعة على دفعات:</span>
-  <select id="pv-batch" title="عدد السجلات في كل دفعة طباعة — يمنع تعليق المتصفح عند كثرة البيانات">
-    <option value="0">كل السجلات</option>
+  <span class="pv-title" style="font-size:12px;opacity:.85">🧾 تقسيم اختياري (للطابعات الضعيفة فقط):</span>
+  <select id="pv-batch" title="يبقى الوضع الافتراضي: طباعة كل السجلات في ملف واحد">
+    <option value="0">كل السجلات (ملف واحد كامل)</option>
     <option value="200">200 سجل / دفعة</option>
     <option value="300">300 سجل / دفعة</option>
     <option value="500">500 سجل / دفعة</option>
     <option value="1000">1000 سجل / دفعة</option>
   </select>
   <select id="pv-batch-page" title="اختر الدفعة المعروضة"></select>
-  <button class="btn-close" id="pv-batch-all" title="طباعة كل الدفعات واحدة تلو الأخرى">🖨️ طباعة كل الدفعات</button>
+  <button class="btn-close" id="pv-batch-all" title="طباعة الدفعات واحدة تلو الأخرى بالتتابع">🖨️ طباعة كل الدفعات</button>
   <span id="pv-batch-info" style="font-size:11.5px;font-weight:700;opacity:.9"></span>
   <button class="pv-toggle btn-close" id="pv-toggle" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ الإعدادات</button>
 
-  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+  <button class="btn-print" id="pv-print-full" title="طباعة/حفظ PDF لكامل السجلات في ملف واحد">🖨️ طباعة الكل / حفظ PDF</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
-
+<div id="prep">
+  <div class="pbox">
+    <div class="ptitle">⏳ جاري تجهيز التقرير الرسمي…</div>
+    <div class="ptrack"><div class="pfill" id="prep-fill"></div></div>
+    <div class="pnum" id="prep-num">0 من ${rowCount}</div>
+  </div>
+</div>
 
 <div class="print-area">
   <div class="watermark">${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</div>
   <div class="first-banner">${bannerHtml}</div>
   <table class="data">
+    ${colgroupHtml}
     <thead>
       <tr class="repeat-banner-row"><th class="banner-cell" colspan="${colCount}">${bannerHtml}</th></tr>
       <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
     </thead>
-    <tbody>${tableRows}</tbody>
+    <tbody>${DEFER_ROWS ? '' : tableRows}</tbody>
   </table>
   <div id="sigs-end" class="signatures-wrap">
     ${signaturesHtml}
     <div class="doc-meta"><span><strong>وثيقة رسمية</strong> &nbsp;صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
   </div>
 </div>
+${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/script/gi, '<\\/script')}</script>` : ''}
+
 
 <!-- محاكاة شكل الصفحة الثانية أثناء الطباعة — للمعاينة فقط -->
 <div id="repeat-banner-preview">
@@ -466,20 +517,24 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   }
   if(fit) fit.addEventListener('change', applyFit);
 
-  /* ===== الطباعة على دفعات — تمنع تعليق المتصفح عند كثرة السجلات ===== */
+  /* ===== بناء الجدول تدريجياً للتقارير الضخمة (بدون تجميد المتصفح) ===== */
   var TOTAL_ROWS = ${rowCount};
-  var dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody > tr'));
+  var DEFER = ${DEFER_ROWS ? 'true' : 'false'};
+  var tbodyEl = document.querySelector('table.data > tbody');
+  var dataRows = [];
   var bSel=$('pv-batch'), pSel=$('pv-batch-page'), bInfo=$('pv-batch-info'), bAll=$('pv-batch-all');
+  var printBtn=$('pv-print-full');
+
   function batchSize(){ return parseInt((bSel && bSel.value) || '0', 10) || 0; }
   function batchCount(){ var s=batchSize(); return s>0 ? Math.max(1, Math.ceil(TOTAL_ROWS/s)) : 1; }
   function showBatch(idx){
     var s=batchSize();
     if(s<=0){
-      dataRows.forEach(function(tr){ tr.style.display=''; });
-      if(bInfo) bInfo.textContent = 'إجمالي ' + TOTAL_ROWS + ' سجل';
+      for(var i=0;i<dataRows.length;i++) dataRows[i].style.display='';
+      if(bInfo) bInfo.textContent = 'ملف واحد كامل — ' + TOTAL_ROWS + ' سجل';
     } else {
       var from=idx*s, to=Math.min(TOTAL_ROWS, from+s);
-      dataRows.forEach(function(tr,i){ tr.style.display=(i>=from && i<to) ? '' : 'none'; });
+      for(var j=0;j<dataRows.length;j++) dataRows[j].style.display=(j>=from && j<to) ? '' : 'none';
       if(bInfo) bInfo.textContent = 'الدفعة ' + (idx+1) + ' من ' + batchCount() + ' (السجلات ' + (from+1) + '–' + to + ')';
     }
     document.querySelectorAll('.banner .cell-count span').forEach(function(el){
@@ -502,17 +557,59 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   }
   if(bSel) bSel.addEventListener('change', rebuildBatches);
   if(pSel) pSel.addEventListener('change', function(){ showBatch(parseInt(pSel.value,10)||0); });
+
+  /* طباعة الدفعات بالتتابع — ننتظر انتهاء كل طباعة قبل الانتقال للتالية */
   if(bAll) bAll.addEventListener('click', function(){
-    var n=batchCount();
-    for(var i=0;i<n;i++){ pSel.value=String(i); showBatch(i); window.print(); }
+    var n=batchCount(), i=0;
+    function step(){
+      if(i>=n){ window.onafterprint=null; return; }
+      pSel.value=String(i); showBatch(i); i++;
+      window.onafterprint=function(){ setTimeout(step, 350); };
+      window.print();
+    }
+    step();
   });
-  // تفعيل تلقائي للدفعات عند تجاوز 400 سجل حتى لا يفشل أمر الطباعة
-  if(bSel){
-    var savedBatch = prefs.batch;
-    if(savedBatch===undefined) savedBatch = TOTAL_ROWS > 400 ? 300 : 0;
-    bSel.value = String(savedBatch);
-    rebuildBatches();
+
+  /* زر «طباعة الكل / حفظ PDF» — يُلغي أي تقسيم ويطبع كامل البيانات في ملف واحد */
+  if(printBtn) printBtn.addEventListener('click', function(){
+    if(!document.body.classList.contains('ready')) return;
+    if(bSel && batchSize()>0){ bSel.value='0'; rebuildBatches(); }
+    setTimeout(function(){ window.print(); }, 60);
+  });
+
+  function initBatches(){
+    dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody > tr'));
+    if(bSel){
+      // ترحيل لمرة واحدة: إلغاء التقسيم التلقائي القديم — الافتراضي الآن ملف واحد كامل.
+      if(!prefs.batchV2){ prefs.batch = 0; prefs.batchV2 = true; savePrefs(prefs); }
+      bSel.value = String(prefs.batch === undefined ? 0 : prefs.batch);
+      rebuildBatches();
+    }
+
+    document.body.classList.add('ready');
   }
+
+  if(DEFER && tbodyEl){
+    var src = (document.getElementById('rows-src') || {}).textContent || '';
+    var parts = src.split('</tr>');
+    if(parts.length && parts[parts.length-1].trim()==='') parts.pop();
+    var pos = 0, CHUNK = 250;
+    var fill = $('prep-fill'), num = $('prep-num');
+    function pump(){
+      var end = Math.min(parts.length, pos + CHUNK);
+      tbodyEl.insertAdjacentHTML('beforeend', parts.slice(pos, end).join('</tr>') + '</tr>');
+      pos = end;
+      var pct = Math.round((pos/parts.length)*100);
+      if(fill) fill.style.width = pct + '%';
+      if(num) num.textContent = pos + ' من ' + TOTAL_ROWS;
+      if(pos < parts.length) requestAnimationFrame(pump);
+      else { var s=document.getElementById('rows-src'); if(s) s.remove(); initBatches(); }
+    }
+    requestAnimationFrame(pump);
+  } else {
+    initBatches();
+  }
+
 
 
 
