@@ -830,7 +830,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
           {/* Toolbar */}
           <div className="schedule-toolbar">
-            <button className="schedule-btn schedule-btn-primary" onClick={handlePrint}>🖨️ {activeSystem === 'assignments' ? 'طباعة التكليفات' : 'طباعة الجدول'}</button>
+            <button className="schedule-btn schedule-btn-primary" onClick={() => handlePrint(false)}>🖨️ {activeSystem === 'assignments' ? 'طباعة التكليفات' : 'طباعة الجدول'}</button>
+            {activeSystem !== 'assignments' && (
+              <button
+                className="schedule-btn schedule-btn-secondary"
+                title="ينشئ التقرير الرسمي كاملاً بلا معاينة ويفتح مربع حوار الحفظ لاختيار مكان الملف على الحاسبة (اختر «حفظ بصيغة PDF»)"
+                onClick={() => handlePrint(true)}
+              >📄 حفظ PDF كامل (بلا معاينة)</button>
+            )}
             {system.shortReport && (
               <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
             )}
