@@ -226,7 +226,7 @@ body.hide-docnum  .banner .cell-docnum{display:none}
 body.hide-count   .banner .cell-count{display:none}
 
 /* ===== DATA TABLE ===== */
-table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:auto;margin-top:4px}
+table.data{width:100%;border-collapse:collapse;font-size:${fontSize};table-layout:fixed;margin-top:4px}
 table.data thead{display:table-header-group}
 table.data th{background:linear-gradient(180deg,#0f4c81,#0b3558);color:#fff;padding:${cellPadV + 2}px ${cellPadH}px;font-weight:800;border:1px solid #0b3558;text-align:center;line-height:1.2;-webkit-print-color-adjust:exact;print-color-adjust:exact;word-break:break-word;white-space:normal}
 table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-align:center;font-weight:600;vertical-align:middle;line-height:1.3;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
