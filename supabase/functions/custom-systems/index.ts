@@ -307,6 +307,11 @@ function slugify(t: string): string {
 let listCache: { at: number; payload: any } | null = null;
 const LIST_TTL_MS = 60_000;
 
+/** Sentinel sent to the browser instead of a stored password. */
+const KEEP = "__KEEP_EXISTING__";
+/** Never expose a system password to the client. */
+const maskSystem = (s: any) => ({ ...s, password: s?.password ? KEEP : "" });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -320,7 +325,7 @@ Deno.serve(async (req) => {
       }
       try {
         const all = await readAll();
-        const payload = { systems: all.map(rowToSystem) };
+        const payload = { systems: all.map(rowToSystem).map(maskSystem) };
         listCache = { at: Date.now(), payload };
         return json(payload);
       } catch (e) {
@@ -330,10 +335,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Server-side password check for a protected custom system.
+    if (action === "verify") {
+      const id = clean(body?.id);
+      if (!id) return json({ error: "id مطلوب" }, 400);
+      const all = await readAll();
+      const row = all.find((r) => clean(r.id) === id);
+      if (!row) return json({ ok: false });
+      const expected = String((rowToSystem(row) as any).password || "");
+      return json({ ok: !expected || String(body?.password || "") === expected });
+    }
+
     // Write actions
     if (!(await validatePassword(String(body?.password || "")))) {
       return json({ error: "كلمة المرور غير صحيحة" }, 401);
     }
+
 
     if (action === "save") {
       const sys = body?.system || {};
@@ -356,7 +373,13 @@ Deno.serve(async (req) => {
         if (collision >= 0) return json({ error: "اسم الرابط مستخدم لنظام آخر — اختر اسماً مختلفاً" }, 400);
       }
       const idx = all.findIndex((r) => clean(r.id) === clean(lookupId));
+      // The client only ever sees a sentinel, so restore the stored password
+      // whenever it comes back unchanged.
+      if (String(sys.password || "") === KEEP) {
+        sys.password = idx >= 0 ? String((rowToSystem(all[idx]) as any).password || "") : "";
+      }
       if (idx >= 0) {
+
         sys.created_at = clean(all[idx].created_at) || new Date().toISOString();
         const rowVals = await systemToRow(sys);
         const range = await rangeForRow(idx);

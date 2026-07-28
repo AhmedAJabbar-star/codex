@@ -8,7 +8,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
-import { getRuleByPath, syncRulesFromRemote, SYSTEM_ACCESS_RULES_UPDATED_EVENT } from "@/lib/systemAccess";
+import { getRuleByPath, getSystemIdByPath, verifySystemPassword, syncRulesFromRemote, SYSTEM_ACCESS_RULES_UPDATED_EVENT } from "@/lib/systemAccess";
 import TeacherAuthGate from "@/components/shared/TeacherAuthGate";
 
 
@@ -50,19 +50,30 @@ const markSessionOk = (path: string) => {
   try { sessionStorage.setItem(PROTECTED_OK_PREFIX + path, '1'); } catch { /* ignore */ }
 };
 
-const PasswordGate = ({ pathname, expected, onSuccess }: { pathname: string; expected: string; onSuccess: () => void }) => {
+const PasswordGate = ({ pathname, verify, onSuccess }: { pathname: string; verify: (pw: string) => Promise<boolean>; onSuccess: () => void }) => {
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((pw || '') === (expected || '')) {
-      markSessionOk(pathname);
-      onSuccess();
-    } else {
-      setErr('كلمة المرور غير صحيحة');
+    if (busy) return;
+    setBusy(true);
+    try {
+      const ok = await verify(pw || '');
+      if (ok) {
+        markSessionOk(pathname);
+        onSuccess();
+      } else {
+        setErr('كلمة المرور غير صحيحة');
+      }
+    } catch {
+      setErr('تعذر التحقق من كلمة المرور، حاول مجدداً');
+    } finally {
+      setBusy(false);
     }
   };
+
   return (
     <div className="schedule-body min-h-screen flex items-center justify-center px-4" dir="rtl">
       <form onSubmit={submit} className="schedule-card p-8 w-full max-w-md text-center">
@@ -83,9 +94,10 @@ const PasswordGate = ({ pathname, expected, onSuccess }: { pathname: string; exp
           <button type="button" className="schedule-btn flex-1" onClick={() => navigate('/')} style={{ minHeight: 46 }}>
             🏠 الرئيسية
           </button>
-          <button type="submit" className="schedule-btn schedule-btn-primary flex-1" style={{ minHeight: 46 }}>
-            🔓 دخول
+          <button type="submit" disabled={busy} className="schedule-btn schedule-btn-primary flex-1" style={{ minHeight: 46 }}>
+            {busy ? '⏳ جارٍ التحقق…' : '🔓 دخول'}
           </button>
+
         </div>
       </form>
     </div>
@@ -116,18 +128,24 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const gated = rule.require_teacher_auth ? <TeacherAuthGate>{children}</TeacherAuthGate> : children;
   if (!rule.protected || ok) return gated;
 
-  return <PasswordGate pathname={pathname} expected={rule.password || ''} onSuccess={() => setOk(true)} />;
+  return (
+    <PasswordGate
+      pathname={pathname}
+      verify={(pw) => verifySystemPassword(getSystemIdByPath(pathname) || '', pw)}
+      onSuccess={() => setOk(true)}
+    />
+  );
 };
 
 
-// Gate for /custom/:id routes — fetches the system def and checks its `protected/password`.
+// Gate for /custom/:id routes — the password itself stays on the server.
 const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
   const { pathname } = useLocation();
   const rawId = pathname.replace(/^\/custom\//, '').replace(/\/$/, '');
   let id = rawId;
   try { id = decodeURIComponent(rawId); } catch { /* keep raw */ }
-  const [state, setState] = useState<{ loading: boolean; protected: boolean; password: string; visible: boolean; requireTeacherAuth: boolean }>(
-    { loading: true, protected: false, password: '', visible: true, requireTeacherAuth: false },
+  const [state, setState] = useState<{ loading: boolean; protected: boolean; visible: boolean; requireTeacherAuth: boolean }>(
+    { loading: true, protected: false, visible: true, requireTeacherAuth: false },
   );
   const [ok, setOk] = useState(() => sessionOk(pathname));
 
@@ -137,10 +155,10 @@ const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
       .then((all) => {
         if (!alive) return;
         const s = all.find((x) => x.id === id);
-        if (!s) { setState({ loading: false, protected: false, password: '', visible: false, requireTeacherAuth: false }); return; }
-        setState({ loading: false, protected: !!s.protected, password: s.password || '', visible: s.enabled !== false, requireTeacherAuth: !!s.require_teacher_auth });
+        if (!s) { setState({ loading: false, protected: false, visible: false, requireTeacherAuth: false }); return; }
+        setState({ loading: false, protected: !!s.protected, visible: s.enabled !== false, requireTeacherAuth: !!s.require_teacher_auth });
       })
-      .catch(() => alive && setState({ loading: false, protected: false, password: '', visible: false, requireTeacherAuth: false }));
+      .catch(() => alive && setState({ loading: false, protected: false, visible: false, requireTeacherAuth: false }));
     return () => { alive = false; };
   }, [id]);
 
@@ -148,8 +166,15 @@ const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
   if (!state.visible) return <Navigate to="/" replace />;
   const gated = state.requireTeacherAuth ? <TeacherAuthGate>{children}</TeacherAuthGate> : children;
   if (!state.protected || ok || sessionOk(pathname)) return gated;
-  return <PasswordGate pathname={pathname} expected={state.password} onSuccess={() => setOk(true)} />;
+  return (
+    <PasswordGate
+      pathname={pathname}
+      verify={(pw) => import('@/data/customSystemsRegistry').then(({ verifyCustomSystemPassword }) => verifyCustomSystemPassword(id, pw))}
+      onSuccess={() => setOk(true)}
+    />
+  );
 };
+
 
 
 const Loading = () => (

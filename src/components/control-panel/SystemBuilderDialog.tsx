@@ -723,7 +723,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 حماية بكلمة سر
               </label>
               {s.protected && (
-                <input className="schedule-select w-full" value={s.password} onChange={(e) => patch({ password: e.target.value })} placeholder="كلمة المرور لحماية دخول النظام (إذا فُعّلت الحماية)" />
+                <input className="schedule-select w-full" value={s.password === '__KEEP_EXISTING__' ? '' : s.password} onChange={(e) => patch({ password: e.target.value })} placeholder="•••••• محفوظة — اكتب كلمة جديدة لتغييرها" />
               )}
               <label className="flex items-center gap-2 text-sm font-bold mt-3">
                 <input type="checkbox" checked={s.enabled !== false} onChange={(e) => patch({ enabled: e.target.checked })} />

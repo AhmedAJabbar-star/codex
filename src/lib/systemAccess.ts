@@ -31,8 +31,13 @@ export type SystemGroup = {
 };
 
 export const MANAGER_PASSWORD_ID = '_manager';
-export const DEFAULT_MANAGER_PASSWORD = 'aa';
+/**
+ * Sentinel used in place of a real password. Real passwords never reach the
+ * browser: the server sends this marker and swaps it back on save.
+ */
+export const KEEP_PASSWORD = '__KEEP_EXISTING__';
 export const GROUPS_KEY = '__groups';
+
 
 export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'controlPanel', title: 'لوحة التحكم', path: '/control-panel' },
@@ -66,7 +71,7 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
 
 const KEY = 'system-access-rules-v1';
 export const SYSTEM_ACCESS_RULES_UPDATED_EVENT = 'system-access-rules-updated';
-const GLOBAL_RULES_ID = 'global';
+
 
 let remoteRulesStoreUnavailable = false;
 
@@ -81,16 +86,9 @@ type RawRules = Record<string, unknown>;
 const defaultRule = (systemId?: string): SystemAccessRule => ({
   visible: true,
   protected: systemId === 'controlPanel',
-  password:
-    systemId === 'controlPanel' ? '2021'
-    : systemId === MANAGER_PASSWORD_ID ? DEFAULT_MANAGER_PASSWORD
-    : '',
+  password: '',
 });
 
-export function getManagerPassword(): string {
-  const r = getRules()[MANAGER_PASSWORD_ID];
-  return (r?.password || DEFAULT_MANAGER_PASSWORD).trim() || DEFAULT_MANAGER_PASSWORD;
-}
 
 const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule> => {
   const out: Record<string, SystemAccessRule> = {};
@@ -146,26 +144,43 @@ export function getGroups(): SystemGroup[] {
 export async function syncRulesFromRemote(): Promise<Record<string, SystemAccessRule>> {
   if (remoteRulesStoreUnavailable) return getRules();
 
-  const { data, error } = await supabase
-    .from('system_access_rules')
-    .select('rules')
-    .eq('id', GLOBAL_RULES_ID)
-    .maybeSingle();
+  const { data, error } = await supabase.functions.invoke('system-rules', {
+    body: { action: 'get' },
+  });
 
   if (error) {
     if (isRemoteRulesTableMissing(error)) remoteRulesStoreUnavailable = true;
     return getRules();
   }
-  if (!data?.rules) return getRules();
+  const rules = (data as { rules?: RawRules } | null)?.rules;
+  if (!rules) return getRules();
 
-  const parsed = data.rules as RawRules;
-  const normalized = normalizeRules(parsed);
-  const groups = normalizeGroups(parsed);
+  const normalized = normalizeRules(rules);
+  const groups = normalizeGroups(rules);
   const toStore: RawRules = { ...normalized, [GROUPS_KEY]: groups };
   localStorage.setItem(KEY, JSON.stringify(toStore));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
   return normalized;
 }
+
+/**
+ * Checks a protected system's password on the server. The real password is
+ * never sent to the browser, so comparison cannot happen locally.
+ */
+export async function verifySystemPassword(systemId: string, password: string): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke('system-rules', {
+    body: { action: 'verify', system_id: systemId, password },
+  });
+  if (error) return false;
+  return (data as { ok?: boolean } | null)?.ok === true;
+}
+
+/** Maps a route path to its registry id (used by the password gate). */
+export function getSystemIdByPath(pathname: string): string | null {
+  const normalizedPath = normalizePath(pathname);
+  return SYSTEMS_REGISTRY.find((s) => normalizePath(s.path) === normalizedPath)?.id || null;
+}
+
 
 export async function setRules(rules: Record<string, SystemAccessRule>, password: string, groups?: SystemGroup[]) {
   const groupList = groups ?? getGroups();

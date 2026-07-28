@@ -256,11 +256,24 @@ export async function listCustomSystems(): Promise<CustomSystemDef[]> {
   return ((data as any)?.systems || []) as CustomSystemDef[];
 }
 
+/**
+ * Verifies a custom system's password on the server. The stored password is
+ * masked in the public listing, so it can never be compared in the browser.
+ */
+export async function verifyCustomSystemPassword(id: string, password: string): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke('custom-systems', {
+    body: { action: 'verify', id, password },
+  });
+  if (error) return false;
+  return (data as { ok?: boolean } | null)?.ok === true;
+}
+
 const notifyCustomSystemsUpdated = () => {
   if (typeof window === 'undefined') return;
   window.sessionStorage.setItem('custom-systems-force-refresh-until', String(Date.now() + 30_000));
   window.dispatchEvent(new Event(CUSTOM_SYSTEMS_UPDATED_EVENT));
 };
+
 
 export async function saveCustomSystem(system: CustomSystemDef, password: string, originalId?: string): Promise<void> {
   const { data, error } = await supabase.functions.invoke('custom-systems', {

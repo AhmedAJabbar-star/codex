@@ -4,9 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote,
-  getGroups, MANAGER_PASSWORD_ID, DEFAULT_MANAGER_PASSWORD,
+  getGroups, MANAGER_PASSWORD_ID, KEEP_PASSWORD,
   type SystemAccessRule, type SystemGroup,
 } from '@/lib/systemAccess';
+
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog';
 import UsersAdminSection from '@/components/control-panel/UsersAdminSection';
@@ -18,6 +19,11 @@ const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','�
 const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1d4ed8','#9333ea','#0d9488','#be185d','#ea580c','#65a30d'];
 
 const newId = () => `g-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
+
+/** Stored passwords are never sent to the browser; the server returns a sentinel. */
+const PW_PLACEHOLDER = '•••••• محفوظة — اكتب كلمة جديدة لتغييرها';
+const pwValue = (v?: string) => (v === KEEP_PASSWORD ? '' : (v || ''));
+
 
 const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
@@ -48,8 +54,9 @@ const ControlPanel = () => {
     () => SYSTEMS_REGISTRY.filter((s) => s.id !== 'controlPanel' && s.id !== MANAGER_PASSWORD_ID),
     [],
   );
-  const managerPw = rules[MANAGER_PASSWORD_ID]?.password ?? DEFAULT_MANAGER_PASSWORD;
-  const cpRule = rules.controlPanel || { visible: true, protected: true, password: '2021' };
+  const managerPw = rules[MANAGER_PASSWORD_ID]?.password ?? '';
+  const cpRule = rules.controlPanel || { visible: true, protected: true, password: '' };
+
 
   const update = (id: string, patch: Partial<SystemAccessRule>) => {
     setLocalRules((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
@@ -217,11 +224,11 @@ const ControlPanel = () => {
             <input
               className="schedule-select w-full"
               type="text"
-              placeholder="كلمة المرور"
-              value={cpRule.password}
+              placeholder={PW_PLACEHOLDER}
+              value={pwValue(cpRule.password)}
               onChange={(e) => update('controlPanel', { password: e.target.value, visible: true, protected: true })}
             />
-            <p className="text-xs text-[var(--schedule-muted)] mt-2">⚠️ سيتم طلب كلمة المرور الحالية عند الحفظ.</p>
+            <p className="text-xs text-[var(--schedule-muted)] mt-2">⚠️ سيتم طلب كلمة المرور الحالية عند الحفظ. لا تُعرض كلمات المرور المحفوظة لأسباب أمنية.</p>
           </div>
 
           {/* Manager password */}
@@ -233,11 +240,12 @@ const ControlPanel = () => {
             <input
               className="schedule-select w-full"
               type="text"
-              placeholder={`الافتراضي: ${DEFAULT_MANAGER_PASSWORD}`}
-              value={managerPw}
+              placeholder={PW_PLACEHOLDER}
+              value={pwValue(managerPw)}
               onChange={(e) => update(MANAGER_PASSWORD_ID, { password: e.target.value, visible: true, protected: false })}
             />
           </div>
+
 
           {/* Groups manager */}
           <div className="border-2 border-purple-300 rounded-xl p-4 bg-purple-50/40 mb-5">
@@ -397,10 +405,11 @@ const ControlPanel = () => {
                     <input
                       className="schedule-select w-full"
                       type="text"
-                      placeholder="كلمة المرور"
-                      value={r.password}
+                      placeholder={PW_PLACEHOLDER}
+                      value={pwValue(r.password)}
                       onChange={(e) => update(s.id, { password: e.target.value })}
                     />
+
                   </div>
                   <label className="mt-3 flex items-start gap-2 text-sm font-bold border-2 border-amber-300 rounded-lg p-2 bg-amber-50/60 cursor-pointer">
                     <input
