@@ -56,6 +56,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
   // Inline CRUD state (used only when system.crudContext is set)
   const [crudSearch, setCrudSearch] = useState('');
+  // البحث المؤجَّل: يبقي الكتابة سلسة مهما كثرت السجلات
+  const deferredSearch = useDeferredValue(crudSearch);
   const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
   const [crudBusy, setCrudBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
