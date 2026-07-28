@@ -328,40 +328,49 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
   <div class="sep"></div>
-  <span class="pv-title" style="font-size:12px;opacity:.85">🧾 الطباعة على دفعات:</span>
-  <select id="pv-batch" title="عدد السجلات في كل دفعة طباعة — يمنع تعليق المتصفح عند كثرة البيانات">
-    <option value="0">كل السجلات</option>
+  <span class="pv-title" style="font-size:12px;opacity:.85">🧾 تقسيم اختياري (للطابعات الضعيفة فقط):</span>
+  <select id="pv-batch" title="يبقى الوضع الافتراضي: طباعة كل السجلات في ملف واحد">
+    <option value="0">كل السجلات (ملف واحد كامل)</option>
     <option value="200">200 سجل / دفعة</option>
     <option value="300">300 سجل / دفعة</option>
     <option value="500">500 سجل / دفعة</option>
     <option value="1000">1000 سجل / دفعة</option>
   </select>
   <select id="pv-batch-page" title="اختر الدفعة المعروضة"></select>
-  <button class="btn-close" id="pv-batch-all" title="طباعة كل الدفعات واحدة تلو الأخرى">🖨️ طباعة كل الدفعات</button>
+  <button class="btn-close" id="pv-batch-all" title="طباعة الدفعات واحدة تلو الأخرى بالتتابع">🖨️ طباعة كل الدفعات</button>
   <span id="pv-batch-info" style="font-size:11.5px;font-weight:700;opacity:.9"></span>
   <button class="pv-toggle btn-close" id="pv-toggle" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ الإعدادات</button>
 
-  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+  <button class="btn-print" id="pv-print-full" title="طباعة/حفظ PDF لكامل السجلات في ملف واحد">🖨️ طباعة الكل / حفظ PDF</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
-
+<div id="prep">
+  <div class="pbox">
+    <div class="ptitle">⏳ جاري تجهيز التقرير الرسمي…</div>
+    <div class="ptrack"><div class="pfill" id="prep-fill"></div></div>
+    <div class="pnum" id="prep-num">0 من ${rowCount}</div>
+  </div>
+</div>
 
 <div class="print-area">
   <div class="watermark">${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</div>
   <div class="first-banner">${bannerHtml}</div>
   <table class="data">
+    ${colgroupHtml}
     <thead>
       <tr class="repeat-banner-row"><th class="banner-cell" colspan="${colCount}">${bannerHtml}</th></tr>
       <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
     </thead>
-    <tbody>${tableRows}</tbody>
+    <tbody>${DEFER_ROWS ? '' : tableRows}</tbody>
   </table>
   <div id="sigs-end" class="signatures-wrap">
     ${signaturesHtml}
     <div class="doc-meta"><span><strong>وثيقة رسمية</strong> &nbsp;صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
   </div>
 </div>
+${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/script/gi, '<\\/script')}</script>` : ''}
+
 
 <!-- محاكاة شكل الصفحة الثانية أثناء الطباعة — للمعاينة فقط -->
 <div id="repeat-banner-preview">
