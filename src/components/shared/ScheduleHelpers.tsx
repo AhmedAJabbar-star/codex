@@ -580,10 +580,12 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   function initBatches(){
     dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody > tr'));
     if(bSel){
-      // الافتراضي دائماً: ملف واحد كامل. التقسيم اختياري فقط.
+      // ترحيل لمرة واحدة: إلغاء التقسيم التلقائي القديم — الافتراضي الآن ملف واحد كامل.
+      if(!prefs.batchV2){ prefs.batch = 0; prefs.batchV2 = true; savePrefs(prefs); }
       bSel.value = String(prefs.batch === undefined ? 0 : prefs.batch);
       rebuildBatches();
     }
+
     document.body.classList.add('ready');
   }
 
