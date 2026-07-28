@@ -31,8 +31,13 @@ export type SystemGroup = {
 };
 
 export const MANAGER_PASSWORD_ID = '_manager';
-export const DEFAULT_MANAGER_PASSWORD = 'aa';
+/**
+ * Sentinel used in place of a real password. Real passwords never reach the
+ * browser: the server sends this marker and swaps it back on save.
+ */
+export const KEEP_PASSWORD = '__KEEP_EXISTING__';
 export const GROUPS_KEY = '__groups';
+
 
 export const SYSTEMS_REGISTRY: ManagedSystem[] = [
   { id: 'controlPanel', title: 'لوحة التحكم', path: '/control-panel' },
