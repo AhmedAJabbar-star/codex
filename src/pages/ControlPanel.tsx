@@ -4,9 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote,
-  getGroups, MANAGER_PASSWORD_ID, DEFAULT_MANAGER_PASSWORD,
+  getGroups, MANAGER_PASSWORD_ID, KEEP_PASSWORD,
   type SystemAccessRule, type SystemGroup,
 } from '@/lib/systemAccess';
+
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog';
 import UsersAdminSection from '@/components/control-panel/UsersAdminSection';
