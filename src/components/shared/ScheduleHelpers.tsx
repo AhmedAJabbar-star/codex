@@ -23,7 +23,7 @@ export function parseTimeToMinutes(timeStr: string): number | null {
 }
 
 /* ───── Official Print helper (Unified University Schedule) ───── */
-export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs) {
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs, autoPrint?: boolean) {
   const w = window.open('', '_blank');
   if (!w) return;
 
@@ -587,6 +587,13 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     }
 
     document.body.classList.add('ready');
+
+    /* الوضع المباشر: بلا معاينة — نفتح مربع حوار الحفظ/الطباعة فوراً */
+    if(${autoPrint ? 'true' : 'false'}){
+      var pb=document.querySelector('.preview-bar'); if(pb) pb.style.display='none';
+      if(bSel && batchSize()>0){ bSel.value='0'; rebuildBatches(); }
+      setTimeout(function(){ window.print(); }, 250);
+    }
   }
 
   if(DEFER && tbodyEl){
