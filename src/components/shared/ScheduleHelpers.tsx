@@ -517,20 +517,24 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   }
   if(fit) fit.addEventListener('change', applyFit);
 
-  /* ===== الطباعة على دفعات — تمنع تعليق المتصفح عند كثرة السجلات ===== */
+  /* ===== بناء الجدول تدريجياً للتقارير الضخمة (بدون تجميد المتصفح) ===== */
   var TOTAL_ROWS = ${rowCount};
-  var dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody > tr'));
+  var DEFER = ${DEFER_ROWS ? 'true' : 'false'};
+  var tbodyEl = document.querySelector('table.data > tbody');
+  var dataRows = [];
   var bSel=$('pv-batch'), pSel=$('pv-batch-page'), bInfo=$('pv-batch-info'), bAll=$('pv-batch-all');
+  var printBtn=$('pv-print-full');
+
   function batchSize(){ return parseInt((bSel && bSel.value) || '0', 10) || 0; }
   function batchCount(){ var s=batchSize(); return s>0 ? Math.max(1, Math.ceil(TOTAL_ROWS/s)) : 1; }
   function showBatch(idx){
     var s=batchSize();
     if(s<=0){
-      dataRows.forEach(function(tr){ tr.style.display=''; });
-      if(bInfo) bInfo.textContent = 'إجمالي ' + TOTAL_ROWS + ' سجل';
+      for(var i=0;i<dataRows.length;i++) dataRows[i].style.display='';
+      if(bInfo) bInfo.textContent = 'ملف واحد كامل — ' + TOTAL_ROWS + ' سجل';
     } else {
       var from=idx*s, to=Math.min(TOTAL_ROWS, from+s);
-      dataRows.forEach(function(tr,i){ tr.style.display=(i>=from && i<to) ? '' : 'none'; });
+      for(var j=0;j<dataRows.length;j++) dataRows[j].style.display=(j>=from && j<to) ? '' : 'none';
       if(bInfo) bInfo.textContent = 'الدفعة ' + (idx+1) + ' من ' + batchCount() + ' (السجلات ' + (from+1) + '–' + to + ')';
     }
     document.querySelectorAll('.banner .cell-count span').forEach(function(el){
@@ -553,17 +557,57 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   }
   if(bSel) bSel.addEventListener('change', rebuildBatches);
   if(pSel) pSel.addEventListener('change', function(){ showBatch(parseInt(pSel.value,10)||0); });
+
+  /* طباعة الدفعات بالتتابع — ننتظر انتهاء كل طباعة قبل الانتقال للتالية */
   if(bAll) bAll.addEventListener('click', function(){
-    var n=batchCount();
-    for(var i=0;i<n;i++){ pSel.value=String(i); showBatch(i); window.print(); }
+    var n=batchCount(), i=0;
+    function step(){
+      if(i>=n){ window.onafterprint=null; return; }
+      pSel.value=String(i); showBatch(i); i++;
+      window.onafterprint=function(){ setTimeout(step, 350); };
+      window.print();
+    }
+    step();
   });
-  // تفعيل تلقائي للدفعات عند تجاوز 400 سجل حتى لا يفشل أمر الطباعة
-  if(bSel){
-    var savedBatch = prefs.batch;
-    if(savedBatch===undefined) savedBatch = TOTAL_ROWS > 400 ? 300 : 0;
-    bSel.value = String(savedBatch);
-    rebuildBatches();
+
+  /* زر «طباعة الكل / حفظ PDF» — يُلغي أي تقسيم ويطبع كامل البيانات في ملف واحد */
+  if(printBtn) printBtn.addEventListener('click', function(){
+    if(!document.body.classList.contains('ready')) return;
+    if(bSel && batchSize()>0){ bSel.value='0'; rebuildBatches(); }
+    setTimeout(function(){ window.print(); }, 60);
+  });
+
+  function initBatches(){
+    dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody > tr'));
+    if(bSel){
+      // الافتراضي دائماً: ملف واحد كامل. التقسيم اختياري فقط.
+      bSel.value = String(prefs.batch === undefined ? 0 : prefs.batch);
+      rebuildBatches();
+    }
+    document.body.classList.add('ready');
   }
+
+  if(DEFER && tbodyEl){
+    var src = (document.getElementById('rows-src') || {}).textContent || '';
+    var parts = src.split('</tr>');
+    if(parts.length && parts[parts.length-1].trim()==='') parts.pop();
+    var pos = 0, CHUNK = 250;
+    var fill = $('prep-fill'), num = $('prep-num');
+    function pump(){
+      var end = Math.min(parts.length, pos + CHUNK);
+      tbodyEl.insertAdjacentHTML('beforeend', parts.slice(pos, end).join('</tr>') + '</tr>');
+      pos = end;
+      var pct = Math.round((pos/parts.length)*100);
+      if(fill) fill.style.width = pct + '%';
+      if(num) num.textContent = pos + ' من ' + TOTAL_ROWS;
+      if(pos < parts.length) requestAnimationFrame(pump);
+      else { var s=document.getElementById('rows-src'); if(s) s.remove(); initBatches(); }
+    }
+    requestAnimationFrame(pump);
+  } else {
+    initBatches();
+  }
+
 
 
 
