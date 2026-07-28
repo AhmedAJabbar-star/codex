@@ -54,8 +54,9 @@ const ControlPanel = () => {
     () => SYSTEMS_REGISTRY.filter((s) => s.id !== 'controlPanel' && s.id !== MANAGER_PASSWORD_ID),
     [],
   );
-  const managerPw = rules[MANAGER_PASSWORD_ID]?.password ?? DEFAULT_MANAGER_PASSWORD;
-  const cpRule = rules.controlPanel || { visible: true, protected: true, password: '2021' };
+  const managerPw = rules[MANAGER_PASSWORD_ID]?.password ?? '';
+  const cpRule = rules.controlPanel || { visible: true, protected: true, password: '' };
+
 
   const update = (id: string, patch: Partial<SystemAccessRule>) => {
     setLocalRules((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
