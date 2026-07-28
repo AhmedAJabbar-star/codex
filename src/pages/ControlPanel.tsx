@@ -405,10 +405,11 @@ const ControlPanel = () => {
                     <input
                       className="schedule-select w-full"
                       type="text"
-                      placeholder="كلمة المرور"
-                      value={r.password}
+                      placeholder={PW_PLACEHOLDER}
+                      value={pwValue(r.password)}
                       onChange={(e) => update(s.id, { password: e.target.value })}
                     />
+
                   </div>
                   <label className="mt-3 flex items-start gap-2 text-sm font-bold border-2 border-amber-300 rounded-lg p-2 bg-amber-50/60 cursor-pointer">
                     <input
