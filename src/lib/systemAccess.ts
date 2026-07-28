@@ -86,16 +86,9 @@ type RawRules = Record<string, unknown>;
 const defaultRule = (systemId?: string): SystemAccessRule => ({
   visible: true,
   protected: systemId === 'controlPanel',
-  password:
-    systemId === 'controlPanel' ? '2021'
-    : systemId === MANAGER_PASSWORD_ID ? DEFAULT_MANAGER_PASSWORD
-    : '',
+  password: '',
 });
 
-export function getManagerPassword(): string {
-  const r = getRules()[MANAGER_PASSWORD_ID];
-  return (r?.password || DEFAULT_MANAGER_PASSWORD).trim() || DEFAULT_MANAGER_PASSWORD;
-}
 
 const normalizeRules = (parsed: RawRules = {}): Record<string, SystemAccessRule> => {
   const out: Record<string, SystemAccessRule> = {};
