@@ -466,6 +466,56 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   }
   if(fit) fit.addEventListener('change', applyFit);
 
+  /* ===== الطباعة على دفعات — تمنع تعليق المتصفح عند كثرة السجلات ===== */
+  var TOTAL_ROWS = ${rowCount};
+  var dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody > tr'));
+  var bSel=$('pv-batch'), pSel=$('pv-batch-page'), bInfo=$('pv-batch-info'), bAll=$('pv-batch-all');
+  function batchSize(){ return parseInt((bSel && bSel.value) || '0', 10) || 0; }
+  function batchCount(){ var s=batchSize(); return s>0 ? Math.max(1, Math.ceil(TOTAL_ROWS/s)) : 1; }
+  function showBatch(idx){
+    var s=batchSize();
+    if(s<=0){
+      dataRows.forEach(function(tr){ tr.style.display=''; });
+      if(bInfo) bInfo.textContent = 'إجمالي ' + TOTAL_ROWS + ' سجل';
+    } else {
+      var from=idx*s, to=Math.min(TOTAL_ROWS, from+s);
+      dataRows.forEach(function(tr,i){ tr.style.display=(i>=from && i<to) ? '' : 'none'; });
+      if(bInfo) bInfo.textContent = 'الدفعة ' + (idx+1) + ' من ' + batchCount() + ' (السجلات ' + (from+1) + '–' + to + ')';
+    }
+    document.querySelectorAll('.banner .cell-count span').forEach(function(el){
+      el.textContent = s>0 ? (Math.min(TOTAL_ROWS,(idx*s)+s) - idx*s) + ' من ' + TOTAL_ROWS : String(TOTAL_ROWS);
+    });
+  }
+  function rebuildBatches(){
+    if(!pSel) return;
+    var n=batchCount(), s=batchSize();
+    pSel.innerHTML='';
+    for(var i=0;i<n;i++){
+      var o=document.createElement('option'); o.value=String(i);
+      o.textContent = s>0 ? ('الدفعة ' + (i+1) + ' (' + (i*s+1) + '–' + Math.min(TOTAL_ROWS,(i+1)*s) + ')') : 'كل السجلات';
+      pSel.appendChild(o);
+    }
+    pSel.disabled = s<=0;
+    if(bAll) bAll.style.display = s>0 ? '' : 'none';
+    showBatch(0);
+    prefs.batch = s; savePrefs(prefs);
+  }
+  if(bSel) bSel.addEventListener('change', rebuildBatches);
+  if(pSel) pSel.addEventListener('change', function(){ showBatch(parseInt(pSel.value,10)||0); });
+  if(bAll) bAll.addEventListener('click', function(){
+    var n=batchCount();
+    for(var i=0;i<n;i++){ pSel.value=String(i); showBatch(i); window.print(); }
+  });
+  // تفعيل تلقائي للدفعات عند تجاوز 400 سجل حتى لا يفشل أمر الطباعة
+  if(bSel){
+    var savedBatch = prefs.batch;
+    if(savedBatch===undefined) savedBatch = TOTAL_ROWS > 400 ? 300 : 0;
+    bSel.value = String(savedBatch);
+    rebuildBatches();
+  }
+
+
+
   function setIf(id, val, def){
     var el=$(id); if(!el) return;
     if(val===undefined) val=def;
