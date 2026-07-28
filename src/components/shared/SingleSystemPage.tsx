@@ -1098,7 +1098,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
                 </thead>
                 <tbody>
-                  {filteredRows.map((row, i) => {
+                  {visibleRows.map((row, i) => {
                     const lectureTypeMissing =
                       activeSystem === 'lectureTypeAudit' &&
                       (row['نوع المحاضرة'] || '').includes('لن يظهر');
@@ -1229,7 +1229,20 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 )}
               </table>
             )}
+            {visibleCount < filteredRows.length && (
+              <div ref={sentinelRef} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '14px 8px' }}>
+                <span style={{ fontWeight: 800, color: 'var(--schedule-muted, #64748b)' }}>
+                  ⏳ معروض {visibleRows.length} من {filteredRows.length} سجل — تابع التمرير للمزيد
+                </span>
+                <button
+                  type="button"
+                  className="schedule-btn"
+                  onClick={() => setVisibleCount(filteredRows.length)}
+                >عرض كل السجلات</button>
+              </div>
+            )}
           </div>
+
 
           {/* Footer */}
           <div className="schedule-footer">
