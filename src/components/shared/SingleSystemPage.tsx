@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, useDeferredValue } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -56,6 +56,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
   // Inline CRUD state (used only when system.crudContext is set)
   const [crudSearch, setCrudSearch] = useState('');
+  // البحث المؤجَّل: يبقي الكتابة سلسة مهما كثرت السجلات
+  const deferredSearch = useDeferredValue(crudSearch);
   const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
   const [crudBusy, setCrudBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
@@ -224,7 +226,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     }
 
     // Global / Inline-CRUD search (applies to all visible headers).
-    const q = crudSearch.trim().toLowerCase();
+    const q = deferredSearch.trim().toLowerCase();
     if (q && (system.crudContext || system.globalSearch)) {
       result = result.filter((r) =>
         system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
@@ -233,7 +235,33 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
     return result;
 
-  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, crudSearch]);
+  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, deferredSearch]);
+
+  // ===== عرض تدريجي (Windowing): لا نرسم آلاف الصفوف دفعة واحدة =====
+  const PAGE_CHUNK = 150;
+  const [visibleCount, setVisibleCount] = useState(PAGE_CHUNK);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => { setVisibleCount(PAGE_CHUNK); }, [filteredRows]);
+
+  const visibleRows = useMemo(
+    () => (filteredRows.length > visibleCount ? filteredRows.slice(0, visibleCount) : filteredRows),
+    [filteredRows, visibleCount]
+  );
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || visibleCount >= filteredRows.length) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setVisibleCount((c) => Math.min(c + PAGE_CHUNK, filteredRows.length));
+      }
+    }, { rootMargin: '600px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visibleCount, filteredRows.length]);
+
+
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterDef = system.filters.find(f => f.key === filterKey);
@@ -1070,7 +1098,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
                 </thead>
                 <tbody>
-                  {filteredRows.map((row, i) => {
+                  {visibleRows.map((row, i) => {
                     const lectureTypeMissing =
                       activeSystem === 'lectureTypeAudit' &&
                       (row['نوع المحاضرة'] || '').includes('لن يظهر');
@@ -1201,7 +1229,20 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 )}
               </table>
             )}
+            {visibleCount < filteredRows.length && (
+              <div ref={sentinelRef} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '14px 8px' }}>
+                <span style={{ fontWeight: 800, color: 'var(--schedule-muted, #64748b)' }}>
+                  ⏳ معروض {visibleRows.length} من {filteredRows.length} سجل — تابع التمرير للمزيد
+                </span>
+                <button
+                  type="button"
+                  className="schedule-btn"
+                  onClick={() => setVisibleCount(filteredRows.length)}
+                >عرض كل السجلات</button>
+              </div>
+            )}
           </div>
+
 
           {/* Footer */}
           <div className="schedule-footer">
