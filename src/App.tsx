@@ -128,18 +128,24 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const gated = rule.require_teacher_auth ? <TeacherAuthGate>{children}</TeacherAuthGate> : children;
   if (!rule.protected || ok) return gated;
 
-  return <PasswordGate pathname={pathname} expected={rule.password || ''} onSuccess={() => setOk(true)} />;
+  return (
+    <PasswordGate
+      pathname={pathname}
+      verify={(pw) => verifySystemPassword(getSystemIdByPath(pathname) || '', pw)}
+      onSuccess={() => setOk(true)}
+    />
+  );
 };
 
 
-// Gate for /custom/:id routes — fetches the system def and checks its `protected/password`.
+// Gate for /custom/:id routes — the password itself stays on the server.
 const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
   const { pathname } = useLocation();
   const rawId = pathname.replace(/^\/custom\//, '').replace(/\/$/, '');
   let id = rawId;
   try { id = decodeURIComponent(rawId); } catch { /* keep raw */ }
-  const [state, setState] = useState<{ loading: boolean; protected: boolean; password: string; visible: boolean; requireTeacherAuth: boolean }>(
-    { loading: true, protected: false, password: '', visible: true, requireTeacherAuth: false },
+  const [state, setState] = useState<{ loading: boolean; protected: boolean; visible: boolean; requireTeacherAuth: boolean }>(
+    { loading: true, protected: false, visible: true, requireTeacherAuth: false },
   );
   const [ok, setOk] = useState(() => sessionOk(pathname));
 
@@ -149,10 +155,10 @@ const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
       .then((all) => {
         if (!alive) return;
         const s = all.find((x) => x.id === id);
-        if (!s) { setState({ loading: false, protected: false, password: '', visible: false, requireTeacherAuth: false }); return; }
-        setState({ loading: false, protected: !!s.protected, password: s.password || '', visible: s.enabled !== false, requireTeacherAuth: !!s.require_teacher_auth });
+        if (!s) { setState({ loading: false, protected: false, visible: false, requireTeacherAuth: false }); return; }
+        setState({ loading: false, protected: !!s.protected, visible: s.enabled !== false, requireTeacherAuth: !!s.require_teacher_auth });
       })
-      .catch(() => alive && setState({ loading: false, protected: false, password: '', visible: false, requireTeacherAuth: false }));
+      .catch(() => alive && setState({ loading: false, protected: false, visible: false, requireTeacherAuth: false }));
     return () => { alive = false; };
   }, [id]);
 
@@ -160,8 +166,15 @@ const CustomSystemGate = ({ children }: { children: JSX.Element }) => {
   if (!state.visible) return <Navigate to="/" replace />;
   const gated = state.requireTeacherAuth ? <TeacherAuthGate>{children}</TeacherAuthGate> : children;
   if (!state.protected || ok || sessionOk(pathname)) return gated;
-  return <PasswordGate pathname={pathname} expected={state.password} onSuccess={() => setOk(true)} />;
+  return (
+    <PasswordGate
+      pathname={pathname}
+      verify={(pw) => import('@/data/customSystemsRegistry').then(({ verifyCustomSystemPassword }) => verifyCustomSystemPassword(id, pw))}
+      onSuccess={() => setOk(true)}
+    />
+  );
 };
+
 
 
 const Loading = () => (
