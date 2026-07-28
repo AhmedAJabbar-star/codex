@@ -285,7 +285,20 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
   <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
+  <div class="sep"></div>
+  <span class="pv-title" style="font-size:12px;opacity:.85">🧾 الطباعة على دفعات:</span>
+  <select id="pv-batch" title="عدد السجلات في كل دفعة طباعة — يمنع تعليق المتصفح عند كثرة البيانات">
+    <option value="0">كل السجلات</option>
+    <option value="200">200 سجل / دفعة</option>
+    <option value="300">300 سجل / دفعة</option>
+    <option value="500">500 سجل / دفعة</option>
+    <option value="1000">1000 سجل / دفعة</option>
+  </select>
+  <select id="pv-batch-page" title="اختر الدفعة المعروضة"></select>
+  <button class="btn-close" id="pv-batch-all" title="طباعة كل الدفعات واحدة تلو الأخرى">🖨️ طباعة كل الدفعات</button>
+  <span id="pv-batch-info" style="font-size:11.5px;font-weight:700;opacity:.9"></span>
   <button class="pv-toggle btn-close" id="pv-toggle" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ الإعدادات</button>
+
   <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
