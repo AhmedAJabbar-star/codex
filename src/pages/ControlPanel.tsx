@@ -217,11 +217,11 @@ const ControlPanel = () => {
             <input
               className="schedule-select w-full"
               type="text"
-              placeholder="كلمة المرور"
-              value={cpRule.password}
+              placeholder={PW_PLACEHOLDER}
+              value={pwValue(cpRule.password)}
               onChange={(e) => update('controlPanel', { password: e.target.value, visible: true, protected: true })}
             />
-            <p className="text-xs text-[var(--schedule-muted)] mt-2">⚠️ سيتم طلب كلمة المرور الحالية عند الحفظ.</p>
+            <p className="text-xs text-[var(--schedule-muted)] mt-2">⚠️ سيتم طلب كلمة المرور الحالية عند الحفظ. لا تُعرض كلمات المرور المحفوظة لأسباب أمنية.</p>
           </div>
 
           {/* Manager password */}
@@ -233,11 +233,12 @@ const ControlPanel = () => {
             <input
               className="schedule-select w-full"
               type="text"
-              placeholder={`الافتراضي: ${DEFAULT_MANAGER_PASSWORD}`}
-              value={managerPw}
+              placeholder={PW_PLACEHOLDER}
+              value={pwValue(managerPw)}
               onChange={(e) => update(MANAGER_PASSWORD_ID, { password: e.target.value, visible: true, protected: false })}
             />
           </div>
+
 
           {/* Groups manager */}
           <div className="border-2 border-purple-300 rounded-xl p-4 bg-purple-50/40 mb-5">
