@@ -94,9 +94,10 @@ const PasswordGate = ({ pathname, verify, onSuccess }: { pathname: string; verif
           <button type="button" className="schedule-btn flex-1" onClick={() => navigate('/')} style={{ minHeight: 46 }}>
             🏠 الرئيسية
           </button>
-          <button type="submit" className="schedule-btn schedule-btn-primary flex-1" style={{ minHeight: 46 }}>
-            🔓 دخول
+          <button type="submit" disabled={busy} className="schedule-btn schedule-btn-primary flex-1" style={{ minHeight: 46 }}>
+            {busy ? '⏳ جارٍ التحقق…' : '🔓 دخول'}
           </button>
+
         </div>
       </form>
     </div>
