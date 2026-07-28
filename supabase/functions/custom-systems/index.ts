@@ -373,7 +373,13 @@ Deno.serve(async (req) => {
         if (collision >= 0) return json({ error: "اسم الرابط مستخدم لنظام آخر — اختر اسماً مختلفاً" }, 400);
       }
       const idx = all.findIndex((r) => clean(r.id) === clean(lookupId));
+      // The client only ever sees a sentinel, so restore the stored password
+      // whenever it comes back unchanged.
+      if (String(sys.password || "") === KEEP) {
+        sys.password = idx >= 0 ? String((rowToSystem(all[idx]) as any).password || "") : "";
+      }
       if (idx >= 0) {
+
         sys.created_at = clean(all[idx].created_at) || new Date().toISOString();
         const rowVals = await systemToRow(sys);
         const range = await rangeForRow(idx);
