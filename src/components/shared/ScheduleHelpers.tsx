@@ -590,6 +590,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
 
     /* الوضع المباشر: بلا معاينة — نفتح مربع حوار الحفظ/الطباعة فوراً */
     if(${autoPrint ? 'true' : 'false'}){
+      var pb=document.querySelector('.preview-bar'); if(pb) pb.style.display='none';
       if(bSel && batchSize()>0){ bSel.value='0'; rebuildBatches(); }
       setTimeout(function(){ window.print(); }, 250);
     }
