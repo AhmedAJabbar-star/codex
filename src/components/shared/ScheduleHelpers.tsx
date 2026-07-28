@@ -233,7 +233,18 @@ table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-
 table.data .notes-col{min-width:38mm;white-space:pre-wrap;text-align:right}
 table.data tr.even{background:#f4f8fd;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table.data tr.odd{background:#fff}
-table.data tr:hover{background:#eaf1fb}
+/* No :hover rule on data rows — it forces a full repaint pass on very large tables. */
+
+/* ===== BUILD PROGRESS OVERLAY (large reports) ===== */
+#prep{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(238,242,247,.96);font-family:'Cairo',sans-serif}
+#prep .pbox{background:#fff;border:1.5px solid #c5d3e3;border-radius:14px;padding:26px 34px;box-shadow:0 18px 44px rgba(15,76,129,.18);text-align:center;min-width:320px}
+#prep .ptitle{font-weight:800;color:#0f4c81;font-size:16px;margin-bottom:12px}
+#prep .ptrack{height:10px;border-radius:99px;background:#e3ebf5;overflow:hidden}
+#prep .pfill{height:100%;width:0;background:linear-gradient(90deg,#0f4c81,#2d7dc4);transition:width .12s linear}
+#prep .pnum{margin-top:10px;font-size:12.5px;font-weight:700;color:#44566b}
+body.ready #prep{display:none}
+@media print{#prep{display:none!important}}
+
 table.data > tfoot{display:table-footer-group}
 table.data .footer-cell{padding:0!important;border:0!important;background:#fff!important}
 table.data > tfoot .signatures-wrap{margin-top:6px}
