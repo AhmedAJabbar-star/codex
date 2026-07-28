@@ -20,6 +20,11 @@ const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d9770
 
 const newId = () => `g-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
 
+/** Stored passwords are never sent to the browser; the server returns a sentinel. */
+const PW_PLACEHOLDER = '•••••• محفوظة — اكتب كلمة جديدة لتغييرها';
+const pwValue = (v?: string) => (v === KEEP_PASSWORD ? '' : (v || ''));
+
+
 const ControlPanel = () => {
   const [rules, setLocalRules] = useState<Record<string, SystemAccessRule>>(() => getRules());
   const [groups, setGroupsState] = useState<SystemGroup[]>(() => getGroups());
