@@ -587,6 +587,12 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     }
 
     document.body.classList.add('ready');
+
+    /* الوضع المباشر: بلا معاينة — نفتح مربع حوار الحفظ/الطباعة فوراً */
+    if(${autoPrint ? 'true' : 'false'}){
+      if(bSel && batchSize()>0){ bSel.value='0'; rebuildBatches(); }
+      setTimeout(function(){ window.print(); }, 250);
+    }
   }
 
   if(DEFER && tbodyEl){
