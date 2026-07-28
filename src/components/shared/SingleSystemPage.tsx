@@ -417,7 +417,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return { teacherName, semester, department, college };
   };
 
-  const handlePrint = async () => {
+  const handlePrint = async (direct = false) => {
     if (!checkRequiredFilters()) return;
     if (activeSystem === 'assignments') {
       const { teacherName, semester, department, college } = buildAssignmentsContext();
@@ -429,12 +429,18 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       });
       return;
     }
+    if (direct && filteredRows.length > 8000) {
+      const ok = window.confirm(
+        `عدد السجلات ${filteredRows.length.toLocaleString('en-US')} — سيُنتج ملف PDF ضخم قد يستغرق دقائق ويستهلك ذاكرة كبيرة.\n\nالأفضل تضييق التصفية أو استخدام التصدير إلى Excel.\n\nهل تريد المتابعة؟`
+      );
+      if (!ok) return;
+    }
     const isSinglePage = activeSystem === 'teacher';
     const dept =
       filters['القسم الذي تنتمي اليه'] || filters['القسم'] ||
       filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
     const filtersInfo = activeFilterInfo.map(({ label, value }) => ({ label, value }));
-    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo, system.customSignatures, system.printPrefs);
+    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo, system.customSignatures, system.printPrefs, direct);
   };
 
   const handleShortReport = () => {
