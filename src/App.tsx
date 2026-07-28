@@ -50,19 +50,30 @@ const markSessionOk = (path: string) => {
   try { sessionStorage.setItem(PROTECTED_OK_PREFIX + path, '1'); } catch { /* ignore */ }
 };
 
-const PasswordGate = ({ pathname, expected, onSuccess }: { pathname: string; expected: string; onSuccess: () => void }) => {
+const PasswordGate = ({ pathname, verify, onSuccess }: { pathname: string; verify: (pw: string) => Promise<boolean>; onSuccess: () => void }) => {
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((pw || '') === (expected || '')) {
-      markSessionOk(pathname);
-      onSuccess();
-    } else {
-      setErr('كلمة المرور غير صحيحة');
+    if (busy) return;
+    setBusy(true);
+    try {
+      const ok = await verify(pw || '');
+      if (ok) {
+        markSessionOk(pathname);
+        onSuccess();
+      } else {
+        setErr('كلمة المرور غير صحيحة');
+      }
+    } catch {
+      setErr('تعذر التحقق من كلمة المرور، حاول مجدداً');
+    } finally {
+      setBusy(false);
     }
   };
+
   return (
     <div className="schedule-body min-h-screen flex items-center justify-center px-4" dir="rtl">
       <form onSubmit={submit} className="schedule-card p-8 w-full max-w-md text-center">
