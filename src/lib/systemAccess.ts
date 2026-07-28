@@ -71,7 +71,7 @@ export const SYSTEMS_REGISTRY: ManagedSystem[] = [
 
 const KEY = 'system-access-rules-v1';
 export const SYSTEM_ACCESS_RULES_UPDATED_EVENT = 'system-access-rules-updated';
-const GLOBAL_RULES_ID = 'global';
+
 
 let remoteRulesStoreUnavailable = false;
 
