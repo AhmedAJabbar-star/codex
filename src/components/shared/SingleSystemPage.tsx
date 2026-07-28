@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, useDeferredValue } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -224,7 +224,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     }
 
     // Global / Inline-CRUD search (applies to all visible headers).
-    const q = crudSearch.trim().toLowerCase();
+    const q = deferredSearch.trim().toLowerCase();
     if (q && (system.crudContext || system.globalSearch)) {
       result = result.filter((r) =>
         system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
@@ -233,7 +233,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
     return result;
 
-  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, crudSearch]);
+  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, deferredSearch]);
 
   const getFilterOptions = useCallback((filterKey: string): string[] => {
     const filterDef = system.filters.find(f => f.key === filterKey);
