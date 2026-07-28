@@ -8,7 +8,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import NotFound from "./pages/NotFound";
 import StatusBar from "./components/shared/StatusBar";
 import CommandPalette from "./components/shared/CommandPalette";
-import { getRuleByPath, syncRulesFromRemote, SYSTEM_ACCESS_RULES_UPDATED_EVENT } from "@/lib/systemAccess";
+import { getRuleByPath, getSystemIdByPath, verifySystemPassword, syncRulesFromRemote, SYSTEM_ACCESS_RULES_UPDATED_EVENT } from "@/lib/systemAccess";
 import TeacherAuthGate from "@/components/shared/TeacherAuthGate";
 
 
