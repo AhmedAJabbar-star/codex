@@ -742,8 +742,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                       </div>
                     </div>
                     {comboOpen && (
-                      <div className="absolute inset-x-0 top-[calc(100%+10px)] z-25 rounded-[22px] border border-[var(--schedule-border)] overflow-hidden"
+                      <div className="absolute inset-x-0 top-[calc(100%+10px)] rounded-[22px] border border-[var(--schedule-border)] overflow-hidden"
                         style={{
+                          zIndex: 250,
                           background: isDark
                             ? 'linear-gradient(180deg, rgba(11,19,33,.98), rgba(9,16,29,.96))'
                             : 'linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.94))',
