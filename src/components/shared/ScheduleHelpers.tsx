@@ -592,8 +592,28 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     if(${autoPrint ? 'true' : 'false'}){
       var pb=document.querySelector('.preview-bar'); if(pb) pb.style.display='none';
       if(bSel && batchSize()>0){ bSel.value='0'; rebuildBatches(); }
+      var tip=document.createElement('div');
+      tip.className='pdf-tip';
+      tip.innerHTML='<div class="pdf-tip-box">'+
+        '<h3>حفظ الملف بصيغة PDF</h3>'+
+        '<p>المتصفح لا يسمح لأي موقع بحفظ ملف PDF على جهازك دون إظهار نافذة الطباعة. لذلك تظهر النافذة الآن مباشرة بعد تجهيز التقرير كاملاً.</p>'+
+        '<ol>'+
+        '<li>في خانة <b>الوجهة / Destination</b> اختر <b>«حفظ بصيغة PDF» (Save as PDF)</b> بدل «حفظ في Google Drive».</li>'+
+        '<li>اضغط <b>حفظ</b> ثم اختر مكان الحفظ على الحاسبة.</li>'+
+        '</ol>'+
+        '<p class="pdf-tip-note">ملاحظة: كروم يتذكر آخر وجهة استخدمتها، لذا بعد اختيار «حفظ بصيغة PDF» مرة واحدة ستبقى هي الافتراضية.</p>'+
+        '<div class="pdf-tip-actions">'+
+        '<button id="pdf-tip-again">🖨️ فتح نافذة الحفظ مجدداً</button>'+
+        '<button id="pdf-tip-close">إغلاق</button>'+
+        '</div></div>';
+      document.body.appendChild(tip);
+      var again=document.getElementById('pdf-tip-again');
+      if(again) again.addEventListener('click', function(){ window.print(); });
+      var cls=document.getElementById('pdf-tip-close');
+      if(cls) cls.addEventListener('click', function(){ window.close(); });
       setTimeout(function(){ window.print(); }, 250);
     }
+
   }
 
   if(DEFER && tbodyEl){
