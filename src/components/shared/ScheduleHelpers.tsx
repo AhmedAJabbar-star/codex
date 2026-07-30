@@ -157,6 +157,17 @@ body.toolbar-hidden .preview-bar > .btn-close,
 body.toolbar-hidden .preview-bar > .pv-toggle{display:inline-flex!important}
 body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
 @media print{.preview-bar,.pv-toggle{display:none!important}}
+.pdf-tip{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(8,25,45,.55);backdrop-filter:blur(3px);font-family:'Cairo',sans-serif;direction:rtl}
+.pdf-tip-box{background:#fff;max-width:520px;width:calc(100% - 32px);border-radius:14px;padding:22px 24px;box-shadow:0 24px 60px rgba(8,25,45,.35);border-top:6px solid #0f4c81;color:#12324f}
+.pdf-tip-box h3{margin:0 0 10px;font-size:18px;color:#0f4c81}
+.pdf-tip-box p{margin:0 0 10px;font-size:13.5px;line-height:1.9}
+.pdf-tip-box ol{margin:0 0 10px;padding-inline-start:20px;font-size:13.5px;line-height:2}
+.pdf-tip-note{font-size:12.5px!important;color:#5b7189}
+.pdf-tip-actions{display:flex;gap:8px;justify-content:flex-start;margin-top:14px}
+.pdf-tip-actions button{font-family:'Cairo',sans-serif;border:0;border-radius:9px;font-weight:800;padding:9px 16px;cursor:pointer;font-size:13px;background:#0f4c81;color:#fff}
+.pdf-tip-actions #pdf-tip-close{background:#eef3f8;color:#0f4c81;border:1px solid #cbd9e6}
+@media print{.pdf-tip{display:none!important}}
+
 
 /* ===== PRINT AREA ===== */
 .print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative;overflow:hidden}
@@ -592,8 +603,28 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     if(${autoPrint ? 'true' : 'false'}){
       var pb=document.querySelector('.preview-bar'); if(pb) pb.style.display='none';
       if(bSel && batchSize()>0){ bSel.value='0'; rebuildBatches(); }
+      var tip=document.createElement('div');
+      tip.className='pdf-tip';
+      tip.innerHTML='<div class="pdf-tip-box">'+
+        '<h3>حفظ الملف بصيغة PDF</h3>'+
+        '<p>المتصفح لا يسمح لأي موقع بحفظ ملف PDF على جهازك دون إظهار نافذة الطباعة. لذلك تظهر النافذة الآن مباشرة بعد تجهيز التقرير كاملاً.</p>'+
+        '<ol>'+
+        '<li>في خانة <b>الوجهة / Destination</b> اختر <b>«حفظ بصيغة PDF» (Save as PDF)</b> بدل «حفظ في Google Drive».</li>'+
+        '<li>اضغط <b>حفظ</b> ثم اختر مكان الحفظ على الحاسبة.</li>'+
+        '</ol>'+
+        '<p class="pdf-tip-note">ملاحظة: كروم يتذكر آخر وجهة استخدمتها، لذا بعد اختيار «حفظ بصيغة PDF» مرة واحدة ستبقى هي الافتراضية.</p>'+
+        '<div class="pdf-tip-actions">'+
+        '<button id="pdf-tip-again">🖨️ فتح نافذة الحفظ مجدداً</button>'+
+        '<button id="pdf-tip-close">إغلاق</button>'+
+        '</div></div>';
+      document.body.appendChild(tip);
+      var again=document.getElementById('pdf-tip-again');
+      if(again) again.addEventListener('click', function(){ window.print(); });
+      var cls=document.getElementById('pdf-tip-close');
+      if(cls) cls.addEventListener('click', function(){ window.close(); });
       setTimeout(function(){ window.print(); }, 250);
     }
+
   }
 
   if(DEFER && tbodyEl){

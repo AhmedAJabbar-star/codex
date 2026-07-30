@@ -834,9 +834,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             {activeSystem !== 'assignments' && (
               <button
                 className="schedule-btn schedule-btn-secondary"
-                title="ينشئ التقرير الرسمي كاملاً بلا معاينة ويفتح مربع حوار الحفظ لاختيار مكان الملف على الحاسبة (اختر «حفظ بصيغة PDF»)"
+                title="يجهّز التقرير الرسمي كاملاً بلا معاينة ثم يفتح نافذة الحفظ فوراً — اختر في «الوجهة» خيار «حفظ بصيغة PDF» بدل «حفظ في Google Drive»"
                 onClick={() => handlePrint(true)}
-              >📄 حفظ PDF كامل (بلا معاينة)</button>
+              >📄 تجهيز PDF كامل (بلا معاينة)</button>
+
             )}
             {system.shortReport && (
               <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
