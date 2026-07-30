@@ -417,7 +417,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return { teacherName, semester, department, college };
   };
 
-  const handlePrint = async (direct = false) => {
+  const handlePrint = async (direct = false, skipWarn = false) => {
     if (!checkRequiredFilters()) return;
     if (activeSystem === 'assignments') {
       const { teacherName, semester, department, college } = buildAssignmentsContext();
@@ -429,11 +429,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       });
       return;
     }
-    if (direct && filteredRows.length > 8000) {
-      const ok = window.confirm(
-        `عدد السجلات ${filteredRows.length.toLocaleString('en-US')} — سيُنتج ملف PDF ضخم قد يستغرق دقائق ويستهلك ذاكرة كبيرة.\n\nالأفضل تضييق التصفية أو استخدام التصدير إلى Excel.\n\nهل تريد المتابعة؟`
-      );
-      if (!ok) return;
+    if (direct && !skipWarn && filteredRows.length > 8000) {
+      setPdfWarnOpen(true);
+      return;
     }
     const isSinglePage = activeSystem === 'teacher';
     const dept =
