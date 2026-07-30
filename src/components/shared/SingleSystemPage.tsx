@@ -47,6 +47,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [isDark, setIsDark] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [comboOpen, setComboOpen] = useState(false);
+  const [pdfWarnOpen, setPdfWarnOpen] = useState(false);
   const [comboQuery, setComboQuery] = useState('');
   const [statFilter, setStatFilter] = useState<string | null>(null);
   const [activeQuickFilters, setActiveQuickFilters] = useState<Set<string>>(new Set());
@@ -417,7 +418,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return { teacherName, semester, department, college };
   };
 
-  const handlePrint = async (direct = false) => {
+  const handlePrint = async (direct = false, skipWarn = false) => {
     if (!checkRequiredFilters()) return;
     if (activeSystem === 'assignments') {
       const { teacherName, semester, department, college } = buildAssignmentsContext();
@@ -429,11 +430,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       });
       return;
     }
-    if (direct && filteredRows.length > 8000) {
-      const ok = window.confirm(
-        `عدد السجلات ${filteredRows.length.toLocaleString('en-US')} — سيُنتج ملف PDF ضخم قد يستغرق دقائق ويستهلك ذاكرة كبيرة.\n\nالأفضل تضييق التصفية أو استخدام التصدير إلى Excel.\n\nهل تريد المتابعة؟`
-      );
-      if (!ok) return;
+    if (direct && !skipWarn && filteredRows.length > 8000) {
+      setPdfWarnOpen(true);
+      return;
     }
     const isSinglePage = activeSystem === 'teacher';
     const dept =
@@ -703,7 +702,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               <div key={f.key} className="flex flex-col gap-2 min-w-0">
                 <span className="schedule-filter-label">{f.label}</span>
                 {f.control === 'combo' ? (
-                  <div ref={comboRef} className={`relative ${comboOpen ? 'z-30' : ''}`}>
+                  <div ref={comboRef} className="relative" style={{ zIndex: comboOpen ? 200 : undefined }}>
                     <div
                       className={`relative flex items-center min-h-[52px] rounded-2xl border border-[var(--schedule-border)] px-4 cursor-pointer transition-all ${comboOpen ? 'border-blue-400/45 shadow-[0_0_0_4px_rgba(37,99,235,.14)]' : ''}`}
                       style={{
@@ -742,8 +741,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                       </div>
                     </div>
                     {comboOpen && (
-                      <div className="absolute inset-x-0 top-[calc(100%+10px)] z-25 rounded-[22px] border border-[var(--schedule-border)] overflow-hidden"
+                      <div className="absolute inset-x-0 top-[calc(100%+10px)] rounded-[22px] border border-[var(--schedule-border)] overflow-hidden"
                         style={{
+                          zIndex: 250,
                           background: isDark
                             ? 'linear-gradient(180deg, rgba(11,19,33,.98), rgba(9,16,29,.96))'
                             : 'linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.94))',
@@ -1364,7 +1364,30 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           </div>
         </div>
       )}
+
+      {pdfWarnOpen && (
+        <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 print:hidden" dir="rtl"
+          onClick={() => setPdfWarnOpen(false)}>
+          <div className="schedule-card w-full max-w-lg p-7 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="text-4xl mb-2">📄</div>
+            <h3 className="text-xl font-black mb-2 text-[var(--schedule-text)]">تقرير كبير الحجم</h3>
+            <p className="text-sm font-bold leading-7 text-[var(--schedule-muted)] mb-4">
+              عدد السجلات المحددة <strong className="text-[var(--schedule-accent-blue)]">{filteredRows.length.toLocaleString('en-US')}</strong> سجل.
+              إنتاج ملف PDF بهذا الحجم قد يستغرق عدة دقائق ويستهلك ذاكرة كبيرة من المتصفح.
+              <br />ننصح بتضييق التصفية أو استخدام «تصدير Excel» للنسخة الكاملة.
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <button className="schedule-btn" style={{ minHeight: 46 }} onClick={() => setPdfWarnOpen(false)}>✕ إلغاء</button>
+              <button className="schedule-btn schedule-btn-primary" style={{ minHeight: 46, background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}
+                onClick={() => { setPdfWarnOpen(false); handleExcel(); }}>📥 تصدير Excel بدلاً عنه</button>
+              <button className="schedule-btn schedule-btn-secondary" style={{ minHeight: 46 }}
+                onClick={() => { setPdfWarnOpen(false); void handlePrint(true, true); }}>📄 متابعة إنشاء PDF</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 };
 
