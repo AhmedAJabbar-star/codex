@@ -1354,3 +1354,8 @@ select.schedule-select{
   background:#0f172a;
   color:#e5eefb;
 }
+
+/* ===== Stacking fix: filter dropdowns must overlay the toolbar/table ===== */
+.schedule-filters{ position:relative; z-index:60; }
+.schedule-toolbar{ position:relative; z-index:20; }
+.schedule-table-wrap{ position:relative; z-index:10; }
