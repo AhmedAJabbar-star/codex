@@ -47,6 +47,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [isDark, setIsDark] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [comboOpen, setComboOpen] = useState(false);
+  const [pdfWarnOpen, setPdfWarnOpen] = useState(false);
   const [comboQuery, setComboQuery] = useState('');
   const [statFilter, setStatFilter] = useState<string | null>(null);
   const [activeQuickFilters, setActiveQuickFilters] = useState<Set<string>>(new Set());
