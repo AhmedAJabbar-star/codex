@@ -703,7 +703,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               <div key={f.key} className="flex flex-col gap-2 min-w-0">
                 <span className="schedule-filter-label">{f.label}</span>
                 {f.control === 'combo' ? (
-                  <div ref={comboRef} className={`relative ${comboOpen ? 'z-30' : ''}`}>
+                  <div ref={comboRef} className="relative" style={{ zIndex: comboOpen ? 200 : undefined }}>
                     <div
                       className={`relative flex items-center min-h-[52px] rounded-2xl border border-[var(--schedule-border)] px-4 cursor-pointer transition-all ${comboOpen ? 'border-blue-400/45 shadow-[0_0_0_4px_rgba(37,99,235,.14)]' : ''}`}
                       style={{
