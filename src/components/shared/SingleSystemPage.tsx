@@ -1364,7 +1364,30 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           </div>
         </div>
       )}
+
+      {pdfWarnOpen && (
+        <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 print:hidden" dir="rtl"
+          onClick={() => setPdfWarnOpen(false)}>
+          <div className="schedule-card w-full max-w-lg p-7 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="text-4xl mb-2">📄</div>
+            <h3 className="text-xl font-black mb-2 text-[var(--schedule-text)]">تقرير كبير الحجم</h3>
+            <p className="text-sm font-bold leading-7 text-[var(--schedule-muted)] mb-4">
+              عدد السجلات المحددة <strong className="text-[var(--schedule-accent-blue)]">{filteredRows.length.toLocaleString('en-US')}</strong> سجل.
+              إنتاج ملف PDF بهذا الحجم قد يستغرق عدة دقائق ويستهلك ذاكرة كبيرة من المتصفح.
+              <br />ننصح بتضييق التصفية أو استخدام «تصدير Excel» للنسخة الكاملة.
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <button className="schedule-btn" style={{ minHeight: 46 }} onClick={() => setPdfWarnOpen(false)}>✕ إلغاء</button>
+              <button className="schedule-btn schedule-btn-primary" style={{ minHeight: 46, background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}
+                onClick={() => { setPdfWarnOpen(false); handleExcel(); }}>📥 تصدير Excel بدلاً عنه</button>
+              <button className="schedule-btn schedule-btn-secondary" style={{ minHeight: 46 }}
+                onClick={() => { setPdfWarnOpen(false); void handlePrint(true, true); }}>📄 متابعة إنشاء PDF</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 };
 
