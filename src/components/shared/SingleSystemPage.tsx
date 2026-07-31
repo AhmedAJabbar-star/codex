@@ -16,6 +16,7 @@ import RefreshButton from './RefreshButton';
 import { sheetWrite } from '@/data/customSystemsRegistry';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
 
 
 interface Props {
@@ -48,6 +49,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [comboOpen, setComboOpen] = useState(false);
   const [pdfWarnOpen, setPdfWarnOpen] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<null | { completed: number; total: number; part: number; parts: number }>(null);
+  const pdfAbortRef = useRef<AbortController | null>(null);
   const [comboQuery, setComboQuery] = useState('');
   const [statFilter, setStatFilter] = useState<string | null>(null);
   const [activeQuickFilters, setActiveQuickFilters] = useState<Set<string>>(new Set());
@@ -442,6 +445,43 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo, system.customSignatures, system.printPrefs, direct);
   };
 
+  const handleDirectPdf = async (skipWarn = false) => {
+    if (!checkRequiredFilters()) return;
+    if (!skipWarn && filteredRows.length > 8000) {
+      setPdfWarnOpen(true);
+      return;
+    }
+    const controller = new AbortController();
+    pdfAbortRef.current = controller;
+    setPdfProgress({ completed: 0, total: filteredRows.length, part: 0, parts: Math.max(1, Math.ceil(filteredRows.length / 2000)) });
+    try {
+      const dept = filters['القسم الذي تنتمي اليه'] || filters['القسم'] || filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
+      const result = await exportOfficialPdfToPc({
+        title: reportTitle,
+        headers: reportHeaders,
+        rows: filteredRows,
+        department: dept,
+        filtersInfo: activeFilterInfo.map(({ label, value }) => ({ label, value })),
+        signatures: system.customSignatures,
+        printPrefs: system.printPrefs,
+        signal: controller.signal,
+        onProgress: (completed, total, part, parts) => setPdfProgress({ completed, total, part, parts }),
+      });
+      toast.success(result.files > 1
+        ? `تم حفظ التقرير كاملاً في ${result.files} ملفات PDF متسلسلة على الحاسبة`
+        : 'تم حفظ ملف PDF على الحاسبة بنجاح');
+    } catch (error) {
+      if (error instanceof DOMException && (error.name === 'AbortError' || error.name === 'NotAllowedError')) {
+        if (error.name === 'AbortError') toast.info('تم إلغاء تجهيز التقرير');
+      } else {
+        toast.error(error instanceof Error ? error.message : 'تعذر إنشاء ملف PDF');
+      }
+    } finally {
+      pdfAbortRef.current = null;
+      setPdfProgress(null);
+    }
+  };
+
   const handleShortReport = () => {
     if (!checkRequiredFilters()) return;
     const sr = system.shortReport;
@@ -834,9 +874,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             {activeSystem !== 'assignments' && (
               <button
                 className="schedule-btn schedule-btn-secondary"
-                title="يجهّز التقرير الرسمي كاملاً بلا معاينة ثم يفتح نافذة الحفظ فوراً — اختر في «الوجهة» خيار «حفظ بصيغة PDF» بدل «حفظ في Google Drive»"
-                onClick={() => handlePrint(true)}
-              >📄 تجهيز PDF كامل (بلا معاينة)</button>
+                title="ينشئ ملفات PDF رسمية مباشرة ويحفظها في مجلد تختاره على الحاسبة دون نافذة الطباعة"
+                onClick={() => void handleDirectPdf()}
+              >📄 حفظ PDF كامل على الحاسبة</button>
 
             )}
             {system.shortReport && (
@@ -1374,16 +1414,33 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             <h3 className="text-xl font-black mb-2 text-[var(--schedule-text)]">تقرير كبير الحجم</h3>
             <p className="text-sm font-bold leading-7 text-[var(--schedule-muted)] mb-4">
               عدد السجلات المحددة <strong className="text-[var(--schedule-accent-blue)]">{filteredRows.length.toLocaleString('en-US')}</strong> سجل.
-              إنتاج ملف PDF بهذا الحجم قد يستغرق عدة دقائق ويستهلك ذاكرة كبيرة من المتصفح.
-              <br />ننصح بتضييق التصفية أو استخدام «تصدير Excel» للنسخة الكاملة.
+              سيُحفظ التقرير كاملاً في ملفات PDF رسمية متسلسلة، كل ملف يحتوي حتى 2,000 سجل.
+              هذا التقسيم يمنع تعليق الحاسبة ويحافظ على جميع البيانات دون نقص.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               <button className="schedule-btn" style={{ minHeight: 46 }} onClick={() => setPdfWarnOpen(false)}>✕ إلغاء</button>
               <button className="schedule-btn schedule-btn-primary" style={{ minHeight: 46, background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}
                 onClick={() => { setPdfWarnOpen(false); handleExcel(); }}>📥 تصدير Excel بدلاً عنه</button>
               <button className="schedule-btn schedule-btn-secondary" style={{ minHeight: 46 }}
-                onClick={() => { setPdfWarnOpen(false); void handlePrint(true, true); }}>📄 متابعة إنشاء PDF</button>
+                onClick={() => { setPdfWarnOpen(false); void handleDirectPdf(true); }}>📁 اختيار مجلد الحفظ والبدء</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {pdfProgress && (
+        <div className="fixed inset-0 z-[10020] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 print:hidden" dir="rtl">
+          <div className="schedule-card w-full max-w-xl p-8 text-center">
+            <div className="text-4xl mb-3">📄</div>
+            <h3 className="text-xl font-black text-[var(--schedule-text)]">جاري إنشاء ملفات PDF على الحاسبة</h3>
+            <p className="mt-2 text-sm font-bold text-[var(--schedule-muted)]">
+              الجزء {Math.max(1, pdfProgress.part)} من {pdfProgress.parts} — تمت معالجة {pdfProgress.completed.toLocaleString('en-US')} من {pdfProgress.total.toLocaleString('en-US')} سجل
+            </p>
+            <div className="h-3 mt-5 rounded-full overflow-hidden bg-slate-200" role="progressbar" aria-valuemin={0} aria-valuemax={pdfProgress.total} aria-valuenow={pdfProgress.completed}>
+              <div className="h-full bg-[var(--schedule-accent-blue)] transition-[width] duration-200" style={{ width: `${pdfProgress.total ? (pdfProgress.completed / pdfProgress.total) * 100 : 0}%` }} />
+            </div>
+            <p className="mt-4 text-xs font-bold text-[var(--schedule-muted)]">يمكن متابعة العمل بعد اكتمال الحفظ. لا تغلق الصفحة الآن.</p>
+            <button className="schedule-btn mt-5" onClick={() => pdfAbortRef.current?.abort()}>إلغاء العملية</button>
           </div>
         </div>
       )}
