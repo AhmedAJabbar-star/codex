@@ -6,7 +6,7 @@ import type { SystemConfig, ScheduleRow } from '@/data/scheduleData';
 import { TIME_OPTIONS_ARABIC } from '@/data/timeOptions';
 import {
   parseTimeToMinutes, openPrintWindow, openShortReportWindow,
-  generateAfterHeaderReport, exportToExcel, exportToPDF,
+  generateAfterHeaderReport, exportToExcel,
   openAssignmentsPrintWindow,
   FOOTER_HTML, universityLogo
 } from './ScheduleHelpers';
