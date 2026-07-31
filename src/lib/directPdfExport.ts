@@ -72,7 +72,18 @@ async function saveBlob(directory: DirectoryHandle | null, blob: Blob, filename:
 export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<{ files: number; folderMode: boolean }> {
   const picker = (window as unknown as { showDirectoryPicker?: (options?: { mode: 'readwrite' }) => Promise<DirectoryHandle> }).showDirectoryPicker;
   let directory: DirectoryHandle | null = null;
-  if (picker) directory = await picker.call(window, { mode: 'readwrite' });
+  if (picker) {
+    try {
+      directory = await picker.call(window, { mode: 'readwrite' });
+    } catch (error) {
+      const name = (error as DOMException)?.name;
+      // المستخدم ألغى الاختيار => نوقف العملية. أي خطأ آخر (مثل التشغيل داخل إطار
+      // معاينة cross-origin) => نتابع بالتنزيل العادي إلى مجلد التنزيلات.
+      if (name === 'AbortError') throw error;
+      directory = null;
+    }
+  }
+
 
   const [fontDataUrl, logoDataUrl] = await Promise.all([
     asDataUrl(arabicFontAsset.url),
