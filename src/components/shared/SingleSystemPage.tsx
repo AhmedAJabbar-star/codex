@@ -6,7 +6,7 @@ import type { SystemConfig, ScheduleRow } from '@/data/scheduleData';
 import { TIME_OPTIONS_ARABIC } from '@/data/timeOptions';
 import {
   parseTimeToMinutes, openPrintWindow, openShortReportWindow,
-  generateAfterHeaderReport, exportToExcel,
+  generateAfterHeaderReport, exportToExcel, exportToPDF,
   openAssignmentsPrintWindow,
   FOOTER_HTML, universityLogo
 } from './ScheduleHelpers';
@@ -467,9 +467,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         signal: controller.signal,
         onProgress: (completed, total, part, parts) => setPdfProgress({ completed, total, part, parts }),
       });
-      toast.success(result.files > 1
-        ? `تم حفظ التقرير كاملاً في ${result.files} ملفات PDF متسلسلة على الحاسبة`
-        : 'تم حفظ ملف PDF على الحاسبة بنجاح');
+      toast.success(result.folderMode
+        ? 'تم حفظ ملف PDF كامل في المجلد الذي اخترته'
+        : 'تم تنزيل ملف PDF كامل بجميع السجلات');
+
     } catch (error) {
       if (error instanceof DOMException && (error.name === 'AbortError' || error.name === 'NotAllowedError')) {
         if (error.name === 'AbortError') toast.info('تم إلغاء تجهيز التقرير');
@@ -872,13 +873,21 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
           <div className="schedule-toolbar">
             <button className="schedule-btn schedule-btn-primary" onClick={() => handlePrint(false)}>🖨️ {activeSystem === 'assignments' ? 'طباعة التكليفات' : 'طباعة الجدول'}</button>
             {activeSystem !== 'assignments' && (
-              <button
-                className="schedule-btn schedule-btn-secondary"
-                title="ينشئ ملفات PDF رسمية مباشرة ويحفظها في مجلد تختاره على الحاسبة دون نافذة الطباعة"
-                onClick={() => void handleDirectPdf()}
-              >📄 حفظ PDF كامل على الحاسبة</button>
-
+              <>
+                <button
+                  className="schedule-btn schedule-btn-secondary"
+                  title="ينشئ ملف PDF رسمي واحد يحتوي جميع السجلات ويحفظه مباشرة على الحاسبة دون نافذة الطباعة"
+                  onClick={() => void handleDirectPdf()}
+                >📄 حفظ PDF كامل على الحاسبة</button>
+                <button
+                  className="schedule-btn schedule-btn-primary"
+                  style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }}
+                  title="تصدير سريع بصيغة PDF بجدول بسيط بدون الفورمة الرسمية"
+                  onClick={() => { if (checkRequiredFilters()) exportToPDF(reportTitle, reportHeaders, filteredRows); }}
+                >📄 تصدير PDF سريع</button>
+              </>
             )}
+
             {system.shortReport && (
               <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
             )}
@@ -1416,16 +1425,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             <h3 className="text-xl font-black mb-2 text-[var(--schedule-text)]">تقرير كبير الحجم</h3>
             <p className="text-sm font-bold leading-7 text-[var(--schedule-muted)] mb-4">
               عدد السجلات المحددة <strong className="text-[var(--schedule-accent-blue)]">{filteredRows.length.toLocaleString('en-US')}</strong> سجل.
-              سيُحفظ التقرير كاملاً في ملفات PDF رسمية متسلسلة، كل ملف يحتوي حتى 2,000 سجل.
-              هذا التقسيم يمنع تعليق الحاسبة ويحافظ على جميع البيانات دون نقص.
+              سيُحفظ التقرير كاملاً في <strong>ملف PDF رسمي واحد</strong> يحتوي جميع السجلات، وتتم المعالجة على دفعات
+              للحفاظ على استقرار الحاسبة. قد يستغرق الأمر دقائق لهذا الحجم.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               <button className="schedule-btn" style={{ minHeight: 46 }} onClick={() => setPdfWarnOpen(false)}>✕ إلغاء</button>
               <button className="schedule-btn schedule-btn-primary" style={{ minHeight: 46, background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}
                 onClick={() => { setPdfWarnOpen(false); handleExcel(); }}>📥 تصدير Excel بدلاً عنه</button>
               <button className="schedule-btn schedule-btn-secondary" style={{ minHeight: 46 }}
-                onClick={() => { setPdfWarnOpen(false); void handleDirectPdf(true); }}>📁 اختيار مجلد الحفظ والبدء</button>
+                onClick={() => { setPdfWarnOpen(false); void handleDirectPdf(true); }}>📁 اختيار مكان الحفظ والبدء</button>
             </div>
+
           </div>
         </div>
       )}
@@ -1434,10 +1444,11 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         <div className="fixed inset-0 z-[10020] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 print:hidden" dir="rtl">
           <div className="schedule-card w-full max-w-xl p-8 text-center">
             <div className="text-4xl mb-3">📄</div>
-            <h3 className="text-xl font-black text-[var(--schedule-text)]">جاري إنشاء ملفات PDF على الحاسبة</h3>
+            <h3 className="text-xl font-black text-[var(--schedule-text)]">جاري إنشاء ملف PDF كامل</h3>
             <p className="mt-2 text-sm font-bold text-[var(--schedule-muted)]">
-              الجزء {Math.max(1, pdfProgress.part)} من {pdfProgress.parts} — تمت معالجة {pdfProgress.completed.toLocaleString('en-US')} من {pdfProgress.total.toLocaleString('en-US')} سجل
+              الدفعة {Math.max(1, pdfProgress.part)} من {pdfProgress.parts} — تمت معالجة {pdfProgress.completed.toLocaleString('en-US')} من {pdfProgress.total.toLocaleString('en-US')} سجل
             </p>
+
             <div className="h-3 mt-5 rounded-full overflow-hidden bg-slate-200" role="progressbar" aria-valuemin={0} aria-valuemax={pdfProgress.total} aria-valuenow={pdfProgress.completed}>
               <div className="h-full bg-[var(--schedule-accent-blue)] transition-[width] duration-200" style={{ width: `${pdfProgress.total ? (pdfProgress.completed / pdfProgress.total) * 100 : 0}%` }} />
             </div>
