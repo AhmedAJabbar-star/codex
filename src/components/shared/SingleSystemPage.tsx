@@ -532,7 +532,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       });
       return;
     }
-    exportToPDF(reportTitle, reportHeaders, filteredRows);
+    await handleDirectPdf();
   };
 
   const comboFilterKey = useMemo(() => {
@@ -883,7 +883,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
             )}
             <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(124,58,237,.28)' }} onClick={handleExcel}>📥 تصدير Excel</button>
-            <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }} onClick={handlePDF}>📄 تصدير PDF</button>
+            {activeSystem === 'assignments' && (
+              <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }} onClick={handlePDF}>📄 تصدير PDF</button>
+            )}
             {activeSystem === 'emptyRooms' && (
               <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(5,150,105,.28)' }} onClick={() => setShowBookingDialog(true)}>📅 حجز مؤقت</button>
             )}
