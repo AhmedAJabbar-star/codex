@@ -165,6 +165,10 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
   };
 
 
+  // الجدول في PDF يُرسم من اليسار لليمين، لذلك نعكس ترتيب الأعمدة
+  // كي تظهر القراءة من اليمين إلى اليسار مثل زر الطباعة.
+  const rtlHeaders = [...options.headers].reverse();
+
   for (let chunk = 0; chunk < chunks; chunk += 1) {
     if (options.signal?.aborted) throw new DOMException('تم إلغاء إنشاء التقرير', 'AbortError');
     const start = chunk * PART_ROWS;
@@ -172,8 +176,8 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
     if (chunk > 0) doc.addPage();
 
     autoTable(doc, {
-      head: [options.headers],
-      body: options.rows.slice(start, end).map((row) => options.headers.map((header) => String(row[header] ?? ''))),
+      head: [rtlHeaders],
+      body: options.rows.slice(start, end).map((row) => rtlHeaders.map((header) => String(row[header] ?? ''))),
       startY: headerHeight + 2,
       margin: { top: headerHeight + 2, right: margin, bottom: 15, left: margin },
       theme: 'grid',
