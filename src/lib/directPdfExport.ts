@@ -72,7 +72,7 @@ async function saveBlob(directory: DirectoryHandle | null, blob: Blob, filename:
 export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<{ files: number; folderMode: boolean }> {
   const picker = (window as unknown as { showDirectoryPicker?: (options?: { mode: 'readwrite' }) => Promise<DirectoryHandle> }).showDirectoryPicker;
   let directory: DirectoryHandle | null = null;
-  if (picker) directory = await picker({ mode: 'readwrite' });
+  if (picker) directory = await picker.call(window, { mode: 'readwrite' });
 
   const [fontDataUrl, logoDataUrl] = await Promise.all([
     asDataUrl(arabicFontAsset.url),
@@ -116,7 +116,7 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
       doc.setTextColor(15, 76, 129);
       doc.setFontSize(10);
       doc.text('جمهورية العراق\nوزارة التعليم العالي والبحث العلمي', pageWidth - margin, 8, { align: 'right' });
-      doc.text('الجامعة التكنولوجية\nكلية الهندسة المدنية', margin, 8, { align: 'left' });
+      doc.text(`الجامعة التكنولوجية\nكلية الهندسة المدنية${options.department ? `\n${options.department}` : ''}`, margin, 8, { align: 'left' });
       if (options.printPrefs?.showTitle !== false) {
         doc.setFontSize(13);
         doc.text(options.printPrefs?.title || options.title, pageWidth / 2, 31, { align: 'center' });
@@ -124,6 +124,10 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
       doc.setFontSize(7.5);
       doc.setTextColor(65, 82, 102);
       doc.text(`التاريخ: ${date}   |   السجلات: ${start + 1}–${end} من ${total}   |   الجزء ${part + 1} من ${parts}`, pageWidth / 2, headerHeight - 2, { align: 'center' });
+      if (options.printPrefs?.showFilters !== false && options.filtersInfo?.length) {
+        doc.setFontSize(6.5);
+        doc.text(options.filtersInfo.map((item) => `${item.label}: ${item.value}`).join('   |   '), pageWidth / 2, headerHeight + 1.5, { align: 'center', maxWidth: pageWidth - margin * 2 });
+      }
     };
 
     autoTable(doc, {
@@ -169,7 +173,6 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
 
     const suffix = parts > 1 ? ` - الجزء ${String(part + 1).padStart(2, '0')} من ${String(parts).padStart(2, '0')}` : '';
     await saveBlob(directory, doc.output('blob'), `${reportName}${suffix}.pdf`);
-    doc.deletePage(1);
     options.onProgress?.(end, total, part + 1, parts);
     await nextPaint();
   }
