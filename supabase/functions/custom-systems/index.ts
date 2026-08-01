@@ -229,6 +229,11 @@ function rowToSystem(r: Record<string, string>) {
     drive_folder_id: clean(r.drive_folder_id),
     column_drive_folders: parseJson(r.column_drive_folders_json || "{}", {}),
     ui_theme: clean(r.ui_theme),
+    bulk_import_enabled: String(r.bulk_import_enabled || "").toLowerCase() === "true",
+    dedupe_enabled: String(r.dedupe_enabled || "").toLowerCase() === "true",
+    dedupe_columns: parseJson(r.dedupe_columns_json || "[]", []),
+    dedupe_key_column: clean(r.dedupe_key_column).toUpperCase(),
+    dedupe_separator: r.dedupe_separator === undefined || r.dedupe_separator === "" ? "|" : String(r.dedupe_separator),
   };
 }
 
@@ -283,6 +288,11 @@ async function systemToRow(s: any): Promise<string[]> {
     drive_folder_id: String(s.drive_folder_id || ""),
     column_drive_folders_json: JSON.stringify(s.column_drive_folders || {}),
     ui_theme: String(s.ui_theme || ""),
+    bulk_import_enabled: String(!!s.bulk_import_enabled),
+    dedupe_enabled: String(!!s.dedupe_enabled),
+    dedupe_columns_json: JSON.stringify((s.dedupe_columns || []).map((x: any) => String(x || "").toUpperCase())),
+    dedupe_key_column: String(s.dedupe_key_column || "").toUpperCase(),
+    dedupe_separator: String(s.dedupe_separator ?? "|"),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
