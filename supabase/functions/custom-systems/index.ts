@@ -443,9 +443,11 @@ Deno.serve(async (req) => {
           const perms = sys.crud_permissions || {};
           const allow = {
             append: perms.add    ?? legacyAll,
+            bulk_append: perms.add ?? legacyAll,
             update: perms.edit   ?? legacyAll,
             delete: perms.delete ?? legacyAll,
           } as Record<string, boolean>;
+
           if (!allow[op]) return json({ error: "هذه العملية غير مسموح بها لهذا النظام" }, 403);
         }
       } catch { /* if registry lookup fails, fall through (password already validated) */ }
