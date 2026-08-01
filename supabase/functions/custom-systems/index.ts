@@ -436,11 +436,11 @@ Deno.serve(async (req) => {
       const valuesByLetter = (body?.values || {}) as Record<string, string>;
       const matchByLetter = (body?.match || {}) as Record<string, string>;
       const bulkRows = Array.isArray(body?.rows) ? (body.rows as Record<string, string>[]) : [];
-      const dedupeCols = (Array.isArray(body?.dedupe_columns) ? body.dedupe_columns : [])
-        .map((x: any) => String(x || "").toUpperCase().trim()).filter(Boolean);
-      const dedupeEnabled = !!body?.dedupe && dedupeCols.length > 0;
-      const dedupeTargetCol = String(body?.dedupe_key_column || "").toUpperCase().trim();
-      const dedupeSep = String(body?.dedupe_separator ?? "|");
+      // Duplicate-prevention config is read from the system definition (server-side, authoritative).
+      let dedupeCols: string[] = [];
+      let dedupeEnabled = false;
+      let dedupeTargetCol = "";
+      let dedupeSep = "|";
       if (!gid) return json({ error: "GID مطلوب" }, 400);
       if (!["append", "bulk_append", "update", "delete"].includes(op)) return json({ error: "op غير مدعوم" }, 400);
 
@@ -463,6 +463,11 @@ Deno.serve(async (req) => {
           } as Record<string, boolean>;
 
           if (!allow[op]) return json({ error: "هذه العملية غير مسموح بها لهذا النظام" }, 403);
+          dedupeCols = (Array.isArray(sys.dedupe_columns) ? sys.dedupe_columns : [])
+            .map((x: any) => String(x || "").toUpperCase().trim()).filter(Boolean);
+          dedupeEnabled = !!sys.dedupe_enabled && dedupeCols.length > 0;
+          dedupeTargetCol = String(sys.dedupe_key_column || "").toUpperCase().trim();
+          dedupeSep = String(sys.dedupe_separator || "|");
         }
       } catch { /* if registry lookup fails, fall through (password already validated) */ }
 
