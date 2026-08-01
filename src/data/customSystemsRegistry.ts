@@ -159,6 +159,16 @@ export interface CustomSystemDef {
   global_search?: boolean;
   /** 🎨 UI theme override for this system only. Empty/undefined = follow the global theme. */
   ui_theme?: string;
+  /** 📤 Enable bulk import of records from an Excel/CSV file (requires the «add» permission). */
+  bulk_import_enabled?: boolean;
+  /** 🚫 Prevent duplicate records using a composite key built from one or more columns. */
+  dedupe_enabled?: boolean;
+  /** Excel letters joined together to form the composite duplicate key. */
+  dedupe_columns?: string[];
+  /** Optional column that receives the joined key value (a generated ID column). */
+  dedupe_key_column?: string;
+  /** Separator used when joining the key columns. Default "|". */
+  dedupe_separator?: string;
 }
 
 /** Row-highlighting rule: when conditions pass, apply `color` as row background. */
@@ -239,6 +249,11 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   aggregations: [],
   global_search: false,
   ui_theme: '',
+  bulk_import_enabled: false,
+  dedupe_enabled: false,
+  dedupe_columns: [],
+  dedupe_key_column: '',
+  dedupe_separator: '|',
 };
 
 
@@ -335,7 +350,7 @@ export interface CrudContext {
 export const CUSTOM_SYSTEMS_UPDATED_EVENT = 'custom-systems-updated';
 
 /** CRUD against the source Google Sheet for a custom system. Admin password required. */
-export type SheetWriteOp = 'append' | 'update' | 'delete';
+export type SheetWriteOp = 'append' | 'bulk_append' | 'update' | 'delete';
 export interface SheetWritePayload {
   op: SheetWriteOp;
   gid: string;
@@ -345,9 +360,12 @@ export interface SheetWritePayload {
   values?: Record<string, string>;
   /** Snapshot of the original row (letter -> value) used to locate the row on the server. */
   match?: Record<string, string>;
+  /** Rows for op = 'bulk_append' (each is a map of column letter -> value). */
+  rows?: Record<string, string>[];
   password: string;
 }
-export async function sheetWrite(payload: SheetWritePayload): Promise<void> {
+export interface SheetWriteResult { ok?: boolean; inserted?: number; skipped_existing?: number; skipped_in_file?: number }
+export async function sheetWrite(payload: SheetWritePayload): Promise<SheetWriteResult> {
   const { data, error } = await supabase.functions.invoke('custom-systems', {
     body: { action: 'sheet-write', ...payload },
   });
@@ -364,4 +382,5 @@ export async function sheetWrite(payload: SheetWritePayload): Promise<void> {
     throw new Error(msg || 'فشل تنفيذ العملية');
   }
   if ((data as any)?.error) throw new Error((data as any).error);
+  return (data || {}) as SheetWriteResult;
 }

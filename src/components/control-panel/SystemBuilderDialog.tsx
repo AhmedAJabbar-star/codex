@@ -818,6 +818,100 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <PermToggle k="edit"   label="تعديل"      icon="✏️" />
                       <PermToggle k="delete" label="حذف"        icon="🗑️" />
                     </div>
+
+                    {/* 📤 Bulk import from Excel/CSV */}
+                    {cur.add && (
+                      <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50/50 p-3 space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="w-5 h-5"
+                            checked={!!s.bulk_import_enabled}
+                            onChange={(e) => patch({ bulk_import_enabled: e.target.checked })}
+                          />
+                          <strong className="text-sm">📤 تفعيل الإضافة الجماعية برفع ملف Excel / CSV</strong>
+                        </label>
+                        <p className="text-[11px] text-slate-600 leading-5">
+                          يظهر زر <strong>«📤 استيراد من Excel»</strong> بجانب زر الإضافة. يرفع المستخدم ملف
+                          (<code>.xlsx</code> / <code>.xls</code> / <code>.csv</code>)، ثم يطابق أعمدة الملف مع أعمدة النظام،
+                          فتُضاف كل الصفوف دفعة واحدة إلى ورقة Google Sheets فوراً.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 🚫 Duplicate prevention */}
+                    {(cur.add) && (
+                      <div className="rounded-xl border-2 border-rose-200 bg-rose-50/50 p-3 space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="w-5 h-5"
+                            checked={!!s.dedupe_enabled}
+                            onChange={(e) => patch({ dedupe_enabled: e.target.checked })}
+                          />
+                          <strong className="text-sm">🚫 منع تكرار السجلات (مفتاح فريد)</strong>
+                        </label>
+                        <p className="text-[11px] text-slate-600 leading-5">
+                          يُبنى «مفتاح فريد» بدمج (Join) عمود واحد أو أكثر. أي سجل جديد (فردي أو ضمن ملف Excel)
+                          يحمل نفس المفتاح لسجل موجود سيُرفض/يُتجاوز تلقائياً.
+                        </p>
+                        {s.dedupe_enabled && (
+                          <div className="space-y-3 pt-1 border-t border-dashed border-rose-200">
+                            <div>
+                              <label className="block text-[11px] font-black mb-1">أعمدة المفتاح الفريد (اختر عموداً أو أكثر)</label>
+                              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-auto bg-white p-2 rounded-lg border">
+                                {colLetters.map((L) => {
+                                  const list = s.dedupe_columns || [];
+                                  const on = list.includes(L);
+                                  return (
+                                    <button
+                                      key={L}
+                                      type="button"
+                                      onClick={() => patch({ dedupe_columns: on ? list.filter((x) => x !== L) : [...list, L] })}
+                                      className={`px-2 py-1 rounded-lg border-2 text-[11px] font-bold ${on ? 'border-rose-500 bg-rose-100 text-rose-800' : 'border-slate-200 bg-white text-slate-600'}`}
+                                      title={labels[L] || `عمود ${L}`}
+                                    >
+                                      {L} — {(labels[L] || `عمود ${L}`).slice(0, 18)}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-1">
+                                المفتاح الحالي: <strong>{(s.dedupe_columns || []).join(` ${s.dedupe_separator || '|'} `) || '— لم تُحدَّد أعمدة —'}</strong>
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[11px] font-black mb-1">فاصل الدمج</label>
+                                <input
+                                  className="schedule-select w-full text-xs"
+                                  value={s.dedupe_separator ?? '|'}
+                                  onChange={(e) => patch({ dedupe_separator: e.target.value })}
+                                  placeholder="مثال: |  أو  -  أو  _"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-black mb-1">عمود حفظ المفتاح (اختياري)</label>
+                                <select
+                                  className="schedule-select w-full text-xs"
+                                  value={s.dedupe_key_column || ''}
+                                  onChange={(e) => patch({ dedupe_key_column: e.target.value })}
+                                >
+                                  <option value="">— لا يُحفَظ (المقارنة فقط) —</option>
+                                  {colLetters.map((L) => (
+                                    <option key={L} value={L}>{L} — {labels[L] || `عمود ${L}`}</option>
+                                  ))}
+                                </select>
+                                <p className="text-[11px] text-slate-500 mt-1">
+                                  عند اختيار عمود، تُكتب فيه قيمة المفتاح المدموج تلقائياً عند كل إضافة (يصلح كـ ID).
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {anyOn && colLetters.length > 0 && (
                       <details className="mt-2" open>
                         <summary className="cursor-pointer text-xs font-black text-slate-700">

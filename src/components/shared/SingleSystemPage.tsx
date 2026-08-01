@@ -14,6 +14,7 @@ import { fetchDepartmentHead } from '@/lib/departmentHeads';
 import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
 import { sheetWrite } from '@/data/customSystemsRegistry';
+import ExcelImportPanel from '@/components/custom-systems/ExcelImportPanel';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
@@ -569,6 +570,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return pw;
   }, []);
 
+  const [showImport, setShowImport] = useState(false);
+
   const crudOpenAdd = useCallback(() => {
     if (!crudCtx) return;
     const init: Record<string, string> = {};
@@ -906,6 +909,15 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 disabled={crudBusy}
               >➕ إضافة سجل</button>
             )}
+            {crudCtx && crudPerms?.add && (crudCtx.def as any).bulk_import_enabled && (
+              <button
+                className="schedule-btn schedule-btn-primary"
+                style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(79,70,229,.28)' }}
+                onClick={() => { setCrudEditing(null); setShowImport(true); }}
+                disabled={crudBusy}
+                title="رفع ملف Excel/CSV وتعبئة السجلات دفعة واحدة"
+              >📤 استيراد من Excel</button>
+            )}
             {(crudCtx || system.globalSearch) && (
               <div className="relative" style={{ flex: '1 1 220px', minWidth: 220 }}>
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
@@ -921,6 +933,16 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
             <div className="schedule-counter">📊 عدد النتائج: <strong className="text-[var(--schedule-text)]">{filteredRows.length}</strong></div>
           </div>
+
+          {/* 📤 Bulk Excel/CSV import (inline, never overlays the data). */}
+          {crudCtx && showImport && (
+            <ExcelImportPanel
+              crudCtx={crudCtx}
+              getPassword={() => ensureAdminPassword(false)}
+              onClose={() => setShowImport(false)}
+              onDone={() => crudCtx.refetchQueryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }))}
+            />
+          )}
 
           {/* Inline CRUD editor — replaces the old modal (never overlays the data). */}
           {crudCtx && crudEditing && (
