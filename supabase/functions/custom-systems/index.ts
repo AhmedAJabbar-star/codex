@@ -421,8 +421,15 @@ Deno.serve(async (req) => {
       const externalUrl = String(body?.sheet_url || "").trim();
       const valuesByLetter = (body?.values || {}) as Record<string, string>;
       const matchByLetter = (body?.match || {}) as Record<string, string>;
+      const bulkRows = Array.isArray(body?.rows) ? (body.rows as Record<string, string>[]) : [];
+      const dedupeCols = (Array.isArray(body?.dedupe_columns) ? body.dedupe_columns : [])
+        .map((x: any) => String(x || "").toUpperCase().trim()).filter(Boolean);
+      const dedupeEnabled = !!body?.dedupe && dedupeCols.length > 0;
+      const dedupeTargetCol = String(body?.dedupe_key_column || "").toUpperCase().trim();
+      const dedupeSep = String(body?.dedupe_separator ?? "|");
       if (!gid) return json({ error: "GID مطلوب" }, 400);
-      if (!["append", "update", "delete"].includes(op)) return json({ error: "op غير مدعوم" }, 400);
+      if (!["append", "bulk_append", "update", "delete"].includes(op)) return json({ error: "op غير مدعوم" }, 400);
+
 
       // Enforce per-system CRUD permissions (looks up the system by gid+url within registry).
       try {
