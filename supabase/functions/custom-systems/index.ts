@@ -496,7 +496,12 @@ Deno.serve(async (req) => {
       const allRows: string[][] = (data.values || []).map((r: any[]) => (r || []).map((c) => String(c ?? "")));
       if (allRows.length === 0) return json({ error: "الورقة فارغة (لا توجد ترويسة)" }, 400);
       const header = allRows[0];
-      const width = Math.max(header.length, ...Array.from(Object.keys(valuesByLetter)).map((L) => letterToIdx(L) + 1));
+      const allLetters = new Set<string>([
+        ...Object.keys(valuesByLetter),
+        ...bulkRows.flatMap((r) => Object.keys(r || {})),
+        ...(dedupeTargetCol ? [dedupeTargetCol] : []),
+      ]);
+      const width = Math.max(header.length, ...Array.from(allLetters).map((L) => letterToIdx(L) + 1));
       const lastLetter = idxToLetter(width);
 
       const buildRowFromLetters = (base: string[], values: Record<string, string>): string[] => {
@@ -509,14 +514,63 @@ Deno.serve(async (req) => {
         return out;
       };
 
+      // ---- Duplicate prevention helpers (join of one or more columns = composite ID) ----
+      const normKey = (v: string) => String(v ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+      const keyOfValues = (values: Record<string, string>) =>
+        dedupeCols.map((L) => normKey(values[L] || "")).join(dedupeSep);
+      const keyOfSheetRow = (row: string[]) =>
+        dedupeCols.map((L) => normKey(row[letterToIdx(L)] || "")).join(dedupeSep);
+      const existingKeys = new Set<string>();
+      if (dedupeEnabled) {
+        for (let i = 1; i < allRows.length; i++) {
+          const k = keyOfSheetRow(allRows[i]);
+          if (k.replace(new RegExp(`\\${dedupeSep}`, "g"), "").trim()) existingKeys.add(k);
+        }
+      }
+      const applyKeyColumn = (values: Record<string, string>) => {
+        if (!dedupeTargetCol || dedupeCols.length === 0) return values;
+        return { ...values, [dedupeTargetCol]: dedupeCols.map((L) => String(values[L] ?? "").trim()).join(dedupeSep) };
+      };
+
       if (op === "append") {
-        const row = buildRowFromLetters([], valuesByLetter);
+        if (dedupeEnabled && existingKeys.has(keyOfValues(valuesByLetter))) {
+          return json({ error: "سجل مكرّر: توجد بيانات بنفس المفتاح (" + dedupeCols.join(" + ") + ")" }, 409);
+        }
+        const row = buildRowFromLetters([], applyKeyColumn(valuesByLetter));
         await gapiX(`/values/${encodeURIComponent(sheetTitle)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
           method: "POST",
           body: JSON.stringify({ values: [row] }),
         });
         return json({ ok: true });
       }
+
+      if (op === "bulk_append") {
+        if (bulkRows.length === 0) return json({ error: "لا توجد صفوف للاستيراد" }, 400);
+        if (bulkRows.length > 5000) return json({ error: "الحد الأقصى 5000 صف في الدفعة الواحدة" }, 400);
+        const out: string[][] = [];
+        let dupSheet = 0, dupFile = 0;
+        const batchKeys = new Set<string>();
+        for (const r of bulkRows) {
+          const vals = r || {};
+          if (dedupeEnabled) {
+            const k = keyOfValues(vals);
+            if (existingKeys.has(k)) { dupSheet++; continue; }
+            if (batchKeys.has(k)) { dupFile++; continue; }
+            batchKeys.add(k);
+          }
+          out.push(buildRowFromLetters([], applyKeyColumn(vals)));
+        }
+        // Write in chunks so very large imports do not exceed API limits.
+        const CHUNK = 500;
+        for (let i = 0; i < out.length; i += CHUNK) {
+          await gapiX(`/values/${encodeURIComponent(sheetTitle)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
+            method: "POST",
+            body: JSON.stringify({ values: out.slice(i, i + CHUNK) }),
+          });
+        }
+        return json({ ok: true, inserted: out.length, skipped_existing: dupSheet, skipped_in_file: dupFile });
+      }
+
 
       // Locate target row by matching `match` snapshot against original sheet rows.
       const matchLetters = Object.keys(matchByLetter);
