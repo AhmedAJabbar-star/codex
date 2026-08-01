@@ -52,6 +52,10 @@ const HEADERS = [
   "drive_folder_id", "column_drive_folders_json",
   // v12 additions (per-system UI theme):
   "ui_theme",
+  // v13 additions (bulk Excel import + duplicate prevention):
+  "bulk_import_enabled", "dedupe_enabled", "dedupe_columns_json",
+  "dedupe_key_column", "dedupe_separator",
+
 ];
 
 const SHEET_TITLE = "systems_registry";
