@@ -18,6 +18,7 @@ import ExcelImportPanel from '@/components/custom-systems/ExcelImportPanel';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
+import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 
 
 interface Props {
@@ -558,13 +559,18 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     try { return JSON.parse(row[crudCtx.snapshotKey] || '{}'); } catch { return {}; }
   }, [crudCtx]);
 
-  const ensureAdminPassword = useCallback((forDelete: boolean): string | null => {
+  const ensureAdminPassword = useCallback(async (forDelete: boolean): Promise<string | null> => {
     const cached = getCachedAdminPassword();
     if (cached) return cached;
-    const msg = forDelete
-      ? '🔐 أدخل كلمة مرور المدير لتأكيد الحذف (تُحفظ لباقي الجلسة):'
-      : '🔐 أدخل كلمة مرور المدير لتفعيل العملية (تُحفظ لباقي الجلسة):';
-    const pw = window.prompt(msg) || '';
+    const pw = (await uiPrompt({
+      title: forDelete ? 'تأكيد الحذف' : 'تأكيد العملية',
+      message: 'أدخل كلمة مرور المدير للمتابعة. تبقى محفوظة لباقي الجلسة.',
+      icon: '🔐',
+      password: true,
+      placeholder: 'كلمة مرور المدير',
+      tone: forDelete ? 'danger' : 'default',
+      confirmText: 'متابعة',
+    })) || '';
     if (!pw) return null;
     setCachedAdminPassword(pw);
     return pw;
@@ -586,7 +592,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   const crudSubmit = useCallback(async () => {
     if (!crudCtx || !crudEditing) return;
-    const password = ensureAdminPassword(false);
+    const password = await ensureAdminPassword(false);
     if (!password) return;
     setCrudBusy(true);
     try {
@@ -615,8 +621,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   const crudDelete = useCallback(async (snapshot: Record<string, string>) => {
     if (!crudCtx) return;
-    if (!confirm('⚠️ حذف هذا السجل من ورقة Google Sheets نهائياً؟\nلا يمكن التراجع عن هذا الإجراء.')) return;
-    const password = ensureAdminPassword(true);
+    if (!(await uiConfirm({ title: 'حذف السجل', message: 'سيتم حذف هذا السجل نهائياً من الورقة المصدر، ولا يمكن التراجع عن العملية.', tone: 'danger', confirmText: 'حذف نهائي' }))) return;
+    const password = await ensureAdminPassword(true);
     if (!password) return;
     setCrudBusy(true);
     try {

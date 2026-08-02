@@ -11,6 +11,7 @@ import {
 } from '@/lib/teacherAuth';
 import { ROLE_LABELS, type AppRole, type UserPermissions } from '@/lib/permissions';
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
+import { uiConfirm } from '@/lib/ui-dialog';
 
 /**
  * قسم «المستخدمون والصلاحيات» في لوحة التحكم.
@@ -144,12 +145,12 @@ const UsersTab = ({ users, isLoading, search, setSearch, onChanged, onOpenPerms,
   onChanged: () => void; onOpenPerms: (u: AdminUser) => void; customSystems: CustomSystemDef[];
 }) => {
   const handleReset = async (u: AdminUser) => {
-    if (!confirm(`إعادة تعيين كلمة مرور "${u.full_name}" إلى 123؟`)) return;
+    if (!(await uiConfirm({ title: 'إعادة تعيين كلمة المرور', message: `سيتم إرجاع كلمة مرور "${u.full_name}" إلى القيمة الافتراضية 123.`, icon: '🔑', confirmText: 'إعادة التعيين' }))) return;
     try { await adminResetPassword(u.id); toast.success('تم. كلمة المرور الجديدة: 123'); onChanged(); }
     catch (e) { toast.error((e as Error).message); }
   };
   const handleDelete = async (u: AdminUser) => {
-    if (!confirm(`حذف المستخدم "${u.full_name}" نهائياً؟`)) return;
+    if (!(await uiConfirm({ title: 'حذف المستخدم', message: `سيتم حذف "${u.full_name}" نهائياً ولا يمكن التراجع عن هذا الإجراء.`, tone: 'danger', confirmText: 'حذف نهائي' }))) return;
     try { await adminDeleteUser(u.id); toast.success('تم الحذف'); onChanged(); }
     catch (e) { toast.error((e as Error).message); }
   };
