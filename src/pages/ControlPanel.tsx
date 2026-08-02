@@ -14,6 +14,7 @@ import UsersAdminSection from '@/components/control-panel/UsersAdminSection';
 import { UI_THEMES, useUiTheme } from '@/lib/uiTheme';
 import { useDarkMode } from '@/lib/darkMode';
 import { use3DEnabled } from '@/lib/threeD';
+import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 
 const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖','📝','📌','🔔','🗓️','🕒','👨‍🏫','👥','🏫','🧮','🔍','✅','⚠️','🚦','💡','🧾','📑','🗒️','📐','🧱','🔧'];
 const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1d4ed8','#9333ea','#0d9488','#be185d','#ea580c','#65a30d'];
@@ -75,7 +76,7 @@ const ControlPanel = () => {
   };
 
   const persistAll = async (nextGroups: SystemGroup[], successMsg: string): Promise<boolean> => {
-    const password = window.prompt('أدخل كلمة مرور لوحة التحكم لتأكيد العملية:');
+    const password = await uiPrompt({ title: 'تأكيد العملية', message: 'أدخل كلمة مرور لوحة التحكم للمتابعة.', icon: '🔐', password: true, placeholder: 'كلمة المرور', confirmText: 'متابعة' });
     if (password === null) return false;
     setSaving(true);
     try {
@@ -105,7 +106,7 @@ const ControlPanel = () => {
   const deleteGroup = async (id: string) => {
     const g = groups.find(x => x.id === id);
     if (!g) return;
-    if (!confirm(`حذف المجموعة "${g.title}"؟ ستعود أنظمتها للظهور بشكل منفرد في الواجهة الرئيسية.`)) return;
+    if (!(await uiConfirm({ title: 'حذف المجموعة', message: `سيتم حذف المجموعة "${g.title}"، وستعود أنظمتها للظهور بشكل منفرد في الواجهة الرئيسية.`, tone: 'danger', confirmText: 'حذف المجموعة' }))) return;
     // If the group was never saved (empty), remove locally without server roundtrip.
     if (g.systemIds.length === 0) {
       setGroupsState(prev => prev.filter(x => x.id !== id));

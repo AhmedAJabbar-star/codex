@@ -4,6 +4,7 @@ import type { CustomSystemDef, FilterConfigItem, FilterRule, SignatureItem } fro
 import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem } from '@/data/customSystemsRegistry';
 import { OP_LABELS, type Condition, type ConditionOp, parseColumnsRange, colIndexToLetter } from '@/lib/conditionEngine';
 import { UI_THEMES, applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
+import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 const COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1e40af','#be123c'];
 
 const ICONS = [
@@ -77,15 +78,24 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   }, [dirty]);
 
   /** الإغلاق الآمن — لا يُغلق أبداً بالضغط خارج النافذة، ويطلب تأكيداً عند وجود تعديلات. */
-  const requestClose = () => {
-    if (dirty && !window.confirm('لديك تعديلات غير محفوظة. الإغلاق الآن سيحتفظ بها كمسوّدة تُستعاد عند إعادة الفتح.\nهل تريد الإغلاق؟')) return;
+  const requestClose = async () => {
+    if (dirty) {
+      const ok = await uiConfirm({
+        title: 'إغلاق منشئ الأنظمة؟',
+        message: 'لديك تعديلات غير محفوظة. عند الإغلاق سيتم الاحتفاظ بها كمسوّدة تُستعاد تلقائياً عند إعادة فتح المنشئ.',
+        icon: '📝',
+        confirmText: 'إغلاق وحفظ كمسوّدة',
+        cancelText: 'متابعة التحرير',
+      });
+      if (!ok) return;
+    }
     onClose();
   };
 
   // منع الإغلاق بمفتاح Escape بشكل غير مقصود
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); requestClose(); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); void requestClose(); }
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
@@ -190,7 +200,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const handleSave = async () => {
     if (!s.title.trim()) { toast.error('العنوان مطلوب'); setStep(1); return; }
     if (!s.sheet_gid.trim()) { toast.error('GID للورقة المصدر مطلوب'); setStep(2); return; }
-    const password = window.prompt('أدخل كلمة مرور لوحة التحكم لتأكيد الحفظ:');
+    const password = await uiPrompt({ title: 'تأكيد حفظ النظام', message: 'أدخل كلمة مرور لوحة التحكم لحفظ التعديلات.', icon: '🔐', password: true, placeholder: 'كلمة المرور', confirmText: 'حفظ' });
     if (password === null) return;
     setBusy(true);
     try {
@@ -207,8 +217,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
 
   const handleDelete = async () => {
     if (!initial?.id) return;
-    if (!confirm(`حذف النظام "${initial.title}"؟`)) return;
-    const password = window.prompt('أدخل كلمة مرور لوحة التحكم لتأكيد الحذف:');
+    if (!(await uiConfirm({ title: 'حذف النظام', message: `سيتم حذف النظام "${initial.title}" نهائياً من القائمة. لا يمكن التراجع عن هذا الإجراء.`, tone: 'danger', confirmText: 'حذف النظام' }))) return;
+    const password = await uiPrompt({ title: 'تأكيد الحذف', message: 'أدخل كلمة مرور لوحة التحكم لتأكيد حذف النظام.', icon: '🔐', password: true, placeholder: 'كلمة المرور', tone: 'danger', confirmText: 'تأكيد الحذف' });
     if (password === null) return;
     setBusy(true);
     try {

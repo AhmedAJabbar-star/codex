@@ -2,11 +2,12 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { sheetWrite, type CrudContext } from '@/data/customSystemsRegistry';
+import { uiConfirm } from '@/lib/ui-dialog';
 
 interface Props {
   crudCtx: CrudContext;
   /** Returns the admin password (may prompt). Null = cancelled. */
-  getPassword: () => string | null;
+  getPassword: () => Promise<string | null>;
   onClose: () => void;
   onDone: () => void;
 }
@@ -86,8 +87,14 @@ export default function ExcelImportPanel({ crudCtx, getPassword, onClose, onDone
         return;
       }
     }
-    if (!confirm(`سيتم إضافة ${payloadRows.length.toLocaleString('en-US')} سجلاً إلى الورقة.\nهل تريد المتابعة؟`)) return;
-    const password = getPassword();
+    const proceed = await uiConfirm({
+      title: 'تأكيد الاستيراد',
+      message: `سيتم إضافة ${payloadRows.length.toLocaleString('en-US')} سجلاً إلى الورقة المصدر.`,
+      icon: '📤',
+      confirmText: 'ابدأ الاستيراد',
+    });
+    if (!proceed) return;
+    const password = await getPassword();
     if (!password) return;
     setBusy(true); setProgress(0);
     try {
