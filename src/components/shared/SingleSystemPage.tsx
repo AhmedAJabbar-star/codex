@@ -577,18 +577,77 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   }, []);
 
   const [showImport, setShowImport] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+
+  /** الأعمدة التي يملؤها النظام تلقائياً (تتبّع) — تُخفى من نموذج الإدخال. */
+  const auditLetters = crudCtx?.auditLetters || [];
+  /** سعة الخيارات: عدد مرات استخدام كل خيار في الورقة كاملة. */
+  const optionCounts = crudCtx?.optionCounts || {};
+  const optionLimits = (crudCtx?.def as any)?.option_limits || {};
+  /** السعة المتبقية لخيار محدد (null = بلا حد). */
+  const remainingFor = useCallback((letter: string, option: string): number | null => {
+    const cfg: any = optionLimits[letter] || optionLimits[letter?.toUpperCase()];
+    if (!cfg) return null;
+    const cap = Number(cfg?.per?.[option] ?? cfg?.limit ?? 0);
+    if (!cap || cap <= 0) return null;
+    const used = (optionCounts[letter?.toUpperCase()] || {})[option] || 0;
+    return Math.max(0, cap - used);
+  }, [optionCounts, optionLimits]);
+  const optionHideFull = useCallback((letter: string) => {
+    const cfg: any = optionLimits[letter] || optionLimits[letter?.toUpperCase()];
+    return cfg?.mode === 'hide';
+  }, [optionLimits]);
+
+  /** «رد واحد لكل مستخدم» — هل استهلك المستخدم حصته؟ */
+  const singleEnabled = !!(crudCtx?.def as any)?.single_response_enabled;
+  const singleUsed = singleEnabled && (crudCtx?.myRecordsCount || 0) > 0;
 
   const crudOpenAdd = useCallback(() => {
     if (!crudCtx) return;
+    if (singleEnabled && (crudCtx.myRecordsCount || 0) > 0) {
+      toast.error('لقد قمت بإرسال سجل مسبقاً — يُسمح بسجل واحد فقط لكل مستخدم');
+      return;
+    }
     const init: Record<string, string> = {};
     crudCtx.cols.forEach((c) => { init[c.letter] = ''; });
+    // تعبئة تلقائية من هوية المستخدم (الاسم / القسم / الكلية)
+    const d: any = crudCtx.def;
+    const idn = crudCtx.identity;
+    if (idn) {
+      const put = (letter: string | undefined, val: string) => {
+        const L = (letter || '').toUpperCase();
+        if (L && val && Object.prototype.hasOwnProperty.call(init, L)) init[L] = val;
+      };
+      put(d.teacher_column, idn.name);
+      put(d.teacher_department_column, idn.department);
+      put(d.teacher_college_column, idn.college);
+    }
     if (crudCtx.teacherCol && crudCtx.teacherName) init[crudCtx.teacherCol] = crudCtx.teacherName;
+    // قيم ممرّرة من نظام سابق مرتبط
+    Object.entries(crudCtx.prefill || {}).forEach(([L, v]) => {
+      const key = (L || '').toUpperCase();
+      if (Object.prototype.hasOwnProperty.call(init, key)) init[key] = String(v ?? '');
+    });
     setCrudEditing({ mode: 'add', values: init });
-  }, [crudCtx]);
+  }, [crudCtx, singleEnabled]);
 
   const crudOpenEdit = useCallback((snapshot: Record<string, string>) => {
     setCrudEditing({ mode: 'edit', values: { ...snapshot }, snapshot });
   }, []);
+
+  /** فتح النظام المرتبط مع تمرير القيم المشتركة. */
+  const openLinkedSystem = useCallback((link: NonNullable<typeof crudCtx>['linked'] extends (infer T)[] | undefined ? T : never) => {
+    if (!crudCtx) return;
+    const source = crudEditing?.values || crudCtx.myRecordSnapshot || {};
+    const payload: Record<string, string> = {};
+    Object.entries(link.map || {}).forEach(([from, to]) => {
+      const v = source[(from || '').toUpperCase()] ?? '';
+      if (to) payload[String(to).toUpperCase()] = String(v ?? '');
+    });
+    // الاسم/القسم/الكلية تُمرَّر دائماً عبر هوية المستخدم في النظام الهدف.
+    try { window.sessionStorage.setItem(`crud-prefill-${link.id}`, JSON.stringify(payload)); } catch { /* ignore */ }
+    navigate(`/custom/${link.id}`);
+  }, [crudCtx, crudEditing, navigate]);
 
   const crudSubmit = useCallback(async () => {
     if (!crudCtx || !crudEditing) return;
@@ -598,15 +657,19 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     try {
       const values: Record<string, string> = {};
       crudCtx.cols.forEach((c) => {
-        if (c.type !== 'readonly') values[c.letter] = crudEditing.values[c.letter] || '';
+        if (c.type === 'readonly') return;
+        if (auditLetters.includes(c.letter)) return; // يملؤها الخادم
+        values[c.letter] = crudEditing.values[c.letter] || '';
       });
+      const actor = crudCtx.teacherName || crudCtx.identity?.name || '';
       if (crudEditing.mode === 'add') {
-        await sheetWrite({ op: 'append', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, values, password });
+        await sheetWrite({ op: 'append', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, values, password, actor });
         toast.success('تمت إضافة السجل بنجاح ✅');
+        try { window.sessionStorage.removeItem(`crud-prefill-${crudCtx.def.id}`); } catch { /* ignore */ }
       } else {
         await sheetWrite({
           op: 'update', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl,
-          values, match: crudEditing.snapshot, password,
+          values, match: crudEditing.snapshot, password, actor,
         });
         toast.success('تم تحديث السجل بنجاح ✅');
       }
@@ -617,17 +680,25 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       if (/كلمة المرور/.test(m)) setCachedAdminPassword(null);
       toast.error(m);
     } finally { setCrudBusy(false); }
-  }, [crudCtx, crudEditing, ensureAdminPassword, qc]);
+  }, [crudCtx, crudEditing, ensureAdminPassword, qc, auditLetters]);
 
   const crudDelete = useCallback(async (snapshot: Record<string, string>) => {
     if (!crudCtx) return;
-    if (!(await uiConfirm({ title: 'حذف السجل', message: 'سيتم حذف هذا السجل نهائياً من الورقة المصدر، ولا يمكن التراجع عن العملية.', tone: 'danger', confirmText: 'حذف نهائي' }))) return;
+    const archived = !!(crudCtx.def as any).archive_enabled;
+    if (!(await uiConfirm({
+      title: 'حذف السجل',
+      message: archived
+        ? 'سيتم نقل السجل إلى ورقة الأرشيف ثم حذفه من الورقة المصدر.'
+        : 'سيتم حذف هذا السجل نهائياً من الورقة المصدر، ولا يمكن التراجع عن العملية.',
+      tone: 'danger', confirmText: 'حذف نهائي',
+    }))) return;
     const password = await ensureAdminPassword(true);
     if (!password) return;
     setCrudBusy(true);
     try {
-      await sheetWrite({ op: 'delete', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, match: snapshot, password });
-      toast.success('تم حذف السجل ✅');
+      const actor = crudCtx.teacherName || crudCtx.identity?.name || '';
+      await sheetWrite({ op: 'delete', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, match: snapshot, password, actor });
+      toast.success(archived ? 'تم حذف السجل وأرشفته ✅' : 'تم حذف السجل ✅');
       crudCtx.refetchQueryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
     } catch (e) {
       const m = (e as Error).message || '';
@@ -635,6 +706,43 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       toast.error(m);
     } finally { setCrudBusy(false); }
   }, [crudCtx, ensureAdminPassword, qc]);
+
+  /** تفسير محتوى رمز QR وتعبئة الحقول. */
+  const applyQrText = useCallback((text: string) => {
+    if (!crudCtx) return;
+    const editable = crudCtx.cols.filter((c) => c.type !== 'readonly' && !auditLetters.includes(c.letter));
+    const allowed: string[] = ((crudCtx.def as any).qr_fields || []).map((x: string) => String(x || '').toUpperCase());
+    const target = allowed.length > 0 ? editable.filter((c) => allowed.includes(c.letter)) : editable;
+    const next: Record<string, string> = {};
+    const t = text.trim();
+    let parsed = false;
+    if (t.startsWith('{')) {
+      try {
+        const obj = JSON.parse(t);
+        Object.entries(obj || {}).forEach(([k, v]) => {
+          const L = String(k).toUpperCase();
+          if (target.some((c) => c.letter === L)) next[L] = String(v ?? '');
+        });
+        parsed = Object.keys(next).length > 0;
+      } catch { /* ignore */ }
+    }
+    if (!parsed && /[=:]/.test(t)) {
+      t.split(/[;\n|]+/).forEach((pair) => {
+        const m = pair.match(/^\s*([A-Za-z]{1,3})\s*[=:]\s*(.*)$/);
+        if (!m) return;
+        const L = m[1].toUpperCase();
+        if (target.some((c) => c.letter === L)) next[L] = m[2].trim();
+      });
+      parsed = Object.keys(next).length > 0;
+    }
+    if (!parsed && target.length > 0) next[target[0].letter] = t;
+    setCrudEditing((prev) => {
+      const base = prev || { mode: 'add' as const, values: {} as Record<string, string> };
+      return { ...base, values: { ...base.values, ...next } };
+    });
+    setShowQr(false);
+    toast.success(`تم تعبئة ${Object.keys(next).length} حقل من الرمز ✅`);
+  }, [crudCtx, auditLetters]);
 
   // 📸 OCR — استخراج قيم الحقول من صورة عبر Lovable AI (Gemini)
   const runOcrExtraction = useCallback(async (file: File) => {
