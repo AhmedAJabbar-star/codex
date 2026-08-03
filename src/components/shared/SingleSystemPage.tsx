@@ -1125,7 +1125,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               </header>
               <div className="p-4 bg-slate-50/50">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {crudCtx.cols.map((c) => {
+                  {crudCtx.cols.filter((c) => !auditLetters.includes(c.letter)).map((c) => {
                     const v = crudEditing.values[c.letter] || '';
                     const set = (val: string) => setCrudEditing({ ...crudEditing, values: { ...crudEditing.values, [c.letter]: val } });
                     const lockTeacher = !!(crudCtx.teacherCol && crudCtx.teacherName && crudCtx.teacherCol === c.letter);
@@ -1139,6 +1139,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                       );
                     }
                     const dlId = `dl-${crudCtx.def.id}-${c.letter}`;
+                    /** سعة الخيارات: نُخفي أو نعطّل الخيارات المكتملة. */
+                    const renderOptions = c.options
+                      .map((o) => ({ o, left: remainingFor(c.letter, o) }))
+                      .filter(({ o, left }) => !(left === 0 && optionHideFull(c.letter) && o !== v));
                     return (
                       <div key={c.letter}>
                         <label className="block text-xs font-black mb-1.5 text-slate-700">{c.header}</label>
@@ -1146,16 +1150,21 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           c.allowCustom ? (
                             <>
                               <input list={dlId} className={base} value={v} onChange={(e) => set(e.target.value)} placeholder="اختر أو اكتب..." />
-                              <datalist id={dlId}>{c.options.map((o) => <option key={o} value={o} />)}</datalist>
+                              <datalist id={dlId}>{renderOptions.map(({ o }) => <option key={o} value={o} />)}</datalist>
                             </>
                           ) : (
                             <select className={base} value={v} onChange={(e) => set(e.target.value)}>
                               <option value="">— اختر —</option>
-                              {c.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                              {renderOptions.map(({ o, left }) => (
+                                <option key={o} value={o} disabled={left === 0 && o !== v}>
+                                  {o}{left !== null ? (left === 0 ? ' — مكتمل' : ` — متبقٍ ${left}`) : ''}
+                                </option>
+                              ))}
                             </select>
                           )
                         ) : c.type === 'date' ? (
                           <input type="date" className={base} value={v} onChange={(e) => set(e.target.value)} />
+
                         ) : c.type === 'number' ? (
                           <input type="number" className={base} value={v} onChange={(e) => set(e.target.value)} />
                         ) : c.type === 'file' ? (
