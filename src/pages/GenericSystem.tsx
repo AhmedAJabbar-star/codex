@@ -284,7 +284,70 @@ export function buildConfigFromDef(
           driveFolder,
         };
       });
-      const teacherName = (user as any)?.full_name || '';
+      const teacherName = (user as any)?.full_name || identity.name || '';
+
+      // 🎯 Capacity counters for select options (computed on the FULL sheet, not the filtered view).
+      const optionCounts: Record<string, Record<string, number>> = {};
+      Object.keys(def.option_limits || {}).forEach((letter) => {
+        const i = colLetterToIndex(letter);
+        const hk = i >= 0 ? sheet.headers[i] : '';
+        if (!hk) return;
+        const counts: Record<string, number> = {};
+        sheet.rows.forEach((r) => {
+          const v = (r[hk] || '').trim();
+          if (!v) return;
+          counts[v] = (counts[v] || 0) + 1;
+        });
+        optionCounts[letter.toUpperCase()] = counts;
+      });
+
+      // 🔒 One response per user
+      let myRecordsCount = 0;
+      let myRecordSnapshot: Record<string, string> | null = null;
+      if (def.single_response_enabled) {
+        const letter = (def.single_response_column || def.teacher_column || '').toUpperCase();
+        const i = letter ? colLetterToIndex(letter) : -1;
+        const hk = i >= 0 ? sheet.headers[i] : '';
+        const me = teacherName.replace(/\s+/g, ' ').trim();
+        if (hk && me) {
+          sheet.rows.forEach((r) => {
+            if ((r[hk] || '').replace(/\s+/g, ' ').trim() !== me) return;
+            myRecordsCount++;
+            if (!myRecordSnapshot) {
+              const snap: Record<string, string> = {};
+              colIdxs.forEach((ci) => {
+                const L = colIndexToLetter(ci);
+                const k = sheet.headers[ci];
+                snap[L] = (k ? r[k] : '') || '';
+              });
+              myRecordSnapshot = snap;
+            }
+          });
+        }
+      }
+
+      // 🔗 Linked systems (resolved titles)
+      const linked = (def.linked_systems || [])
+        .map((ls) => {
+          const target = (allSystems || []).find((s) => s.id === ls.target_id);
+          if (!target || target.enabled === false) return null;
+          return {
+            id: target.id,
+            title: target.title,
+            icon: target.icon,
+            label: (ls.label || '').trim() || `الانتقال إلى ${target.title}`,
+            map: ls.map || {},
+          };
+        })
+        .filter(Boolean) as NonNullable<CrudContext['linked']>;
+
+      // Values handed over from a previous system.
+      let prefill: Record<string, string> | undefined;
+      try {
+        const raw = typeof window !== 'undefined' ? window.sessionStorage.getItem(`crud-prefill-${def.id}`) : null;
+        if (raw) prefill = JSON.parse(raw);
+      } catch { /* ignore */ }
+
       crudContext = {
         def,
         externalUrl: def.sheet_source === 'external' ? def.sheet_url : undefined,
@@ -294,6 +357,16 @@ export function buildConfigFromDef(
         teacherName: def.require_teacher_auth ? teacherName : undefined,
         snapshotKey: CRUD_SNAPSHOT_KEY,
         refetchQueryKeys: [[`custom-${def.id}`]],
+        identity,
+        optionCounts,
+        myRecordsCount,
+        myRecordSnapshot,
+        linked,
+        prefill,
+        auditLetters: def.audit_enabled
+          ? [def.audit_created_by_column, def.audit_created_at_column, def.audit_updated_by_column, def.audit_updated_at_column]
+              .map((x) => (x || '').toUpperCase()).filter(Boolean)
+          : [],
       };
     }
   }
