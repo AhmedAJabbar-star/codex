@@ -1020,9 +1020,35 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 className="schedule-btn schedule-btn-primary"
                 style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(8,145,178,.28)' }}
                 onClick={crudOpenAdd}
-                disabled={crudBusy}
+                disabled={crudBusy || singleUsed}
+                title={singleUsed ? 'يُسمح بسجل واحد فقط لكل مستخدم — تم إرسال سجلك' : 'إضافة سجل جديد'}
               >➕ إضافة سجل</button>
             )}
+            {crudCtx && singleUsed && (
+              <span className="schedule-counter" style={{ color: '#b45309' }}>
+                🔒 تم استلام ردك — يُسمح بسجل واحد لكل مستخدم
+                {(crudCtx.def as any).single_response_allow_edit !== false && crudPerms?.edit && crudCtx.myRecordSnapshot && (
+                  <button className="mr-2 underline font-black" onClick={() => crudOpenEdit(crudCtx.myRecordSnapshot!)}>✏️ تعديل سجلي</button>
+                )}
+              </span>
+            )}
+            {crudCtx && crudPerms?.add && (crudCtx.def as any).qr_enabled && (
+              <button
+                className="schedule-btn schedule-btn-primary"
+                style={{ background: 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)' }}
+                onClick={() => { if (!crudEditing) crudOpenAdd(); setShowQr(true); }}
+                disabled={crudBusy}
+                title="امسح رمز QR لتعبئة الحقول تلقائياً"
+              >📷 إضافة عبر QR</button>
+            )}
+            {crudCtx && (crudCtx.linked || []).map((lk) => (
+              <button
+                key={lk.id}
+                className="schedule-btn schedule-btn-secondary"
+                onClick={() => openLinkedSystem(lk)}
+                title={`الانتقال إلى ${lk.title} مع نقل البيانات المشتركة`}
+              >{lk.icon || '🔗'} {lk.label}</button>
+            ))}
             {crudCtx && crudPerms?.add && (crudCtx.def as any).bulk_import_enabled && (
               <button
                 className="schedule-btn schedule-btn-primary"
