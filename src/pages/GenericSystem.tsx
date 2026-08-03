@@ -424,8 +424,8 @@ const GenericSystem = () => {
   const session = getSession();
 
   const build = useCallback(
-    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any),
-    [def, session?.user],
+    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any, systems || []),
+    [def, session?.user, systems],
   );
 
   // Apply per-system UI theme override on mount; restore global theme on unmount / def change.
