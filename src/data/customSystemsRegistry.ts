@@ -169,6 +169,68 @@ export interface CustomSystemDef {
   dedupe_key_column?: string;
   /** Separator used when joining the key columns. Default "|". */
   dedupe_separator?: string;
+
+  /* ============ v14 — الهوية والقيود والربط والتتبّع و QR ============ */
+  /** Excel letter of the column containing the user's college. */
+  teacher_college_column?: string;
+  /** Which identity criteria are used to scope rows (combined with teacher_scope_logic). */
+  teacher_scope_criteria?: IdentityCriterion[];
+  /** 'all' = every selected criterion must match, 'any' = at least one. Default 'any'. */
+  teacher_scope_logic?: 'all' | 'any';
+
+  /** 🔒 Allow each user to add only one record in this system. */
+  single_response_enabled?: boolean;
+  /** Excel letter of the column holding the user's identity (usually the name column). */
+  single_response_column?: string;
+  /** Allow the user to edit their own single record afterwards. */
+  single_response_allow_edit?: boolean;
+
+  /** 🎯 Per-column capacity for select options (letter -> config). */
+  option_limits?: Record<string, OptionLimitCfg>;
+
+  /** 🔗 Related systems — enables "next system" navigation with shared values pre-filled. */
+  linked_systems?: LinkedSystemCfg[];
+
+  /** 🧾 Automatic audit columns (created by/at, updated by/at). */
+  audit_enabled?: boolean;
+  audit_created_by_column?: string;
+  audit_created_at_column?: string;
+  audit_updated_by_column?: string;
+  audit_updated_at_column?: string;
+
+  /** 🗄️ Archive deleted rows into another sheet before removing them. */
+  archive_enabled?: boolean;
+  /** Google Sheets URL of the archive workbook (empty = same workbook). */
+  archive_sheet_url?: string;
+  /** GID of the archive sheet/tab. */
+  archive_gid?: string;
+
+  /** 📷 QR scanner for filling form fields. */
+  qr_enabled?: boolean;
+  /** Excel letters that can be filled by scanning. Empty = all editable columns. */
+  qr_fields?: string[];
+}
+
+export type IdentityCriterion = 'name' | 'department' | 'college';
+
+/** Capacity configuration for a select column. */
+export interface OptionLimitCfg {
+  /** Default capacity applied to every option (0/undefined = unlimited). */
+  limit?: number;
+  /** Per-option capacity overrides (option value -> capacity). */
+  per?: Record<string, number>;
+  /** What happens when an option is full: disable it (default) or hide it. */
+  mode?: 'disable' | 'hide';
+}
+
+/** Relation to another custom system, used for chained data entry. */
+export interface LinkedSystemCfg {
+  /** id of the target custom system. */
+  target_id: string;
+  /** Button label. Defaults to «الانتقال إلى <اسم النظام>». */
+  label?: string;
+  /** Shared columns: source Excel letter -> target Excel letter. */
+  map?: Record<string, string>;
 }
 
 /** Row-highlighting rule: when conditions pass, apply `color` as row background. */
@@ -254,6 +316,24 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   dedupe_columns: [],
   dedupe_key_column: '',
   dedupe_separator: '|',
+  teacher_college_column: '',
+  teacher_scope_criteria: [],
+  teacher_scope_logic: 'any',
+  single_response_enabled: false,
+  single_response_column: '',
+  single_response_allow_edit: true,
+  option_limits: {},
+  linked_systems: [],
+  audit_enabled: false,
+  audit_created_by_column: '',
+  audit_created_at_column: '',
+  audit_updated_by_column: '',
+  audit_updated_at_column: '',
+  archive_enabled: false,
+  archive_sheet_url: '',
+  archive_gid: '',
+  qr_enabled: false,
+  qr_fields: [],
 };
 
 
@@ -344,6 +424,20 @@ export interface CrudContext {
   snapshotKey: string;
   /** React-Query keys to invalidate after a successful write. */
   refetchQueryKeys: string[][];
+  /** Logged-in identity (used for audit columns, single response, prefilling). */
+  identity?: { name: string; department: string; college: string };
+  /** How many times each option value is already used, per column letter. */
+  optionCounts?: Record<string, Record<string, number>>;
+  /** Number of records already submitted by the logged-in user (single-response systems). */
+  myRecordsCount?: number;
+  /** Snapshot of the user's own record (single response + edit allowed). */
+  myRecordSnapshot?: Record<string, string> | null;
+  /** Resolved related systems for chained data entry. */
+  linked?: { id: string; title: string; icon?: string; label: string; map: Record<string, string> }[];
+  /** Values received from a previous system to pre-fill the add form. */
+  prefill?: Record<string, string>;
+  /** Excel letters used by the audit columns (hidden from the form). */
+  auditLetters?: string[];
 }
 
 
@@ -362,6 +456,8 @@ export interface SheetWritePayload {
   match?: Record<string, string>;
   /** Rows for op = 'bulk_append' (each is a map of column letter -> value). */
   rows?: Record<string, string>[];
+  /** Name of the logged-in user — used for audit columns, single-response and archiving. */
+  actor?: string;
   password: string;
 }
 export interface SheetWriteResult { ok?: boolean; inserted?: number; skipped_existing?: number; skipped_in_file?: number }

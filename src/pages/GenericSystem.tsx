@@ -140,24 +140,43 @@ export function buildConfigFromDef(
       : evaluateAll(conds, r, sheet.headers);
   };
 
-  // Teacher row-filter (name / department / both) — only when require_teacher_auth is on.
+  // Identity row-filter (name / department / college) — only when require_teacher_auth is on.
+  const session = getSession();
+  const identity = {
+    name: (session?.user?.full_name || '').trim(),
+    department: (session?.user?.department || '').trim(),
+    college: ((session?.user as any)?.college || '').trim(),
+  };
   let teacherFilter: ((r: Record<string, string>) => boolean) | null = null;
   if (def.require_teacher_auth) {
     try {
-      const session = getSession();
-      const name = (session?.user?.full_name || '').trim();
-      const dept = (session?.user?.department || '').trim();
-      const scope = def.teacher_filter_scope || 'name';
-      const ni = def.teacher_column ? colLetterToIndex(def.teacher_column) : -1;
-      const di = def.teacher_department_column ? colLetterToIndex(def.teacher_department_column) : -1;
-      const nameKey = ni >= 0 ? sheet.headers[ni] : '';
-      const deptKey = di >= 0 ? sheet.headers[di] : '';
-      const matchName = (r: Record<string, string>) => !!name && !!nameKey && (r[nameKey] || '').trim() === name;
-      const matchDept = (r: Record<string, string>) => !!dept && !!deptKey && (r[deptKey] || '').trim() === dept;
-      if (scope === 'name' && nameKey && name) teacherFilter = matchName;
-      else if (scope === 'department' && deptKey && dept) teacherFilter = matchDept;
-      else if (scope === 'name_or_department' && (nameKey || deptKey)) teacherFilter = (r) => matchName(r) || matchDept(r);
-      // scope === 'all' → no filter
+      const keyOf = (letter?: string) => {
+        const i = letter ? colLetterToIndex(letter) : -1;
+        return i >= 0 ? (sheet.headers[i] || '') : '';
+      };
+      const nameKey = keyOf(def.teacher_column);
+      const deptKey = keyOf(def.teacher_department_column);
+      const collKey = keyOf(def.teacher_college_column);
+      const eq = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
+      const matchers: Record<string, ((r: Record<string, string>) => boolean) | null> = {
+        name:       identity.name && nameKey ? (r) => eq(r[nameKey] || '', identity.name) : null,
+        department: identity.department && deptKey ? (r) => eq(r[deptKey] || '', identity.department) : null,
+        college:    identity.college && collKey ? (r) => eq(r[collKey] || '', identity.college) : null,
+      };
+      // New granular criteria take precedence; otherwise fall back to the legacy scope.
+      let criteria = (def.teacher_scope_criteria || []).filter(Boolean) as string[];
+      if (criteria.length === 0) {
+        const scope = def.teacher_filter_scope || 'name';
+        if (scope === 'name') criteria = ['name'];
+        else if (scope === 'department') criteria = ['department'];
+        else if (scope === 'name_or_department') criteria = ['name', 'department'];
+        else criteria = []; // 'all'
+      }
+      const active = criteria.map((c) => matchers[c]).filter(Boolean) as ((r: Record<string, string>) => boolean)[];
+      if (active.length > 0) {
+        const logicAll = (def.teacher_scope_logic || 'any') === 'all';
+        teacherFilter = (r) => (logicAll ? active.every((f) => f(r)) : active.some((f) => f(r)));
+      }
     } catch { /* ignore */ }
   }
 
