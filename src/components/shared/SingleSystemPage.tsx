@@ -15,6 +15,7 @@ import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
 import { sheetWrite } from '@/data/customSystemsRegistry';
 import ExcelImportPanel from '@/components/custom-systems/ExcelImportPanel';
+import QrScanDialog from '@/components/custom-systems/QrScanDialog';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
