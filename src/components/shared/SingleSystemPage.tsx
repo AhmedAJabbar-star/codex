@@ -1085,6 +1085,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             />
           )}
 
+          {/* 📷 QR / barcode scanner for form filling. */}
+          <QrScanDialog open={showQr} onClose={() => setShowQr(false)} onResult={applyQrText} />
+
           {/* Inline CRUD editor — replaces the old modal (never overlays the data). */}
           {crudCtx && crudEditing && (
             <div className="mx-3 mb-3 rounded-2xl border-2 shadow-sm bg-white overflow-hidden" style={{ borderColor: '#0891b240' }} dir="rtl">
