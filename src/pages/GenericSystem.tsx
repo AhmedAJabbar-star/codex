@@ -23,6 +23,7 @@ export function buildConfigFromDef(
   def: CustomSystemDef,
   sheet: SheetFetchResult,
   user?: { role?: string; permissions?: any } | null,
+  allSystems?: CustomSystemDef[],
 ): SystemConfig {
 
   const colIdxs = parseColumnsRange(def.columns_range);
@@ -140,24 +141,43 @@ export function buildConfigFromDef(
       : evaluateAll(conds, r, sheet.headers);
   };
 
-  // Teacher row-filter (name / department / both) — only when require_teacher_auth is on.
+  // Identity row-filter (name / department / college) — only when require_teacher_auth is on.
+  const session = getSession();
+  const identity = {
+    name: (session?.user?.full_name || '').trim(),
+    department: (session?.user?.department || '').trim(),
+    college: ((session?.user as any)?.college || '').trim(),
+  };
   let teacherFilter: ((r: Record<string, string>) => boolean) | null = null;
   if (def.require_teacher_auth) {
     try {
-      const session = getSession();
-      const name = (session?.user?.full_name || '').trim();
-      const dept = (session?.user?.department || '').trim();
-      const scope = def.teacher_filter_scope || 'name';
-      const ni = def.teacher_column ? colLetterToIndex(def.teacher_column) : -1;
-      const di = def.teacher_department_column ? colLetterToIndex(def.teacher_department_column) : -1;
-      const nameKey = ni >= 0 ? sheet.headers[ni] : '';
-      const deptKey = di >= 0 ? sheet.headers[di] : '';
-      const matchName = (r: Record<string, string>) => !!name && !!nameKey && (r[nameKey] || '').trim() === name;
-      const matchDept = (r: Record<string, string>) => !!dept && !!deptKey && (r[deptKey] || '').trim() === dept;
-      if (scope === 'name' && nameKey && name) teacherFilter = matchName;
-      else if (scope === 'department' && deptKey && dept) teacherFilter = matchDept;
-      else if (scope === 'name_or_department' && (nameKey || deptKey)) teacherFilter = (r) => matchName(r) || matchDept(r);
-      // scope === 'all' → no filter
+      const keyOf = (letter?: string) => {
+        const i = letter ? colLetterToIndex(letter) : -1;
+        return i >= 0 ? (sheet.headers[i] || '') : '';
+      };
+      const nameKey = keyOf(def.teacher_column);
+      const deptKey = keyOf(def.teacher_department_column);
+      const collKey = keyOf(def.teacher_college_column);
+      const eq = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
+      const matchers: Record<string, ((r: Record<string, string>) => boolean) | null> = {
+        name:       identity.name && nameKey ? (r) => eq(r[nameKey] || '', identity.name) : null,
+        department: identity.department && deptKey ? (r) => eq(r[deptKey] || '', identity.department) : null,
+        college:    identity.college && collKey ? (r) => eq(r[collKey] || '', identity.college) : null,
+      };
+      // New granular criteria take precedence; otherwise fall back to the legacy scope.
+      let criteria = (def.teacher_scope_criteria || []).filter(Boolean) as string[];
+      if (criteria.length === 0) {
+        const scope = def.teacher_filter_scope || 'name';
+        if (scope === 'name') criteria = ['name'];
+        else if (scope === 'department') criteria = ['department'];
+        else if (scope === 'name_or_department') criteria = ['name', 'department'];
+        else criteria = []; // 'all'
+      }
+      const active = criteria.map((c) => matchers[c]).filter(Boolean) as ((r: Record<string, string>) => boolean)[];
+      if (active.length > 0) {
+        const logicAll = (def.teacher_scope_logic || 'any') === 'all';
+        teacherFilter = (r) => (logicAll ? active.every((f) => f(r)) : active.some((f) => f(r)));
+      }
     } catch { /* ignore */ }
   }
 
@@ -265,7 +285,70 @@ export function buildConfigFromDef(
           driveFolder,
         };
       });
-      const teacherName = (user as any)?.full_name || '';
+      const teacherName = (user as any)?.full_name || identity.name || '';
+
+      // 🎯 Capacity counters for select options (computed on the FULL sheet, not the filtered view).
+      const optionCounts: Record<string, Record<string, number>> = {};
+      Object.keys(def.option_limits || {}).forEach((letter) => {
+        const i = colLetterToIndex(letter);
+        const hk = i >= 0 ? sheet.headers[i] : '';
+        if (!hk) return;
+        const counts: Record<string, number> = {};
+        sheet.rows.forEach((r) => {
+          const v = (r[hk] || '').trim();
+          if (!v) return;
+          counts[v] = (counts[v] || 0) + 1;
+        });
+        optionCounts[letter.toUpperCase()] = counts;
+      });
+
+      // 🔒 One response per user
+      let myRecordsCount = 0;
+      let myRecordSnapshot: Record<string, string> | null = null;
+      if (def.single_response_enabled) {
+        const letter = (def.single_response_column || def.teacher_column || '').toUpperCase();
+        const i = letter ? colLetterToIndex(letter) : -1;
+        const hk = i >= 0 ? sheet.headers[i] : '';
+        const me = teacherName.replace(/\s+/g, ' ').trim();
+        if (hk && me) {
+          sheet.rows.forEach((r) => {
+            if ((r[hk] || '').replace(/\s+/g, ' ').trim() !== me) return;
+            myRecordsCount++;
+            if (!myRecordSnapshot) {
+              const snap: Record<string, string> = {};
+              colIdxs.forEach((ci) => {
+                const L = colIndexToLetter(ci);
+                const k = sheet.headers[ci];
+                snap[L] = (k ? r[k] : '') || '';
+              });
+              myRecordSnapshot = snap;
+            }
+          });
+        }
+      }
+
+      // 🔗 Linked systems (resolved titles)
+      const linked = (def.linked_systems || [])
+        .map((ls) => {
+          const target = (allSystems || []).find((s) => s.id === ls.target_id);
+          if (!target || target.enabled === false) return null;
+          return {
+            id: target.id,
+            title: target.title,
+            icon: target.icon,
+            label: (ls.label || '').trim() || `الانتقال إلى ${target.title}`,
+            map: ls.map || {},
+          };
+        })
+        .filter(Boolean) as NonNullable<CrudContext['linked']>;
+
+      // Values handed over from a previous system.
+      let prefill: Record<string, string> | undefined;
+      try {
+        const raw = typeof window !== 'undefined' ? window.sessionStorage.getItem(`crud-prefill-${def.id}`) : null;
+        if (raw) prefill = JSON.parse(raw);
+      } catch { /* ignore */ }
+
       crudContext = {
         def,
         externalUrl: def.sheet_source === 'external' ? def.sheet_url : undefined,
@@ -275,6 +358,16 @@ export function buildConfigFromDef(
         teacherName: def.require_teacher_auth ? teacherName : undefined,
         snapshotKey: CRUD_SNAPSHOT_KEY,
         refetchQueryKeys: [[`custom-${def.id}`]],
+        identity,
+        optionCounts,
+        myRecordsCount,
+        myRecordSnapshot,
+        linked,
+        prefill,
+        auditLetters: def.audit_enabled
+          ? [def.audit_created_by_column, def.audit_created_at_column, def.audit_updated_by_column, def.audit_updated_at_column]
+              .map((x) => (x || '').toUpperCase()).filter(Boolean)
+          : [],
       };
     }
   }
@@ -331,8 +424,8 @@ const GenericSystem = () => {
   const session = getSession();
 
   const build = useCallback(
-    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any),
-    [def, session?.user],
+    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any, systems || []),
+    [def, session?.user, systems],
   );
 
   // Apply per-system UI theme override on mount; restore global theme on unmount / def change.

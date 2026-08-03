@@ -55,6 +55,15 @@ const HEADERS = [
   // v13 additions (bulk Excel import + duplicate prevention):
   "bulk_import_enabled", "dedupe_enabled", "dedupe_columns_json",
   "dedupe_key_column", "dedupe_separator",
+  // v14 additions (identity scoping, single response, option limits,
+  // linked systems, audit columns, delete archiving, QR input):
+  "teacher_college_column", "teacher_scope_criteria_json", "teacher_scope_logic",
+  "single_response_enabled", "single_response_column", "single_response_allow_edit",
+  "option_limits_json", "linked_systems_json",
+  "audit_enabled", "audit_created_by_column", "audit_created_at_column",
+  "audit_updated_by_column", "audit_updated_at_column",
+  "archive_enabled", "archive_sheet_url", "archive_gid",
+  "qr_enabled", "qr_fields_json",
 
 ];
 
@@ -234,6 +243,24 @@ function rowToSystem(r: Record<string, string>) {
     dedupe_columns: parseJson(r.dedupe_columns_json || "[]", []),
     dedupe_key_column: clean(r.dedupe_key_column).toUpperCase(),
     dedupe_separator: r.dedupe_separator === undefined || r.dedupe_separator === "" ? "|" : String(r.dedupe_separator),
+    teacher_college_column: clean(r.teacher_college_column).toUpperCase(),
+    teacher_scope_criteria: parseJson(r.teacher_scope_criteria_json || "[]", []),
+    teacher_scope_logic: clean(r.teacher_scope_logic) === "all" ? "all" : "any",
+    single_response_enabled: String(r.single_response_enabled || "").toLowerCase() === "true",
+    single_response_column: clean(r.single_response_column).toUpperCase(),
+    single_response_allow_edit: String(r.single_response_allow_edit || "true").toLowerCase() !== "false",
+    option_limits: parseJson(r.option_limits_json || "{}", {}),
+    linked_systems: parseJson(r.linked_systems_json || "[]", []),
+    audit_enabled: String(r.audit_enabled || "").toLowerCase() === "true",
+    audit_created_by_column: clean(r.audit_created_by_column).toUpperCase(),
+    audit_created_at_column: clean(r.audit_created_at_column).toUpperCase(),
+    audit_updated_by_column: clean(r.audit_updated_by_column).toUpperCase(),
+    audit_updated_at_column: clean(r.audit_updated_at_column).toUpperCase(),
+    archive_enabled: String(r.archive_enabled || "").toLowerCase() === "true",
+    archive_sheet_url: clean(r.archive_sheet_url),
+    archive_gid: clean(r.archive_gid),
+    qr_enabled: String(r.qr_enabled || "").toLowerCase() === "true",
+    qr_fields: parseJson(r.qr_fields_json || "[]", []),
   };
 }
 
@@ -293,6 +320,24 @@ async function systemToRow(s: any): Promise<string[]> {
     dedupe_columns_json: JSON.stringify((s.dedupe_columns || []).map((x: any) => String(x || "").toUpperCase())),
     dedupe_key_column: String(s.dedupe_key_column || "").toUpperCase(),
     dedupe_separator: String(s.dedupe_separator ?? "|"),
+    teacher_college_column: String(s.teacher_college_column || "").toUpperCase(),
+    teacher_scope_criteria_json: JSON.stringify(s.teacher_scope_criteria || []),
+    teacher_scope_logic: String(s.teacher_scope_logic || "any") === "all" ? "all" : "any",
+    single_response_enabled: String(!!s.single_response_enabled),
+    single_response_column: String(s.single_response_column || "").toUpperCase(),
+    single_response_allow_edit: String(s.single_response_allow_edit === false ? "false" : "true"),
+    option_limits_json: JSON.stringify(s.option_limits || {}),
+    linked_systems_json: JSON.stringify(s.linked_systems || []),
+    audit_enabled: String(!!s.audit_enabled),
+    audit_created_by_column: String(s.audit_created_by_column || "").toUpperCase(),
+    audit_created_at_column: String(s.audit_created_at_column || "").toUpperCase(),
+    audit_updated_by_column: String(s.audit_updated_by_column || "").toUpperCase(),
+    audit_updated_at_column: String(s.audit_updated_at_column || "").toUpperCase(),
+    archive_enabled: String(!!s.archive_enabled),
+    archive_sheet_url: String(s.archive_sheet_url || ""),
+    archive_gid: String(s.archive_gid || ""),
+    qr_enabled: String(!!s.qr_enabled),
+    qr_fields_json: JSON.stringify(s.qr_fields || []),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
@@ -436,11 +481,18 @@ Deno.serve(async (req) => {
       const valuesByLetter = (body?.values || {}) as Record<string, string>;
       const matchByLetter = (body?.match || {}) as Record<string, string>;
       const bulkRows = Array.isArray(body?.rows) ? (body.rows as Record<string, string>[]) : [];
+      const actor = String(body?.actor || "").trim();
       // Duplicate-prevention config is read from the system definition (server-side, authoritative).
       let dedupeCols: string[] = [];
       let dedupeEnabled = false;
       let dedupeTargetCol = "";
       let dedupeSep = "|";
+      // v14 server-side rules
+      let singleEnabled = false, singleCol = "";
+      let optionLimits: Record<string, any> = {};
+      let auditEnabled = false;
+      let auditCreatedBy = "", auditCreatedAt = "", auditUpdatedBy = "", auditUpdatedAt = "";
+      let archiveEnabled = false, archiveUrl = "", archiveGid = "";
       if (!gid) return json({ error: "GID مطلوب" }, 400);
       if (!["append", "bulk_append", "update", "delete"].includes(op)) return json({ error: "op غير مدعوم" }, 400);
 
@@ -468,6 +520,18 @@ Deno.serve(async (req) => {
           dedupeEnabled = !!sys.dedupe_enabled && dedupeCols.length > 0;
           dedupeTargetCol = String(sys.dedupe_key_column || "").toUpperCase().trim();
           dedupeSep = String(sys.dedupe_separator || "|");
+
+          singleEnabled = !!sys.single_response_enabled;
+          singleCol = String(sys.single_response_column || sys.teacher_column || "").toUpperCase().trim();
+          optionLimits = (sys.option_limits && typeof sys.option_limits === "object") ? sys.option_limits : {};
+          auditEnabled = !!sys.audit_enabled;
+          auditCreatedBy = String(sys.audit_created_by_column || "").toUpperCase().trim();
+          auditCreatedAt = String(sys.audit_created_at_column || "").toUpperCase().trim();
+          auditUpdatedBy = String(sys.audit_updated_by_column || "").toUpperCase().trim();
+          auditUpdatedAt = String(sys.audit_updated_at_column || "").toUpperCase().trim();
+          archiveEnabled = !!sys.archive_enabled;
+          archiveUrl = String(sys.archive_sheet_url || "").trim();
+          archiveGid = String(sys.archive_gid || "").trim();
         }
       } catch { /* if registry lookup fails, fall through (password already validated) */ }
 
@@ -515,10 +579,12 @@ Deno.serve(async (req) => {
       const allRows: string[][] = (data.values || []).map((r: any[]) => (r || []).map((c) => String(c ?? "")));
       if (allRows.length === 0) return json({ error: "الورقة فارغة (لا توجد ترويسة)" }, 400);
       const header = allRows[0];
+      const auditLetters = [auditCreatedBy, auditCreatedAt, auditUpdatedBy, auditUpdatedAt].filter(Boolean);
       const allLetters = new Set<string>([
         ...Object.keys(valuesByLetter),
         ...bulkRows.flatMap((r) => Object.keys(r || {})),
         ...(dedupeTargetCol ? [dedupeTargetCol] : []),
+        ...(auditEnabled ? auditLetters : []),
       ]);
       const width = Math.max(header.length, ...Array.from(allLetters).map((L) => letterToIdx(L) + 1));
       const lastLetter = idxToLetter(width);
@@ -551,11 +617,77 @@ Deno.serve(async (req) => {
         return { ...values, [dedupeTargetCol]: dedupeCols.map((L) => String(values[L] ?? "").trim()).join(dedupeSep) };
       };
 
+      // ---- v14: audit stamps, single response, option capacity, delete archiving ----
+      const nowStamp = () => {
+        try {
+          const d = new Date();
+          const fmt = new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Asia/Baghdad", year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", hour12: true,
+          }).formatToParts(d).reduce((a: any, p) => (a[p.type] = p.value, a), {} as any);
+          return `${fmt.year}-${fmt.month}-${fmt.day} ${fmt.hour}:${fmt.minute} ${String(fmt.dayPeriod || "").toUpperCase()}`;
+        } catch { return new Date().toISOString(); }
+      };
+      const stampCreate = (values: Record<string, string>) => {
+        if (!auditEnabled) return values;
+        const out = { ...values };
+        const t = nowStamp();
+        if (auditCreatedBy) out[auditCreatedBy] = actor || out[auditCreatedBy] || "";
+        if (auditCreatedAt) out[auditCreatedAt] = t;
+        if (auditUpdatedBy) out[auditUpdatedBy] = actor || "";
+        if (auditUpdatedAt) out[auditUpdatedAt] = t;
+        return out;
+      };
+      const stampUpdate = (values: Record<string, string>) => {
+        if (!auditEnabled) return values;
+        const out = { ...values };
+        if (auditUpdatedBy) out[auditUpdatedBy] = actor || "";
+        if (auditUpdatedAt) out[auditUpdatedAt] = nowStamp();
+        // never let the client overwrite creation stamps
+        if (auditCreatedBy) delete out[auditCreatedBy];
+        if (auditCreatedAt) delete out[auditCreatedAt];
+        return out;
+      };
+      /** Count how many data rows already use `value` in column `L`. */
+      const countOption = (L: string, value: string, skipRowIdx = -1) => {
+        const idx = letterToIdx(L);
+        let n = 0;
+        for (let i = 1; i < allRows.length; i++) {
+          if (i - 1 === skipRowIdx) continue;
+          if (normKey(allRows[i][idx] || "") === normKey(value)) n++;
+        }
+        return n;
+      };
+      /** Returns an error message when a chosen option has reached its capacity. */
+      const checkOptionLimits = (values: Record<string, string>, skipRowIdx = -1): string | null => {
+        for (const [L, cfgRaw] of Object.entries(optionLimits || {})) {
+          const cfg: any = cfgRaw || {};
+          const val = String(values[L] ?? "").trim();
+          if (!val) continue;
+          const cap = Number(cfg?.per?.[val] ?? cfg?.limit ?? 0);
+          if (!cap || cap <= 0) continue;
+          if (countOption(L, val, skipRowIdx) >= cap) {
+            return `الخيار «${val}» اكتمل العدد المسموح به (${cap}). يرجى اختيار خيار آخر.`;
+          }
+        }
+        return null;
+      };
+
+      if (op === "append" && singleEnabled && singleCol) {
+        const me = normKey(actor || valuesByLetter[singleCol] || "");
+        if (!me) return json({ error: "يجب تسجيل الدخول قبل إضافة سجل في هذا النظام" }, 403);
+        const idx = letterToIdx(singleCol);
+        const already = allRows.slice(1).some((r) => normKey(r[idx] || "") === me);
+        if (already) return json({ error: "لقد قمت بإرسال سجل مسبقاً — يُسمح بسجل واحد فقط لكل مستخدم" }, 409);
+      }
+
       if (op === "append") {
+        const limitErr = checkOptionLimits(valuesByLetter);
+        if (limitErr) return json({ error: limitErr }, 409);
         if (dedupeEnabled && existingKeys.has(keyOfValues(valuesByLetter))) {
           return json({ error: "سجل مكرّر: توجد بيانات بنفس المفتاح (" + dedupeCols.join(" + ") + ")" }, 409);
         }
-        const row = buildRowFromLetters([], applyKeyColumn(valuesByLetter));
+        const row = buildRowFromLetters([], stampCreate(applyKeyColumn(valuesByLetter)));
         await gapiX(`/values/${encodeURIComponent(sheetTitle)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
           method: "POST",
           body: JSON.stringify({ values: [row] }),
@@ -577,7 +709,7 @@ Deno.serve(async (req) => {
             if (batchKeys.has(k)) { dupFile++; continue; }
             batchKeys.add(k);
           }
-          out.push(buildRowFromLetters([], applyKeyColumn(vals)));
+          out.push(buildRowFromLetters([], stampCreate(applyKeyColumn(vals))));
         }
         // Write in chunks so very large imports do not exceed API limits.
         const CHUNK = 500;
@@ -609,6 +741,36 @@ Deno.serve(async (req) => {
       if (targetIdx < 0) return json({ error: "لم يُعثر على الصف المطلوب (قد يكون عُدِّل من جانب آخر — أعد التحميل وحاول مجدداً)" }, 404);
 
       if (op === "delete") {
+        // Archive the row (with who/when) before removing it, when enabled.
+        if (archiveEnabled && archiveGid) {
+          try {
+            let archiveSpreadsheetId = spreadsheetId;
+            if (archiveUrl) {
+              const m = archiveUrl.match(/\/spreadsheets\/d\/([^/?#]+)/);
+              if (m) archiveSpreadsheetId = m[1];
+            }
+            const token = await getAccessToken();
+            const gapiA = async (path: string, init: RequestInit = {}) => {
+              const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${archiveSpreadsheetId}${path}`, {
+                ...init,
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
+              });
+              const t = await res.text();
+              if (!res.ok) throw new Error(`Sheets API ${res.status}: ${t}`);
+              return t ? JSON.parse(t) : null;
+            };
+            const aMeta = await gapiA("?fields=sheets(properties(sheetId,title))");
+            const aSheet = (aMeta.sheets || []).find((s: any) => String(s.properties?.sheetId) === archiveGid);
+            if (aSheet) {
+              const deletedRow = allRows[targetIdx + 1] || [];
+              const archived = [...deletedRow, actor || "", nowStamp(), "حذف"];
+              await gapiA(`/values/${encodeURIComponent(aSheet.properties.title)}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
+                method: "POST",
+                body: JSON.stringify({ values: [archived] }),
+              });
+            }
+          } catch (_e) { /* archiving must never block the delete */ }
+        }
         await gapiX(":batchUpdate", { method: "POST", body: JSON.stringify({
           requests: [{ deleteDimension: { range: {
             sheetId: numericSheetId, dimension: "ROWS",
@@ -619,8 +781,10 @@ Deno.serve(async (req) => {
       }
 
       // update
+      const limitErrU = checkOptionLimits(valuesByLetter, targetIdx);
+      if (limitErrU) return json({ error: limitErrU }, 409);
       const base = allRows[targetIdx + 1] || [];
-      const newRow = buildRowFromLetters(base, valuesByLetter);
+      const newRow = buildRowFromLetters(base, stampUpdate(valuesByLetter));
       const range = `${sheetTitle}!A${targetIdx + 2}:${lastLetter}${targetIdx + 2}`;
       await gapiX(`/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`, {
         method: "PUT",

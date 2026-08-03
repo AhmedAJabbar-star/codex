@@ -15,6 +15,7 @@ import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
 import { sheetWrite } from '@/data/customSystemsRegistry';
 import ExcelImportPanel from '@/components/custom-systems/ExcelImportPanel';
+import QrScanDialog from '@/components/custom-systems/QrScanDialog';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
@@ -577,18 +578,77 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   }, []);
 
   const [showImport, setShowImport] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+
+  /** الأعمدة التي يملؤها النظام تلقائياً (تتبّع) — تُخفى من نموذج الإدخال. */
+  const auditLetters = crudCtx?.auditLetters || [];
+  /** سعة الخيارات: عدد مرات استخدام كل خيار في الورقة كاملة. */
+  const optionCounts = crudCtx?.optionCounts || {};
+  const optionLimits = (crudCtx?.def as any)?.option_limits || {};
+  /** السعة المتبقية لخيار محدد (null = بلا حد). */
+  const remainingFor = useCallback((letter: string, option: string): number | null => {
+    const cfg: any = optionLimits[letter] || optionLimits[letter?.toUpperCase()];
+    if (!cfg) return null;
+    const cap = Number(cfg?.per?.[option] ?? cfg?.limit ?? 0);
+    if (!cap || cap <= 0) return null;
+    const used = (optionCounts[letter?.toUpperCase()] || {})[option] || 0;
+    return Math.max(0, cap - used);
+  }, [optionCounts, optionLimits]);
+  const optionHideFull = useCallback((letter: string) => {
+    const cfg: any = optionLimits[letter] || optionLimits[letter?.toUpperCase()];
+    return cfg?.mode === 'hide';
+  }, [optionLimits]);
+
+  /** «رد واحد لكل مستخدم» — هل استهلك المستخدم حصته؟ */
+  const singleEnabled = !!(crudCtx?.def as any)?.single_response_enabled;
+  const singleUsed = singleEnabled && (crudCtx?.myRecordsCount || 0) > 0;
 
   const crudOpenAdd = useCallback(() => {
     if (!crudCtx) return;
+    if (singleEnabled && (crudCtx.myRecordsCount || 0) > 0) {
+      toast.error('لقد قمت بإرسال سجل مسبقاً — يُسمح بسجل واحد فقط لكل مستخدم');
+      return;
+    }
     const init: Record<string, string> = {};
     crudCtx.cols.forEach((c) => { init[c.letter] = ''; });
+    // تعبئة تلقائية من هوية المستخدم (الاسم / القسم / الكلية)
+    const d: any = crudCtx.def;
+    const idn = crudCtx.identity;
+    if (idn) {
+      const put = (letter: string | undefined, val: string) => {
+        const L = (letter || '').toUpperCase();
+        if (L && val && Object.prototype.hasOwnProperty.call(init, L)) init[L] = val;
+      };
+      put(d.teacher_column, idn.name);
+      put(d.teacher_department_column, idn.department);
+      put(d.teacher_college_column, idn.college);
+    }
     if (crudCtx.teacherCol && crudCtx.teacherName) init[crudCtx.teacherCol] = crudCtx.teacherName;
+    // قيم ممرّرة من نظام سابق مرتبط
+    Object.entries(crudCtx.prefill || {}).forEach(([L, v]) => {
+      const key = (L || '').toUpperCase();
+      if (Object.prototype.hasOwnProperty.call(init, key)) init[key] = String(v ?? '');
+    });
     setCrudEditing({ mode: 'add', values: init });
-  }, [crudCtx]);
+  }, [crudCtx, singleEnabled]);
 
   const crudOpenEdit = useCallback((snapshot: Record<string, string>) => {
     setCrudEditing({ mode: 'edit', values: { ...snapshot }, snapshot });
   }, []);
+
+  /** فتح النظام المرتبط مع تمرير القيم المشتركة. */
+  const openLinkedSystem = useCallback((link: NonNullable<typeof crudCtx>['linked'] extends (infer T)[] | undefined ? T : never) => {
+    if (!crudCtx) return;
+    const source = crudEditing?.values || crudCtx.myRecordSnapshot || {};
+    const payload: Record<string, string> = {};
+    Object.entries(link.map || {}).forEach(([from, to]) => {
+      const v = source[(from || '').toUpperCase()] ?? '';
+      if (to) payload[String(to).toUpperCase()] = String(v ?? '');
+    });
+    // الاسم/القسم/الكلية تُمرَّر دائماً عبر هوية المستخدم في النظام الهدف.
+    try { window.sessionStorage.setItem(`crud-prefill-${link.id}`, JSON.stringify(payload)); } catch { /* ignore */ }
+    navigate(`/custom/${link.id}`);
+  }, [crudCtx, crudEditing, navigate]);
 
   const crudSubmit = useCallback(async () => {
     if (!crudCtx || !crudEditing) return;
@@ -598,15 +658,19 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     try {
       const values: Record<string, string> = {};
       crudCtx.cols.forEach((c) => {
-        if (c.type !== 'readonly') values[c.letter] = crudEditing.values[c.letter] || '';
+        if (c.type === 'readonly') return;
+        if (auditLetters.includes(c.letter)) return; // يملؤها الخادم
+        values[c.letter] = crudEditing.values[c.letter] || '';
       });
+      const actor = crudCtx.teacherName || crudCtx.identity?.name || '';
       if (crudEditing.mode === 'add') {
-        await sheetWrite({ op: 'append', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, values, password });
+        await sheetWrite({ op: 'append', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, values, password, actor });
         toast.success('تمت إضافة السجل بنجاح ✅');
+        try { window.sessionStorage.removeItem(`crud-prefill-${crudCtx.def.id}`); } catch { /* ignore */ }
       } else {
         await sheetWrite({
           op: 'update', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl,
-          values, match: crudEditing.snapshot, password,
+          values, match: crudEditing.snapshot, password, actor,
         });
         toast.success('تم تحديث السجل بنجاح ✅');
       }
@@ -617,17 +681,25 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       if (/كلمة المرور/.test(m)) setCachedAdminPassword(null);
       toast.error(m);
     } finally { setCrudBusy(false); }
-  }, [crudCtx, crudEditing, ensureAdminPassword, qc]);
+  }, [crudCtx, crudEditing, ensureAdminPassword, qc, auditLetters]);
 
   const crudDelete = useCallback(async (snapshot: Record<string, string>) => {
     if (!crudCtx) return;
-    if (!(await uiConfirm({ title: 'حذف السجل', message: 'سيتم حذف هذا السجل نهائياً من الورقة المصدر، ولا يمكن التراجع عن العملية.', tone: 'danger', confirmText: 'حذف نهائي' }))) return;
+    const archived = !!(crudCtx.def as any).archive_enabled;
+    if (!(await uiConfirm({
+      title: 'حذف السجل',
+      message: archived
+        ? 'سيتم نقل السجل إلى ورقة الأرشيف ثم حذفه من الورقة المصدر.'
+        : 'سيتم حذف هذا السجل نهائياً من الورقة المصدر، ولا يمكن التراجع عن العملية.',
+      tone: 'danger', confirmText: 'حذف نهائي',
+    }))) return;
     const password = await ensureAdminPassword(true);
     if (!password) return;
     setCrudBusy(true);
     try {
-      await sheetWrite({ op: 'delete', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, match: snapshot, password });
-      toast.success('تم حذف السجل ✅');
+      const actor = crudCtx.teacherName || crudCtx.identity?.name || '';
+      await sheetWrite({ op: 'delete', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, match: snapshot, password, actor });
+      toast.success(archived ? 'تم حذف السجل وأرشفته ✅' : 'تم حذف السجل ✅');
       crudCtx.refetchQueryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
     } catch (e) {
       const m = (e as Error).message || '';
@@ -635,6 +707,43 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       toast.error(m);
     } finally { setCrudBusy(false); }
   }, [crudCtx, ensureAdminPassword, qc]);
+
+  /** تفسير محتوى رمز QR وتعبئة الحقول. */
+  const applyQrText = useCallback((text: string) => {
+    if (!crudCtx) return;
+    const editable = crudCtx.cols.filter((c) => c.type !== 'readonly' && !auditLetters.includes(c.letter));
+    const allowed: string[] = ((crudCtx.def as any).qr_fields || []).map((x: string) => String(x || '').toUpperCase());
+    const target = allowed.length > 0 ? editable.filter((c) => allowed.includes(c.letter)) : editable;
+    const next: Record<string, string> = {};
+    const t = text.trim();
+    let parsed = false;
+    if (t.startsWith('{')) {
+      try {
+        const obj = JSON.parse(t);
+        Object.entries(obj || {}).forEach(([k, v]) => {
+          const L = String(k).toUpperCase();
+          if (target.some((c) => c.letter === L)) next[L] = String(v ?? '');
+        });
+        parsed = Object.keys(next).length > 0;
+      } catch { /* ignore */ }
+    }
+    if (!parsed && /[=:]/.test(t)) {
+      t.split(/[;\n|]+/).forEach((pair) => {
+        const m = pair.match(/^\s*([A-Za-z]{1,3})\s*[=:]\s*(.*)$/);
+        if (!m) return;
+        const L = m[1].toUpperCase();
+        if (target.some((c) => c.letter === L)) next[L] = m[2].trim();
+      });
+      parsed = Object.keys(next).length > 0;
+    }
+    if (!parsed && target.length > 0) next[target[0].letter] = t;
+    setCrudEditing((prev) => {
+      const base = prev || { mode: 'add' as const, values: {} as Record<string, string> };
+      return { ...base, values: { ...base.values, ...next } };
+    });
+    setShowQr(false);
+    toast.success(`تم تعبئة ${Object.keys(next).length} حقل من الرمز ✅`);
+  }, [crudCtx, auditLetters]);
 
   // 📸 OCR — استخراج قيم الحقول من صورة عبر Lovable AI (Gemini)
   const runOcrExtraction = useCallback(async (file: File) => {
@@ -912,9 +1021,35 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 className="schedule-btn schedule-btn-primary"
                 style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(8,145,178,.28)' }}
                 onClick={crudOpenAdd}
-                disabled={crudBusy}
+                disabled={crudBusy || singleUsed}
+                title={singleUsed ? 'يُسمح بسجل واحد فقط لكل مستخدم — تم إرسال سجلك' : 'إضافة سجل جديد'}
               >➕ إضافة سجل</button>
             )}
+            {crudCtx && singleUsed && (
+              <span className="schedule-counter" style={{ color: '#b45309' }}>
+                🔒 تم استلام ردك — يُسمح بسجل واحد لكل مستخدم
+                {(crudCtx.def as any).single_response_allow_edit !== false && crudPerms?.edit && crudCtx.myRecordSnapshot && (
+                  <button className="mr-2 underline font-black" onClick={() => crudOpenEdit(crudCtx.myRecordSnapshot!)}>✏️ تعديل سجلي</button>
+                )}
+              </span>
+            )}
+            {crudCtx && crudPerms?.add && (crudCtx.def as any).qr_enabled && (
+              <button
+                className="schedule-btn schedule-btn-primary"
+                style={{ background: 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)' }}
+                onClick={() => { if (!crudEditing) crudOpenAdd(); setShowQr(true); }}
+                disabled={crudBusy}
+                title="امسح رمز QR لتعبئة الحقول تلقائياً"
+              >📷 إضافة عبر QR</button>
+            )}
+            {crudCtx && (crudCtx.linked || []).map((lk) => (
+              <button
+                key={lk.id}
+                className="schedule-btn schedule-btn-secondary"
+                onClick={() => openLinkedSystem(lk)}
+                title={`الانتقال إلى ${lk.title} مع نقل البيانات المشتركة`}
+              >{lk.icon || '🔗'} {lk.label}</button>
+            ))}
             {crudCtx && crudPerms?.add && (crudCtx.def as any).bulk_import_enabled && (
               <button
                 className="schedule-btn schedule-btn-primary"
@@ -949,6 +1084,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               onDone={() => crudCtx.refetchQueryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }))}
             />
           )}
+
+          {/* 📷 QR / barcode scanner for form filling. */}
+          <QrScanDialog open={showQr} onClose={() => setShowQr(false)} onResult={applyQrText} />
 
           {/* Inline CRUD editor — replaces the old modal (never overlays the data). */}
           {crudCtx && crudEditing && (
@@ -991,7 +1129,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               </header>
               <div className="p-4 bg-slate-50/50">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {crudCtx.cols.map((c) => {
+                  {crudCtx.cols.filter((c) => !auditLetters.includes(c.letter)).map((c) => {
                     const v = crudEditing.values[c.letter] || '';
                     const set = (val: string) => setCrudEditing({ ...crudEditing, values: { ...crudEditing.values, [c.letter]: val } });
                     const lockTeacher = !!(crudCtx.teacherCol && crudCtx.teacherName && crudCtx.teacherCol === c.letter);
@@ -1005,6 +1143,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                       );
                     }
                     const dlId = `dl-${crudCtx.def.id}-${c.letter}`;
+                    /** سعة الخيارات: نُخفي أو نعطّل الخيارات المكتملة. */
+                    const renderOptions = c.options
+                      .map((o) => ({ o, left: remainingFor(c.letter, o) }))
+                      .filter(({ o, left }) => !(left === 0 && optionHideFull(c.letter) && o !== v));
                     return (
                       <div key={c.letter}>
                         <label className="block text-xs font-black mb-1.5 text-slate-700">{c.header}</label>
@@ -1012,16 +1154,21 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           c.allowCustom ? (
                             <>
                               <input list={dlId} className={base} value={v} onChange={(e) => set(e.target.value)} placeholder="اختر أو اكتب..." />
-                              <datalist id={dlId}>{c.options.map((o) => <option key={o} value={o} />)}</datalist>
+                              <datalist id={dlId}>{renderOptions.map(({ o }) => <option key={o} value={o} />)}</datalist>
                             </>
                           ) : (
                             <select className={base} value={v} onChange={(e) => set(e.target.value)}>
                               <option value="">— اختر —</option>
-                              {c.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                              {renderOptions.map(({ o, left }) => (
+                                <option key={o} value={o} disabled={left === 0 && o !== v}>
+                                  {o}{left !== null ? (left === 0 ? ' — مكتمل' : ` — متبقٍ ${left}`) : ''}
+                                </option>
+                              ))}
                             </select>
                           )
                         ) : c.type === 'date' ? (
                           <input type="date" className={base} value={v} onChange={(e) => set(e.target.value)} />
+
                         ) : c.type === 'number' ? (
                           <input type="number" className={base} value={v} onChange={(e) => set(e.target.value)} />
                         ) : c.type === 'file' ? (
