@@ -23,6 +23,7 @@ export function buildConfigFromDef(
   def: CustomSystemDef,
   sheet: SheetFetchResult,
   user?: { role?: string; permissions?: any } | null,
+  allSystems?: CustomSystemDef[],
 ): SystemConfig {
 
   const colIdxs = parseColumnsRange(def.columns_range);
