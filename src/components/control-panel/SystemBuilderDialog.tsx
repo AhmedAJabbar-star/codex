@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { CustomSystemDef, FilterConfigItem, FilterRule, SignatureItem } from '@/data/customSystemsRegistry';
-import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem } from '@/data/customSystemsRegistry';
+import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem, listCustomSystems } from '@/data/customSystemsRegistry';
 import { OP_LABELS, type Condition, type ConditionOp, parseColumnsRange, colIndexToLetter } from '@/lib/conditionEngine';
 import { UI_THEMES, applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
@@ -46,6 +46,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [draftFound, setDraftFound] = useState<CustomSystemDef | null>(null);
+  const [allSystems, setAllSystems] = useState<CustomSystemDef[]>([]);
+
+  useEffect(() => {
+    listCustomSystems().then(setAllSystems).catch(() => { /* ignore */ });
+  }, []);
 
   // === مسوّدة تلقائية: تحفظ كل تعديل محلياً حتى لا يضيع العمل أبداً ===
   useEffect(() => {
@@ -290,6 +295,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
           <Step n={6} label="أزرار سريعة" />
           <Step n={7} label="إعدادات الطباعة" />
           <Step n={8} label="ميزات متقدمة" />
+          <Step n={9} label="الربط والقيود" />
         </div>
 
         <div className="px-5 py-4 overflow-auto flex-1">
@@ -775,6 +781,15 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                           placeholder="أدخل حرف العمود (مثال: P)"
                         />
                       </div>
+                      <div>
+                        <label className="block text-xs font-black mb-1">عمود الكلية في الورقة (حرف Excel)</label>
+                        <input
+                          className="schedule-select w-full"
+                          value={s.teacher_college_column || ''}
+                          onChange={(e) => patch({ teacher_college_column: e.target.value.toUpperCase().trim() })}
+                          placeholder="أدخل حرف العمود (مثال: C) — اتركه فارغاً إن لم يوجد"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-xs font-black mb-1">نطاق تصفية الصفوف للتدريسي</label>
@@ -786,11 +801,53 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         <option value="name">حسب الاسم فقط</option>
                         <option value="department">حسب القسم فقط</option>
                         <option value="name_or_department">الاسم أو القسم (مناسب لرئيس القسم)</option>
+                        <option value="custom">مخصّص (أختار المعايير أدناه)</option>
                         <option value="all">بدون تصفية (يرى كل الصفوف بعد الدخول)</option>
                       </select>
                     </div>
+                    {s.teacher_filter_scope === 'custom' && (
+                      <div className="border rounded-lg p-3 bg-white space-y-2">
+                        <strong className="text-xs block">معايير الهوية المستخدمة في التصفية</strong>
+                        <div className="flex flex-wrap gap-3">
+                          {([
+                            ['name', 'الاسم'],
+                            ['department', 'القسم'],
+                            ['college', 'الكلية'],
+                          ] as const).map(([key, label]) => {
+                            const cur = (s.teacher_scope_criteria || []) as string[];
+                            const on = cur.includes(key);
+                            return (
+                              <label key={key} className="flex items-center gap-1 text-xs font-bold">
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  onChange={(e) => patch({
+                                    teacher_scope_criteria: (e.target.checked
+                                      ? [...cur, key]
+                                      : cur.filter((c) => c !== key)) as any,
+                                  })}
+                                />
+                                {label}
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">منطق الدمج</label>
+                          <select
+                            className="schedule-select w-full"
+                            value={s.teacher_scope_logic || 'any'}
+                            onChange={(e) => patch({ teacher_scope_logic: e.target.value as any })}
+                          >
+                            <option value="any">أي معيار يتحقق (أوسع)</option>
+                            <option value="all">كل المعايير يجب أن تتحقق (أضيق)</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+
               </div>
 
               {/* CRUD section — granular permissions */}
@@ -1421,7 +1478,216 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
               </div>
             );
           })()}
+
+          {step === 9 && (() => {
+            const limits = (s.option_limits || {}) as Record<string, any>;
+            const links = (s.linked_systems || []) as any[];
+            const setLimit = (letter: string, cfg: any) => patch({ option_limits: { ...limits, [letter]: cfg } });
+            const delLimit = (letter: string) => {
+              const next = { ...limits }; delete next[letter];
+              patch({ option_limits: next });
+            };
+            const updLink = (i: number, p: any) => patch({ linked_systems: links.map((l, idx) => idx === i ? { ...l, ...p } : l) });
+            const delLink = (i: number) => patch({ linked_systems: links.filter((_, idx) => idx !== i) });
+            const addLink = () => patch({ linked_systems: [...links, { target_id: '', label: '', map: {} }] });
+            return (
+              <div className="space-y-5">
+                <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-3">
+                  <strong className="text-sm block mb-1">🔗 الربط والقيود</strong>
+                  <p className="text-[11px] text-slate-600">
+                    قيود الإرسال (رد واحد لكل مستخدم، سعة الخيارات)، أعمدة التتبّع التلقائية، أرشفة المحذوف، الربط بين الأنظمة، وقارئ QR.
+                  </p>
+                </div>
+
+                {/* Single response */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input type="checkbox" checked={!!s.single_response_enabled} onChange={(e) => patch({ single_response_enabled: e.target.checked })} />
+                    <span>
+                      🔒 السماح بسجل واحد فقط لكل مستخدم
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        بعد إرسال المستخدم سجله، يتحول زر «إضافة» إلى «لقد أرسلت ردك». التحقق يتم على الخادم.
+                      </span>
+                    </span>
+                  </label>
+                  {s.single_response_enabled && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-black mb-1">عمود هوية المستخدم (حرف Excel)</label>
+                        <input className="schedule-select w-full" value={s.single_response_column || ''} onChange={(e) => patch({ single_response_column: e.target.value.toUpperCase().trim() })} placeholder="عادةً عمود الاسم (مثال: B)" />
+                      </div>
+                      <label className="flex items-center gap-2 text-xs font-bold mt-5">
+                        <input type="checkbox" checked={s.single_response_allow_edit !== false} onChange={(e) => patch({ single_response_allow_edit: e.target.checked })} />
+                        السماح للمستخدم بتعديل سجله لاحقاً
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Option limits */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong className="text-sm">🎯 سعة خيارات القوائم المنسدلة</strong>
+                      <p className="text-[11px] text-slate-500 mt-0.5">حدّد أقصى عدد ردود لكل خيار؛ عند اكتمال العدد يُعطَّل الخيار أو يُخفى.</p>
+                    </div>
+                    <button className="schedule-btn schedule-btn-primary" style={{ minHeight: 32, padding: '4px 10px' }}
+                      onClick={() => setLimit('A', { limit: 0, per: {}, mode: 'disable' })}>➕ عمود</button>
+                  </div>
+                  {Object.keys(limits).length === 0 && <p className="text-xs text-slate-500 text-center py-3 bg-white rounded border border-dashed">لا توجد قيود سعة.</p>}
+                  {Object.entries(limits).map(([letter, cfg]: [string, any]) => (
+                    <div key={letter} className="bg-white p-2 rounded-lg border space-y-2">
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <input
+                          className="schedule-select col-span-2 text-center font-mono"
+                          value={letter}
+                          onChange={(e) => {
+                            const nl = e.target.value.toUpperCase().trim();
+                            const next: Record<string, any> = {}; 
+                            Object.entries(limits).forEach(([k, v]) => { next[k === letter ? nl : k] = v; });
+                            patch({ option_limits: next });
+                          }}
+                          placeholder="عمود"
+                        />
+                        <input className="schedule-select col-span-4" type="number" min={0} value={cfg.limit ?? 0}
+                          onChange={(e) => setLimit(letter, { ...cfg, limit: Number(e.target.value) })}
+                          placeholder="السعة العامة لكل خيار (0 = بلا حد)" />
+                        <select className="schedule-select col-span-5" value={cfg.mode || 'disable'} onChange={(e) => setLimit(letter, { ...cfg, mode: e.target.value })}>
+                          <option value="disable">تعطيل الخيار مع «اكتمل العدد»</option>
+                          <option value="hide">إخفاء الخيار نهائياً</option>
+                        </select>
+                        <button onClick={() => delLimit(letter)} className="col-span-1 text-red-600 font-black">✕</button>
+                      </div>
+                      <input
+                        className="schedule-select w-full text-xs"
+                        value={Object.entries(cfg.per || {}).map(([k, v]) => `${k}=${v}`).join(' , ')}
+                        onChange={(e) => {
+                          const per: Record<string, number> = {};
+                          e.target.value.split(/[,،\n]+/).forEach((pair) => {
+                            const [k, v] = pair.split('=');
+                            if (k && k.trim() && v !== undefined && !Number.isNaN(Number(v))) per[k.trim()] = Number(v);
+                          });
+                          setLimit(letter, { ...cfg, per });
+                        }}
+                        placeholder="سعة مخصّصة لخيارات محددة — مثال: قاعة أ=3 , قاعة ب=5"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Audit columns */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input type="checkbox" checked={!!s.audit_enabled} onChange={(e) => patch({ audit_enabled: e.target.checked })} />
+                    <span>
+                      🧾 أعمدة التتبّع التلقائية
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        تُملأ على الخادم: اسم مُدخل البيانات وتاريخ الإضافة (مرة واحدة)، واسم آخر مُعدِّل وتاريخ آخر تعديل.
+                      </span>
+                    </span>
+                  </label>
+                  {s.audit_enabled && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div><label className="block text-xs font-black mb-1">مُدخل البيانات</label>
+                        <input className="schedule-select w-full" value={s.audit_created_by_column || ''} onChange={(e) => patch({ audit_created_by_column: e.target.value.toUpperCase().trim() })} placeholder="مثال: X" /></div>
+                      <div><label className="block text-xs font-black mb-1">تاريخ الإضافة</label>
+                        <input className="schedule-select w-full" value={s.audit_created_at_column || ''} onChange={(e) => patch({ audit_created_at_column: e.target.value.toUpperCase().trim() })} placeholder="مثال: Y" /></div>
+                      <div><label className="block text-xs font-black mb-1">آخر مُعدِّل</label>
+                        <input className="schedule-select w-full" value={s.audit_updated_by_column || ''} onChange={(e) => patch({ audit_updated_by_column: e.target.value.toUpperCase().trim() })} placeholder="مثال: Z" /></div>
+                      <div><label className="block text-xs font-black mb-1">تاريخ آخر تعديل</label>
+                        <input className="schedule-select w-full" value={s.audit_updated_at_column || ''} onChange={(e) => patch({ audit_updated_at_column: e.target.value.toUpperCase().trim() })} placeholder="مثال: AA" /></div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Archive */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input type="checkbox" checked={!!s.archive_enabled} onChange={(e) => patch({ archive_enabled: e.target.checked })} />
+                    <span>
+                      🗄️ أرشفة السجل قبل حذفه
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        يُنسخ السطر كاملاً إلى ورقة الأرشيف مع اسم من حذفه وتاريخ الحذف، ثم يُحذف من الورقة الأصلية.
+                      </span>
+                    </span>
+                  </label>
+                  {s.archive_enabled && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div><label className="block text-xs font-black mb-1">رابط ملف الأرشيف (اختياري)</label>
+                        <input className="schedule-select w-full" value={s.archive_sheet_url || ''} onChange={(e) => patch({ archive_sheet_url: e.target.value.trim() })} placeholder="اتركه فارغاً لاستخدام نفس الملف الحالي" /></div>
+                      <div><label className="block text-xs font-black mb-1">GID ورقة الأرشيف *</label>
+                        <input className="schedule-select w-full" value={s.archive_gid || ''} onChange={(e) => patch({ archive_gid: e.target.value.trim() })} placeholder="مثال: 123456789" /></div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Linked systems */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong className="text-sm">🔗 الأنظمة المرتبطة</strong>
+                      <p className="text-[11px] text-slate-500 mt-0.5">يظهر زر انتقال للنظام الآخر مع تعبئة الحقول المشتركة تلقائياً.</p>
+                    </div>
+                    <button className="schedule-btn schedule-btn-primary" style={{ minHeight: 32, padding: '4px 10px' }} onClick={addLink}>➕ ربط</button>
+                  </div>
+                  {links.length === 0 && <p className="text-xs text-slate-500 text-center py-3 bg-white rounded border border-dashed">لا توجد أنظمة مرتبطة.</p>}
+                  {links.map((l, i) => (
+                    <div key={i} className="bg-white p-2 rounded-lg border space-y-2">
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <select className="schedule-select col-span-5" value={l.target_id || ''} onChange={(e) => updLink(i, { target_id: e.target.value })}>
+                          <option value="">— اختر النظام الهدف —</option>
+                          {allSystems.filter((x) => x.id && x.id !== s.id).map((x) => (
+                            <option key={x.id} value={x.id}>{x.icon} {x.title}</option>
+                          ))}
+                        </select>
+                        <input className="schedule-select col-span-6" value={l.label || ''} onChange={(e) => updLink(i, { label: e.target.value })} placeholder="نص الزر (اختياري) — مثال: التالي: استمارة الأجور" />
+                        <button onClick={() => delLink(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                      </div>
+                      <input
+                        className="schedule-select w-full text-xs"
+                        value={Object.entries(l.map || {}).map(([k, v]) => `${k}=${v}`).join(' , ')}
+                        onChange={(e) => {
+                          const map: Record<string, string> = {};
+                          e.target.value.split(/[,،\n]+/).forEach((pair) => {
+                            const [k, v] = pair.split('=');
+                            if (k && k.trim() && v && v.trim()) map[k.trim().toUpperCase()] = v.trim().toUpperCase();
+                          });
+                          updLink(i, { map });
+                        }}
+                        placeholder="ربط الأعمدة: عمود هنا = عمود هناك — مثال: B=C , F=D"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* QR */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input type="checkbox" checked={!!s.qr_enabled} onChange={(e) => patch({ qr_enabled: e.target.checked })} />
+                    <span>
+                      📷 تفعيل الإدخال عبر قارئ QR
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        يظهر زر 📷 في نافذة الإضافة لمسح رمز يحمل قيمة واحدة أو عدة حقول بصيغة «حرف العمود=القيمة».
+                      </span>
+                    </span>
+                  </label>
+                  {s.qr_enabled && (
+                    <div>
+                      <label className="block text-xs font-black mb-1">الأعمدة التي يمكن تعبئتها بالمسح (اتركه فارغاً = كل الأعمدة)</label>
+                      <input
+                        className="schedule-select w-full"
+                        value={(s.qr_fields || []).join(', ')}
+                        onChange={(e) => patch({ qr_fields: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                        placeholder="مثال: B, C, F"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
+
 
 
         <footer className="px-5 py-3 border-t flex items-center justify-between gap-2 bg-slate-50">
