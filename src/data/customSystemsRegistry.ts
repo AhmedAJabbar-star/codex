@@ -123,7 +123,7 @@ export interface CustomSystemDef {
    *  - 'department': only rows where teacher_department_column equals the user's department
    *  - 'name_or_department': either match — useful for heads of department
    *  - 'all': no row-level filter (just gated by login) */
-  teacher_filter_scope?: 'name' | 'department' | 'name_or_department' | 'all';
+  teacher_filter_scope?: 'name' | 'department' | 'name_or_department' | 'custom' | 'all';
   /** Legacy: enables Add / Edit / Delete on the source Google Sheet (admin password required).
    *  Kept for backwards compatibility — when true and no crud_permissions are set, all four perms apply. */
   crud_enabled?: boolean;
