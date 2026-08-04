@@ -46,6 +46,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [draftFound, setDraftFound] = useState<CustomSystemDef | null>(null);
+  const [allSystems, setAllSystems] = useState<CustomSystemDef[]>([]);
+
+  useEffect(() => {
+    listCustomSystems().then(setAllSystems).catch(() => { /* ignore */ });
+  }, []);
 
   // === مسوّدة تلقائية: تحفظ كل تعديل محلياً حتى لا يضيع العمل أبداً ===
   useEffect(() => {
