@@ -775,6 +775,15 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                           placeholder="أدخل حرف العمود (مثال: P)"
                         />
                       </div>
+                      <div>
+                        <label className="block text-xs font-black mb-1">عمود الكلية في الورقة (حرف Excel)</label>
+                        <input
+                          className="schedule-select w-full"
+                          value={s.teacher_college_column || ''}
+                          onChange={(e) => patch({ teacher_college_column: e.target.value.toUpperCase().trim() })}
+                          placeholder="أدخل حرف العمود (مثال: C) — اتركه فارغاً إن لم يوجد"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-xs font-black mb-1">نطاق تصفية الصفوف للتدريسي</label>
@@ -786,11 +795,53 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         <option value="name">حسب الاسم فقط</option>
                         <option value="department">حسب القسم فقط</option>
                         <option value="name_or_department">الاسم أو القسم (مناسب لرئيس القسم)</option>
+                        <option value="custom">مخصّص (أختار المعايير أدناه)</option>
                         <option value="all">بدون تصفية (يرى كل الصفوف بعد الدخول)</option>
                       </select>
                     </div>
+                    {s.teacher_filter_scope === 'custom' && (
+                      <div className="border rounded-lg p-3 bg-white space-y-2">
+                        <strong className="text-xs block">معايير الهوية المستخدمة في التصفية</strong>
+                        <div className="flex flex-wrap gap-3">
+                          {([
+                            ['name', 'الاسم'],
+                            ['department', 'القسم'],
+                            ['college', 'الكلية'],
+                          ] as const).map(([key, label]) => {
+                            const cur = (s.teacher_scope_criteria || []) as string[];
+                            const on = cur.includes(key);
+                            return (
+                              <label key={key} className="flex items-center gap-1 text-xs font-bold">
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  onChange={(e) => patch({
+                                    teacher_scope_criteria: (e.target.checked
+                                      ? [...cur, key]
+                                      : cur.filter((c) => c !== key)) as any,
+                                  })}
+                                />
+                                {label}
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">منطق الدمج</label>
+                          <select
+                            className="schedule-select w-full"
+                            value={s.teacher_scope_logic || 'any'}
+                            onChange={(e) => patch({ teacher_scope_logic: e.target.value as any })}
+                          >
+                            <option value="any">أي معيار يتحقق (أوسع)</option>
+                            <option value="all">كل المعايير يجب أن تتحقق (أضيق)</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+
               </div>
 
               {/* CRUD section — granular permissions */}
