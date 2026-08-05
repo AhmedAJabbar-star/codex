@@ -373,6 +373,16 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
   <div class="sep"></div>
+  <span class="pv-title" style="font-size:12px;opacity:.85">📐 عرض الأعمدة:</span>
+  <select id="pv-colmode" title="طريقة توزيع عرض الأعمدة على عرض الصفحة">
+    <option value="smart">ضبط تلقائي ذكي (موصى به)</option>
+    <option value="content">حسب طول المحتوى</option>
+    <option value="equal">أعمدة متساوية</option>
+    <option value="manual">نسب يدوية</option>
+  </select>
+  <button class="btn-close" id="pv-cols-btn" title="تحديد نسبة عرض كل عمود يدوياً">🎛️ ضبط الأعمدة</button>
+
+  <div class="sep"></div>
   <span class="pv-title" style="font-size:12px;opacity:.85">🧾 تقسيم اختياري (للطابعات الضعيفة فقط):</span>
   <select id="pv-batch" title="يبقى الوضع الافتراضي: طباعة كل السجلات في ملف واحد">
     <option value="0">كل السجلات (ملف واحد كامل)</option>
