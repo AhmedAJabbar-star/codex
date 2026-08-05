@@ -190,7 +190,20 @@ body.toolbar-hidden .preview-bar > .btn-print,
 body.toolbar-hidden .preview-bar > .btn-close,
 body.toolbar-hidden .preview-bar > .pv-toggle{display:inline-flex!important}
 body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
-@media print{.preview-bar,.pv-toggle{display:none!important}}
+@media print{.preview-bar,.pv-toggle,#cols-panel{display:none!important}}
+
+/* ===== لوحة ضبط عرض الأعمدة ===== */
+#cols-panel{position:sticky;top:56px;z-index:999;max-width:297mm;margin:10px auto 0;background:#fff;border:1.5px solid #c5d3e3;border-radius:12px;box-shadow:0 14px 34px rgba(15,76,129,.16);font-family:'Cairo',sans-serif;overflow:hidden}
+#cols-panel[hidden]{display:none}
+#cols-panel .cp-head{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;padding:8px 12px;font-size:13px}
+#cols-panel .cp-head span{margin-inline-start:auto;font-size:11.5px;font-weight:700;opacity:.9}
+#cols-panel .cp-head button{font-family:'Cairo',sans-serif;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;border-radius:7px;font-weight:800;font-size:11.5px;padding:5px 10px;cursor:pointer}
+#cols-panel .cp-hint{font-size:11.5px;color:#52657c;font-weight:600;padding:8px 12px 0;line-height:1.8}
+#cols-panel .cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;padding:10px 12px 14px}
+#cols-panel .cp-row{display:flex;align-items:center;gap:6px;background:#f5f8fc;border:1px solid #dbe5f0;border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:700;color:#123css}
+#cols-panel .cp-row > span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f4c81}
+#cols-panel .cp-row input{width:62px;padding:5px 6px;border:1px solid #c5d3e3;border-radius:6px;font-family:'Cairo',sans-serif;font-weight:800;text-align:center;color:#0b1f33}
+#cols-panel .cp-row em{font-style:normal;color:#7b8ca0}
 .pdf-tip{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(8,25,45,.55);backdrop-filter:blur(3px);font-family:'Cairo',sans-serif;direction:rtl}
 .pdf-tip-box{background:#fff;max-width:520px;width:calc(100% - 32px);border-radius:14px;padding:22px 24px;box-shadow:0 24px 60px rgba(8,25,45,.35);border-top:6px solid #0f4c81;color:#12324f}
 .pdf-tip-box h3{margin:0 0 10px;font-size:18px;color:#0f4c81}
