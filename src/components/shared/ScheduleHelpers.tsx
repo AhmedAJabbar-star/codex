@@ -643,6 +643,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   }
   if(colModeSel) colModeSel.addEventListener('change', applyCols);
   var cpPanel=$('cols-panel'), cpBtn=$('pv-cols-btn');
+  if(LOCKED && cpBtn){ cpBtn.style.display='none'; if(cpPanel) cpPanel.hidden=true; }
   if(cpBtn && cpPanel){
     cpBtn.addEventListener('click', function(){ cpPanel.hidden = !cpPanel.hidden; if(!cpPanel.hidden) applyCols(); });
     var cpClose=$('cp-close'); if(cpClose) cpClose.addEventListener('click', function(){ cpPanel.hidden = true; });
