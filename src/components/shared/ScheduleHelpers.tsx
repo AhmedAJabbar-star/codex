@@ -47,18 +47,52 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
 
   /* Column widths: sampling the content lets us use table-layout:fixed, which is
      dramatically faster to lay out than `auto` on thousands of rows — and it also
-     stops columns from being squeezed/clipped unpredictably. */
+     stops columns from being squeezed/clipped unpredictably.
+
+     ✦ مشكلة هدر المساحة: القياس الخام بطول النص يعطي عمود «الاسم» مساحة ضخمة
+       ويترك أعمدة فارغة (مثل «التوقيع») بعرض مجهري. الحل: ثلاثة أوضاع للعرض
+       (ذكي / بالمحتوى / متساوٍ) + عرض يدوي لكل عمود من منشئ الأنظمة، مع
+       تخميد (damping) بالجذر التربيعي وحد أدنى للأعمدة الفارغة. */
   const sample = Math.min(rows.length, 400);
-  const weights = headers.map((h) => {
+  const rawWeights = headers.map((h) => {
     let max = (h || '').length;
+    let filled = 0;
     for (let i = 0; i < sample; i++) {
       const len = String(rows[i][h] ?? '').length;
+      if (len > 0) filled++;
       if (len > max) max = len;
     }
-    return Math.min(Math.max(max, 4), 42);
+    // عمود شبه فارغ (توقيع / ملاحظات يدوية) => يستحق مساحة كتابة لا عرضاً مجهرياً
+    const empty = sample > 0 && filled / sample < 0.05;
+    return { max: Math.min(Math.max(max, 3), 60), empty };
   });
+  // وزن المحتوى الخام (الوضع القديم)
+  const contentWeights = rawWeights.map((w) => Math.min(Math.max(w.max, 4), 42));
+  // الوزن الذكي: جذر تربيعي يقلّص هيمنة الأعمدة الطويلة + أرضية 14 للأعمدة الفارغة
+  const smartWeights = rawWeights.map((w) => {
+    const damped = 4 + Math.sqrt(w.max) * 3.2;
+    return Number((w.empty ? Math.max(damped, 14) : damped).toFixed(2));
+  });
+  const prefWidths = printPrefs?.col_widths || {};
+  const manualWeights = headers.map((h, i) => Number(prefWidths[h] ?? prefWidths[String(i)] ?? 0));
+  const hasManual = manualWeights.some((v) => v > 0);
+  const widthMode = printPrefs?.col_width_mode || (hasManual ? 'manual' : 'smart');
+  const pickWeights = (mode: string): number[] => {
+    if (mode === 'equal') return headers.map(() => 1);
+    if (mode === 'content') return contentWeights;
+    if (mode === 'manual' && hasManual) {
+      const auto = smartWeights;
+      const fixedSum = manualWeights.reduce((a, b) => a + (b > 0 ? b : 0), 0);
+      const rest = Math.max(100 - fixedSum, headers.length * 2);
+      const autoSum = headers.reduce((a, _h, i) => a + (manualWeights[i] > 0 ? 0 : auto[i]), 0) || 1;
+      return headers.map((_h, i) => (manualWeights[i] > 0 ? manualWeights[i] : (auto[i] / autoSum) * rest));
+    }
+    return smartWeights;
+  };
+  const weights = pickWeights(widthMode);
   const weightSum = weights.reduce((a, b) => a + b, 0) || 1;
   const colgroupHtml = `<colgroup>${weights.map((w) => `<col style="width:${((w / weightSum) * 100).toFixed(3)}%"/>`).join('')}</colgroup>`;
+
 
   /* Very large reports are streamed into the table in chunks after the window paints,
      so the preview opens instantly instead of freezing the browser. */
@@ -156,7 +190,20 @@ body.toolbar-hidden .preview-bar > .btn-print,
 body.toolbar-hidden .preview-bar > .btn-close,
 body.toolbar-hidden .preview-bar > .pv-toggle{display:inline-flex!important}
 body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
-@media print{.preview-bar,.pv-toggle{display:none!important}}
+@media print{.preview-bar,.pv-toggle,#cols-panel{display:none!important}}
+
+/* ===== لوحة ضبط عرض الأعمدة ===== */
+#cols-panel{position:sticky;top:56px;z-index:999;max-width:297mm;margin:10px auto 0;background:#fff;border:1.5px solid #c5d3e3;border-radius:12px;box-shadow:0 14px 34px rgba(15,76,129,.16);font-family:'Cairo',sans-serif;overflow:hidden}
+#cols-panel[hidden]{display:none}
+#cols-panel .cp-head{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;padding:8px 12px;font-size:13px}
+#cols-panel .cp-head span{margin-inline-start:auto;font-size:11.5px;font-weight:700;opacity:.9}
+#cols-panel .cp-head button{font-family:'Cairo',sans-serif;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;border-radius:7px;font-weight:800;font-size:11.5px;padding:5px 10px;cursor:pointer}
+#cols-panel .cp-hint{font-size:11.5px;color:#52657c;font-weight:600;padding:8px 12px 0;line-height:1.8}
+#cols-panel .cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;padding:10px 12px 14px}
+#cols-panel .cp-row{display:flex;align-items:center;gap:6px;background:#f5f8fc;border:1px solid #dbe5f0;border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:700;color:#0b1f33}
+#cols-panel .cp-row > span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f4c81}
+#cols-panel .cp-row input{width:62px;padding:5px 6px;border:1px solid #c5d3e3;border-radius:6px;font-family:'Cairo',sans-serif;font-weight:800;text-align:center;color:#0b1f33}
+#cols-panel .cp-row em{font-style:normal;color:#7b8ca0}
 .pdf-tip{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(8,25,45,.55);backdrop-filter:blur(3px);font-family:'Cairo',sans-serif;direction:rtl}
 .pdf-tip-box{background:#fff;max-width:520px;width:calc(100% - 32px);border-radius:14px;padding:22px 24px;box-shadow:0 24px 60px rgba(8,25,45,.35);border-top:6px solid #0f4c81;color:#12324f}
 .pdf-tip-box h3{margin:0 0 10px;font-size:18px;color:#0f4c81}
@@ -339,6 +386,16 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
   <div class="sep"></div>
+  <span class="pv-title" style="font-size:12px;opacity:.85">📐 عرض الأعمدة:</span>
+  <select id="pv-colmode" title="طريقة توزيع عرض الأعمدة على عرض الصفحة">
+    <option value="smart">ضبط تلقائي ذكي (موصى به)</option>
+    <option value="content">حسب طول المحتوى</option>
+    <option value="equal">أعمدة متساوية</option>
+    <option value="manual">نسب يدوية</option>
+  </select>
+  <button class="btn-close" id="pv-cols-btn" title="تحديد نسبة عرض كل عمود يدوياً">🎛️ ضبط الأعمدة</button>
+
+  <div class="sep"></div>
   <span class="pv-title" style="font-size:12px;opacity:.85">🧾 تقسيم اختياري (للطابعات الضعيفة فقط):</span>
   <select id="pv-batch" title="يبقى الوضع الافتراضي: طباعة كل السجلات في ملف واحد">
     <option value="0">كل السجلات (ملف واحد كامل)</option>
@@ -355,6 +412,22 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <button class="btn-print" id="pv-print-full" title="طباعة/حفظ PDF لكامل السجلات في ملف واحد">🖨️ طباعة الكل / حفظ PDF</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
+
+<!-- لوحة ضبط عرض الأعمدة يدوياً (نِسَب مئوية من عرض الجدول) -->
+<div id="cols-panel" hidden>
+  <div class="cp-head">
+    <strong>🎛️ ضبط عرض الأعمدة</strong>
+    <span id="cp-sum"></span>
+    <button id="cp-auto" type="button">↺ تلقائي ذكي</button>
+    <button id="cp-close" type="button">✕</button>
+  </div>
+  <div class="cp-hint">اضبط نسبة عرض كل عمود (٪). اتركها 0 ليُوزَّع الباقي تلقائياً على الأعمدة غير المحددة — بذلك لا تُهدر أي مساحة.</div>
+  <div class="cp-grid">
+    ${headers.map((h, i) => `<label class="cp-row"><span>${h}</span><input type="number" min="0" max="90" step="1" data-idx="${i}" value="${(manualWeights[i] || 0)}"/><em>٪</em></label>`).join('')}
+  </div>
+</div>
+
+
 
 <div id="prep">
   <div class="pbox">
@@ -527,6 +600,76 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     prefs.fit=fit.checked; savePrefs(prefs);
   }
   if(fit) fit.addEventListener('change', applyFit);
+
+  /* ===== عرض الأعمدة: ضبط تلقائي ذكي / بالمحتوى / متساوٍ / يدوي =====
+     الهدف منع هدر المساحة: التوزيع الذكي يخمّد أطوال النصوص بالجذر التربيعي
+     فلا يبتلع عمود «الاسم» الصفحة، ويمنح الأعمدة الفارغة (مثل «التوقيع») حداً
+     أدنى معقولاً للكتابة اليدوية. النِسَب اليدوية تُحجز أولاً ثم يوزَّع الباقي
+     تلقائياً على بقية الأعمدة حتى يبلغ مجموع العرض 100٪ دائماً. */
+  var W_SMART   = ${JSON.stringify(smartWeights)};
+  var W_CONTENT = ${JSON.stringify(contentWeights)};
+  var N_COLS    = ${colCount};
+  var manualPct = (prefs.colWidths && prefs.colWidths.length===N_COLS) ? prefs.colWidths.slice() : ${JSON.stringify(manualWeights)};
+  var colModeSel = $('pv-colmode');
+  function computeWidths(mode){
+    var base = mode==='equal' ? W_SMART.map(function(){ return 1; }) : (mode==='content' ? W_CONTENT : W_SMART);
+    var out;
+    if(mode==='manual'){
+      var fixedSum=0, autoSum=0;
+      for(var i=0;i<N_COLS;i++){ var v=Number(manualPct[i])||0; if(v>0){ fixedSum+=v; } else { autoSum+=W_SMART[i]; } }
+      var rest = Math.max(100-fixedSum, N_COLS*2);
+      out = [];
+      for(var j=0;j<N_COLS;j++){
+        var m=Number(manualPct[j])||0;
+        out.push(m>0 ? m : (autoSum ? (W_SMART[j]/autoSum)*rest : rest/N_COLS));
+      }
+    } else { out = base.slice(); }
+    var sum = out.reduce(function(a,b){ return a+b; },0) || 1;
+    return out.map(function(v){ return (v/sum)*100; });
+  }
+  function applyCols(){
+    var mode = colModeSel ? colModeSel.value : 'smart';
+    var pct = computeWidths(mode);
+    document.querySelectorAll('table.data > colgroup').forEach(function(cg){
+      var cols = cg.children;
+      for(var i=0;i<cols.length && i<pct.length;i++) cols[i].style.width = pct[i].toFixed(3)+'%';
+    });
+    var sumEl=$('cp-sum');
+    if(sumEl){
+      var fixed = manualPct.reduce(function(a,b){ return a+(Number(b)||0); },0);
+      sumEl.textContent = 'مجموع النِّسَب اليدوية: '+fixed.toFixed(0)+'٪ — الباقي ('+Math.max(0,100-fixed).toFixed(0)+'٪) يُوزَّع تلقائياً';
+    }
+    prefs.colMode = mode; prefs.colWidths = manualPct; savePrefs(prefs);
+  }
+  if(colModeSel) colModeSel.addEventListener('change', applyCols);
+  var cpPanel=$('cols-panel'), cpBtn=$('pv-cols-btn');
+  if(LOCKED && cpBtn){ cpBtn.style.display='none'; if(cpPanel) cpPanel.hidden=true; }
+  if(cpBtn && cpPanel){
+    cpBtn.addEventListener('click', function(){ cpPanel.hidden = !cpPanel.hidden; if(!cpPanel.hidden) applyCols(); });
+    var cpClose=$('cp-close'); if(cpClose) cpClose.addEventListener('click', function(){ cpPanel.hidden = true; });
+    var cpAuto=$('cp-auto');
+    if(cpAuto) cpAuto.addEventListener('click', function(){
+      manualPct = manualPct.map(function(){ return 0; });
+      cpPanel.querySelectorAll('input[data-idx]').forEach(function(inp){ inp.value = '0'; });
+      if(colModeSel) colModeSel.value='smart';
+      applyCols();
+    });
+    cpPanel.querySelectorAll('input[data-idx]').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        manualPct[Number(inp.getAttribute('data-idx'))] = Math.max(0, Math.min(90, Number(inp.value)||0));
+        if(colModeSel) colModeSel.value='manual';
+        applyCols();
+      });
+    });
+  }
+  if(colModeSel){
+    var startMode = ${JSON.stringify(widthMode)};
+    if(prefs.colMode && !LOCKED && !(SYSTEM_PREFS && SYSTEM_PREFS.col_width_mode)) startMode = prefs.colMode;
+    colModeSel.value = startMode;
+  }
+  applyCols();
+
+
 
   /* ===== بناء الجدول تدريجياً للتقارير الضخمة (بدون تجميد المتصفح) ===== */
   var TOTAL_ROWS = ${rowCount};
