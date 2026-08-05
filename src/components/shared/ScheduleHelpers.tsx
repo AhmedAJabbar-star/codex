@@ -400,6 +400,22 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
 </div>
 
+<!-- لوحة ضبط عرض الأعمدة يدوياً (نِسَب مئوية من عرض الجدول) -->
+<div id="cols-panel" hidden>
+  <div class="cp-head">
+    <strong>🎛️ ضبط عرض الأعمدة</strong>
+    <span id="cp-sum"></span>
+    <button id="cp-auto" type="button">↺ تلقائي ذكي</button>
+    <button id="cp-close" type="button">✕</button>
+  </div>
+  <div class="cp-hint">اضبط نسبة عرض كل عمود (٪). اتركها 0 ليُوزَّع الباقي تلقائياً على الأعمدة غير المحددة — بذلك لا تُهدر أي مساحة.</div>
+  <div class="cp-grid">
+    ${headers.map((h, i) => `<label class="cp-row"><span>${h}</span><input type="number" min="0" max="90" step="1" data-idx="${i}" value="${(manualWeights[i] || 0)}"/><em>٪</em></label>`).join('')}
+  </div>
+</div>
+
+
+
 <div id="prep">
   <div class="pbox">
     <div class="ptitle">⏳ جاري تجهيز التقرير الرسمي…</div>
