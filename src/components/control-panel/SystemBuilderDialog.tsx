@@ -1293,6 +1293,51 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 </div>
 
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <strong className="text-sm">📐 عرض الأعمدة في التقرير الرسمي</strong>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    يمنع هذا الإعداد هدر المساحة: «الضبط التلقائي الذكي» يخمّد أطوال النصوص فلا يبتلع عمود
+                    مثل «اسم التدريسي» نصف الصفحة، ويمنح الأعمدة الفارغة (مثل «التوقيع») حداً أدنى معقولاً للكتابة اليدوية.
+                  </p>
+                  <div>
+                    <label className="block text-[11px] font-black mb-1">طريقة التوزيع</label>
+                    <select
+                      className="schedule-select w-full text-xs"
+                      value={pp.col_width_mode || ''}
+                      onChange={(e) => setPP({ col_width_mode: e.target.value || undefined })}
+                    >
+                      <option value="">— تلقائي ذكي (موصى به) —</option>
+                      <option value="smart">ضبط تلقائي ذكي</option>
+                      <option value="content">حسب طول المحتوى</option>
+                      <option value="equal">أعمدة متساوية</option>
+                      <option value="manual">نسب يدوية (من الجدول أدناه)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black mb-1">نِسَب يدوية — سطر لكل عمود بصيغة: «عنوان العمود = 20»</label>
+                    <textarea
+                      className="schedule-select w-full text-xs font-mono"
+                      rows={4}
+                      defaultValue={Object.entries(pp.col_widths || {}).map(([k, v]) => `${k} = ${v}`).join('\n')}
+                      placeholder={'التوقيع = 25\nمجموع الأجور = 15'}
+                      onBlur={(e) => {
+                        const map: Record<string, number> = {};
+                        e.target.value.split('\n').forEach((line) => {
+                          const idx = line.lastIndexOf('=');
+                          if (idx < 1) return;
+                          const key = line.slice(0, idx).trim();
+                          const val = Number(line.slice(idx + 1).trim());
+                          if (key && val > 0) map[key] = Math.min(90, val);
+                        });
+                        setPP({ col_widths: Object.keys(map).length ? map : undefined });
+                      }}
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      الأعمدة غير المذكورة يُوزَّع عليها الباقي تلقائياً حتى يبلغ المجموع 100٪ — فلا تبقى مساحة فارغة على يمين الجدول أو يساره.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
                   <strong className="text-sm">عنوان الطباعة (ثابت)</strong>
                   <input
                     className="schedule-select w-full text-xs"
