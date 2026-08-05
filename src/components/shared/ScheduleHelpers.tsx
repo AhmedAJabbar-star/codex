@@ -601,6 +601,75 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   }
   if(fit) fit.addEventListener('change', applyFit);
 
+  /* ===== عرض الأعمدة: ضبط تلقائي ذكي / بالمحتوى / متساوٍ / يدوي =====
+     الهدف منع هدر المساحة: التوزيع الذكي يخمّد أطوال النصوص بالجذر التربيعي
+     فلا يبتلع عمود «الاسم» الصفحة، ويمنح الأعمدة الفارغة (مثل «التوقيع») حداً
+     أدنى معقولاً للكتابة اليدوية. النِسَب اليدوية تُحجز أولاً ثم يوزَّع الباقي
+     تلقائياً على بقية الأعمدة حتى يبلغ مجموع العرض 100٪ دائماً. */
+  var W_SMART   = ${JSON.stringify(smartWeights)};
+  var W_CONTENT = ${JSON.stringify(contentWeights)};
+  var N_COLS    = ${colCount};
+  var manualPct = (prefs.colWidths && prefs.colWidths.length===N_COLS) ? prefs.colWidths.slice() : ${JSON.stringify(manualWeights)};
+  var colModeSel = $('pv-colmode');
+  function computeWidths(mode){
+    var base = mode==='equal' ? W_SMART.map(function(){ return 1; }) : (mode==='content' ? W_CONTENT : W_SMART);
+    var out;
+    if(mode==='manual'){
+      var fixedSum=0, autoSum=0;
+      for(var i=0;i<N_COLS;i++){ var v=Number(manualPct[i])||0; if(v>0){ fixedSum+=v; } else { autoSum+=W_SMART[i]; } }
+      var rest = Math.max(100-fixedSum, N_COLS*2);
+      out = [];
+      for(var j=0;j<N_COLS;j++){
+        var m=Number(manualPct[j])||0;
+        out.push(m>0 ? m : (autoSum ? (W_SMART[j]/autoSum)*rest : rest/N_COLS));
+      }
+    } else { out = base.slice(); }
+    var sum = out.reduce(function(a,b){ return a+b; },0) || 1;
+    return out.map(function(v){ return (v/sum)*100; });
+  }
+  function applyCols(){
+    var mode = colModeSel ? colModeSel.value : 'smart';
+    var pct = computeWidths(mode);
+    document.querySelectorAll('table.data > colgroup').forEach(function(cg){
+      var cols = cg.children;
+      for(var i=0;i<cols.length && i<pct.length;i++) cols[i].style.width = pct[i].toFixed(3)+'%';
+    });
+    var sumEl=$('cp-sum');
+    if(sumEl){
+      var fixed = manualPct.reduce(function(a,b){ return a+(Number(b)||0); },0);
+      sumEl.textContent = 'مجموع النِّسَب اليدوية: '+fixed.toFixed(0)+'٪ — الباقي ('+Math.max(0,100-fixed).toFixed(0)+'٪) يُوزَّع تلقائياً';
+    }
+    prefs.colMode = mode; prefs.colWidths = manualPct; savePrefs(prefs);
+  }
+  if(colModeSel) colModeSel.addEventListener('change', applyCols);
+  var cpPanel=$('cols-panel'), cpBtn=$('pv-cols-btn');
+  if(cpBtn && cpPanel){
+    cpBtn.addEventListener('click', function(){ cpPanel.hidden = !cpPanel.hidden; if(!cpPanel.hidden) applyCols(); });
+    var cpClose=$('cp-close'); if(cpClose) cpClose.addEventListener('click', function(){ cpPanel.hidden = true; });
+    var cpAuto=$('cp-auto');
+    if(cpAuto) cpAuto.addEventListener('click', function(){
+      manualPct = manualPct.map(function(){ return 0; });
+      cpPanel.querySelectorAll('input[data-idx]').forEach(function(inp){ inp.value = '0'; });
+      if(colModeSel) colModeSel.value='smart';
+      applyCols();
+    });
+    cpPanel.querySelectorAll('input[data-idx]').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        manualPct[Number(inp.getAttribute('data-idx'))] = Math.max(0, Math.min(90, Number(inp.value)||0));
+        if(colModeSel) colModeSel.value='manual';
+        applyCols();
+      });
+    });
+  }
+  if(colModeSel){
+    var startMode = ${JSON.stringify(widthMode)};
+    if(prefs.colMode && !LOCKED && !(SYSTEM_PREFS && SYSTEM_PREFS.col_width_mode)) startMode = prefs.colMode;
+    colModeSel.value = startMode;
+  }
+  applyCols();
+
+
+
   /* ===== بناء الجدول تدريجياً للتقارير الضخمة (بدون تجميد المتصفح) ===== */
   var TOTAL_ROWS = ${rowCount};
   var DEFER = ${DEFER_ROWS ? 'true' : 'false'};
