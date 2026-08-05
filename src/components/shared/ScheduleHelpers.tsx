@@ -47,18 +47,52 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
 
   /* Column widths: sampling the content lets us use table-layout:fixed, which is
      dramatically faster to lay out than `auto` on thousands of rows — and it also
-     stops columns from being squeezed/clipped unpredictably. */
+     stops columns from being squeezed/clipped unpredictably.
+
+     ✦ مشكلة هدر المساحة: القياس الخام بطول النص يعطي عمود «الاسم» مساحة ضخمة
+       ويترك أعمدة فارغة (مثل «التوقيع») بعرض مجهري. الحل: ثلاثة أوضاع للعرض
+       (ذكي / بالمحتوى / متساوٍ) + عرض يدوي لكل عمود من منشئ الأنظمة، مع
+       تخميد (damping) بالجذر التربيعي وحد أدنى للأعمدة الفارغة. */
   const sample = Math.min(rows.length, 400);
-  const weights = headers.map((h) => {
+  const rawWeights = headers.map((h) => {
     let max = (h || '').length;
+    let filled = 0;
     for (let i = 0; i < sample; i++) {
       const len = String(rows[i][h] ?? '').length;
+      if (len > 0) filled++;
       if (len > max) max = len;
     }
-    return Math.min(Math.max(max, 4), 42);
+    // عمود شبه فارغ (توقيع / ملاحظات يدوية) => يستحق مساحة كتابة لا عرضاً مجهرياً
+    const empty = sample > 0 && filled / sample < 0.05;
+    return { max: Math.min(Math.max(max, 3), 60), empty };
   });
+  // وزن المحتوى الخام (الوضع القديم)
+  const contentWeights = rawWeights.map((w) => Math.min(Math.max(w.max, 4), 42));
+  // الوزن الذكي: جذر تربيعي يقلّص هيمنة الأعمدة الطويلة + أرضية 14 للأعمدة الفارغة
+  const smartWeights = rawWeights.map((w) => {
+    const damped = 4 + Math.sqrt(w.max) * 3.2;
+    return Number((w.empty ? Math.max(damped, 14) : damped).toFixed(2));
+  });
+  const prefWidths = printPrefs?.col_widths || {};
+  const manualWeights = headers.map((h, i) => Number(prefWidths[h] ?? prefWidths[String(i)] ?? 0));
+  const hasManual = manualWeights.some((v) => v > 0);
+  const widthMode = printPrefs?.col_width_mode || (hasManual ? 'manual' : 'smart');
+  const pickWeights = (mode: string): number[] => {
+    if (mode === 'equal') return headers.map(() => 1);
+    if (mode === 'content') return contentWeights;
+    if (mode === 'manual' && hasManual) {
+      const auto = smartWeights;
+      const fixedSum = manualWeights.reduce((a, b) => a + (b > 0 ? b : 0), 0);
+      const rest = Math.max(100 - fixedSum, headers.length * 2);
+      const autoSum = headers.reduce((a, _h, i) => a + (manualWeights[i] > 0 ? 0 : auto[i]), 0) || 1;
+      return headers.map((_h, i) => (manualWeights[i] > 0 ? manualWeights[i] : (auto[i] / autoSum) * rest));
+    }
+    return smartWeights;
+  };
+  const weights = pickWeights(widthMode);
   const weightSum = weights.reduce((a, b) => a + b, 0) || 1;
   const colgroupHtml = `<colgroup>${weights.map((w) => `<col style="width:${((w / weightSum) * 100).toFixed(3)}%"/>`).join('')}</colgroup>`;
+
 
   /* Very large reports are streamed into the table in chunks after the window paints,
      so the preview opens instantly instead of freezing the browser. */
