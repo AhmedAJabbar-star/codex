@@ -200,7 +200,7 @@ body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
 #cols-panel .cp-head button{font-family:'Cairo',sans-serif;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;border-radius:7px;font-weight:800;font-size:11.5px;padding:5px 10px;cursor:pointer}
 #cols-panel .cp-hint{font-size:11.5px;color:#52657c;font-weight:600;padding:8px 12px 0;line-height:1.8}
 #cols-panel .cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;padding:10px 12px 14px}
-#cols-panel .cp-row{display:flex;align-items:center;gap:6px;background:#f5f8fc;border:1px solid #dbe5f0;border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:700;color:#123css}
+#cols-panel .cp-row{display:flex;align-items:center;gap:6px;background:#f5f8fc;border:1px solid #dbe5f0;border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:700;color:#0b1f33}
 #cols-panel .cp-row > span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f4c81}
 #cols-panel .cp-row input{width:62px;padding:5px 6px;border:1px solid #c5d3e3;border-radius:6px;font-family:'Cairo',sans-serif;font-weight:800;text-align:center;color:#0b1f33}
 #cols-panel .cp-row em{font-style:normal;color:#7b8ca0}
