@@ -22,6 +22,14 @@ export interface PrintPrefs {
   showCount?: boolean;
   showSigs?: boolean;
   fit?: boolean;
+  /** طريقة توزيع عرض الأعمدة في التقرير الرسمي:
+   *  - 'smart' (افتراضي): توزيع مخمّد يمنع هيمنة الأعمدة الطويلة ويمنح الأعمدة الفارغة مساحة كتابة
+   *  - 'content': حسب طول المحتوى (السلوك القديم)
+   *  - 'equal': أعمدة متساوية تماماً
+   *  - 'manual': نسب يدوية من `col_widths` */
+  col_width_mode?: 'smart' | 'content' | 'equal' | 'manual';
+  /** نسبة عرض ثابتة (٪ من عرض الجدول) لكل عمود، بالمفتاح = عنوان العمود. 0/غير محدد = تلقائي. */
+  col_widths?: Record<string, number>;
   /** Show the diagonal "University of Technology" watermark. Default true. */
   showWatermark?: boolean;
   /** Optional override text for the watermark. */
