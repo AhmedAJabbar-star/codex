@@ -447,6 +447,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ðŸ
       <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
     </thead>
     <tbody>${DEFER_ROWS ? '' : tableRows}</tbody>
+    ${totalsRowHtml}
   </table>
   <div id="sigs-end" class="signatures-wrap">
     ${signaturesHtml}
