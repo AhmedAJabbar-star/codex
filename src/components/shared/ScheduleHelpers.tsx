@@ -742,7 +742,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   });
 
   function initBatches(){
-    dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody > tr'));
+    dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody:not(.totals-body) > tr'));
     if(bSel){
       // ترحيل لمرة واحدة: إلغاء التقسيم التلقائي القديم — الافتراضي الآن ملف واحد كامل.
       if(!prefs.batchV2){ prefs.batch = 0; prefs.batchV2 = true; savePrefs(prefs); }
