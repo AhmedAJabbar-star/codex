@@ -42,6 +42,15 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
   }
   const tableRows = rowChunks.join('');
 
+  /* 📊 صف المجاميع (ذيل المجاميع) — يُطبع في نهاية الجدول داخل tbody منفصل
+     حتى لا يُحسب ضمن صفوف البيانات عند الطباعة على دفعات. */
+  const hasTotals = !!totals && Object.values(totals).some((v) => String(v || '').trim() !== '');
+  const totalsRowHtml = hasTotals
+    ? `<tbody class="totals-body"><tr class="totals-row">${headers
+        .map((h) => `<td>${esc((totals as Record<string, string>)[h] || '')}</td>`)
+        .join('')}</tr></tbody>`
+    : '';
+
   const colCount = headers.length;
   const rowCount = rows.length;
 
