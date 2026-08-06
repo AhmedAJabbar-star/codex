@@ -350,6 +350,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"ğŸ
   table.data{page-break-inside:auto;break-inside:auto}
   table.data > thead{display:table-header-group!important}
   table.data > tbody{display:table-row-group!important}
+  table.data > tbody.totals-body > tr > td{background:#e2e8f0!important;font-weight:900;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   table.data > tfoot{display:table-footer-group!important}
   table.data > tbody > tr{page-break-inside:avoid;break-inside:avoid}
   table.data > thead .repeat-banner-row,
