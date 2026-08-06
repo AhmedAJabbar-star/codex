@@ -23,7 +23,7 @@ export function parseTimeToMinutes(timeStr: string): number | null {
 }
 
 /* ───── Official Print helper (Unified University Schedule) ───── */
-export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs, autoPrint?: boolean) {
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs, autoPrint?: boolean, totals?: Record<string, string>) {
   const w = window.open('', '_blank');
   if (!w) return;
 
