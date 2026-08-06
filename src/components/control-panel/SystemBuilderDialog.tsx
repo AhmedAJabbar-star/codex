@@ -719,20 +719,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
 
           {step === 5 && (
             <div className="space-y-4">
-              <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
-                <div className="flex items-center justify-between">
-                  <strong className="text-sm">تواقيع الطباعة</strong>
-                  <button className="schedule-btn schedule-btn-primary" onClick={addSig} style={{ minHeight: 32, padding: '4px 10px' }}>➕ توقيع</button>
-                </div>
-                {sigs.length === 0 && <p className="text-xs text-slate-500 text-center py-2">سيتم استخدام التواقيع الافتراضية للنظام.</p>}
-                {sigs.map((sig, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                    <input className="schedule-select col-span-4" value={sig.label} onChange={(e) => updSig(i, { label: e.target.value })} placeholder="المنصب (مثال: عميد الكلية / رئيس القسم)" />
-                    <input className="schedule-select col-span-7" value={sig.name || ''} onChange={(e) => updSig(i, { name: e.target.value })} placeholder="اسم الشخص المكتوب في التوقيع الرسمي" />
-                    <button onClick={() => delSig(i)} className="col-span-1 text-red-600 font-black">✕</button>
-                  </div>
-                ))}
+              <div className="border rounded-lg p-3 bg-slate-50 text-[11px] text-slate-600 leading-relaxed">
+                ✍️ <strong>تواقيع الطباعة</strong> انتقلت إلى تبويب «7. إعدادات الطباعة» لتكون بجانب خيار «إظهار التواقيع».
               </div>
+
 
               <label className="flex items-center gap-2 text-sm font-bold">
                 <input type="checkbox" checked={s.protected} onChange={(e) => patch({ protected: e.target.checked })} />
@@ -1291,6 +1281,34 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     />
                   </div>
                 </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-sm">✍️ أسماء التواقيع في نهاية التقرير</strong>
+                    <button className="schedule-btn schedule-btn-primary" onClick={addSig} style={{ minHeight: 32, padding: '4px 10px' }}>➕ توقيع</button>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    تظهر هذه التواقيع أسفل الجدول في «طباعة الجدول» — بشرط تفعيل «إظهار التواقيع» أعلاه.
+                    إذا تركت القائمة فارغة تُستخدم التواقيع الافتراضية (مقرر القسم / رئيس القسم / مصادقة العميد).
+                  </p>
+                  {sigs.length === 0 && <p className="text-xs text-slate-500 text-center py-2">سيتم استخدام التواقيع الافتراضية للنظام.</p>}
+                  {sigs.map((sig, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                      <input className="schedule-select col-span-4 text-xs" value={sig.label} onChange={(e) => updSig(i, { label: e.target.value })} placeholder="المنصب (مثال: عميد الكلية / رئيس القسم)" />
+                      <input className="schedule-select col-span-7 text-xs" value={sig.name || ''} onChange={(e) => updSig(i, { name: e.target.value })} placeholder="اسم الشخص المكتوب في التوقيع الرسمي" />
+                      <button onClick={() => delSig(i)} className="col-span-1 text-red-600 font-black">✕</button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border rounded-lg p-3 bg-emerald-50/60 border-emerald-200">
+                  <strong className="text-sm block mb-1">📊 ذيل المجاميع في الطباعة</strong>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    المجاميع المُعرَّفة في الخطوة 8 «ذيل المجاميع» تُطبع تلقائياً كصف أخير مميّز في نهاية الجدول ضمن التقرير الرسمي.
+                  </p>
+                </div>
+
+
 
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
                   <strong className="text-sm">📐 عرض الأعمدة في التقرير الرسمي</strong>

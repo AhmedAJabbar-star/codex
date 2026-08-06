@@ -377,6 +377,28 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return true;
   }, [system, filters]);
 
+  /** 📊 ذيل المجاميع — يُحسب مرة واحدة ويُستخدم في العرض وفي التقرير الرسمي/الطباعة. */
+  const aggTotals = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    (system.aggregations || []).forEach((agg) => {
+      const h = agg.header;
+      const vals = filteredRows.map((r) => (r[h] || '').trim()).filter(Boolean);
+      const nums = vals.map((v) => parseFloat(v.replace(/[^\d.\-]/g, ''))).filter((n) => !isNaN(n));
+      let res = '—';
+      switch (agg.op) {
+        case 'sum': res = nums.reduce((a, b) => a + b, 0).toLocaleString('ar'); break;
+        case 'avg': res = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '0'; break;
+        case 'count': res = String(vals.length); break;
+        case 'countUnique': res = String(new Set(vals).size); break;
+        case 'min': res = nums.length ? String(Math.min(...nums)) : '—'; break;
+        case 'max': res = nums.length ? String(Math.max(...nums)) : '—'; break;
+      }
+      const opLabel = { sum: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
+      out[h] = `${agg.label || opLabel}: ${res}`;
+    });
+    return out;
+  }, [system.aggregations, filteredRows]);
+
   const activeFilterInfo = useMemo(() => system.filters
     .filter(f => f.control !== 'time' && f.control !== 'timeSelect')
     .map(f => ({ key: f.key, label: f.label, value: (filters[f.key] || '').trim() }))
@@ -445,7 +467,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       filters['القسم الذي تنتمي اليه'] || filters['القسم'] ||
       filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
     const filtersInfo = activeFilterInfo.map(({ label, value }) => ({ label, value }));
-    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo, system.customSignatures, system.printPrefs, direct);
+    const printTotals: Record<string, string> = {};
+    reportHeaders.forEach((h) => { if (aggTotals[h]) printTotals[h] = aggTotals[h]; });
+    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo, system.customSignatures, system.printPrefs, direct, printTotals);
   };
 
   const handleDirectPdf = async (skipWarn = false) => {
@@ -1440,29 +1464,11 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 {system.aggregations && system.aggregations.length > 0 && (
                   <tfoot>
                     <tr style={{ background: '#f1f5f9', fontWeight: 900 }}>
-                      {system.headers.map((h) => {
-                        const agg = system.aggregations!.find((a) => a.header === h);
-                        if (!agg) return <td key={h} />;
-                        const vals = filteredRows.map((r) => (r[h] || '').trim()).filter(Boolean);
-                        const nums = vals
-                          .map((v) => parseFloat(v.replace(/[^\d.\-]/g, '')))
-                          .filter((n) => !isNaN(n));
-                        let out = '—';
-                        switch (agg.op) {
-                          case 'sum': out = nums.reduce((a, b) => a + b, 0).toLocaleString('ar'); break;
-                          case 'avg': out = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '0'; break;
-                          case 'count': out = String(vals.length); break;
-                          case 'countUnique': out = String(new Set(vals).size); break;
-                          case 'min': out = nums.length ? String(Math.min(...nums)) : '—'; break;
-                          case 'max': out = nums.length ? String(Math.max(...nums)) : '—'; break;
-                        }
-                        const opLabel = { sum: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
-                        return (
-                          <td key={h} style={{ color: '#0f172a', borderTop: '2px solid #94a3b8' }}>
-                            <span style={{ color: '#64748b', marginLeft: 4 }}>{agg.label || opLabel}:</span> {out}
-                          </td>
-                        );
-                      })}
+                      {system.headers.map((h) => (
+                        <td key={h} style={aggTotals[h] ? { color: '#0f172a', borderTop: '2px solid #94a3b8' } : undefined}>
+                          {aggTotals[h] || ''}
+                        </td>
+                      ))}
                       {showCrudActions && <td />}
                     </tr>
                   </tfoot>

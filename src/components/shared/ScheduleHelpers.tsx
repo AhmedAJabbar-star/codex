@@ -23,7 +23,7 @@ export function parseTimeToMinutes(timeStr: string): number | null {
 }
 
 /* ───── Official Print helper (Unified University Schedule) ───── */
-export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs, autoPrint?: boolean) {
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs, autoPrint?: boolean, totals?: Record<string, string>) {
   const w = window.open('', '_blank');
   if (!w) return;
 
@@ -41,6 +41,15 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
     rowChunks[i] = `<tr class="${i % 2 === 0 ? 'even' : 'odd'}">${cells}</tr>`;
   }
   const tableRows = rowChunks.join('');
+
+  /* 📊 صف المجاميع (ذيل المجاميع) — يُطبع في نهاية الجدول داخل tbody منفصل
+     حتى لا يُحسب ضمن صفوف البيانات عند الطباعة على دفعات. */
+  const hasTotals = !!totals && Object.values(totals).some((v) => String(v || '').trim() !== '');
+  const totalsRowHtml = hasTotals
+    ? `<tbody class="totals-body"><tr class="totals-row">${headers
+        .map((h) => `<td>${esc((totals as Record<string, string>)[h] || '')}</td>`)
+        .join('')}</tr></tbody>`
+    : '';
 
   const colCount = headers.length;
   const rowCount = rows.length;
@@ -291,6 +300,8 @@ table.data td{padding:${cellPadV}px ${cellPadH}px;border:1px solid #c5d3e3;text-
 table.data .notes-col{min-width:38mm;white-space:pre-wrap;text-align:right}
 table.data tr.even{background:#f4f8fd;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table.data tr.odd{background:#fff}
+table.data > tbody.totals-body{display:table-row-group}
+table.data > tbody.totals-body > tr > td{background:#e2e8f0;font-weight:900;border-top:2px solid #0f4c81;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 /* No :hover rule on data rows — it forces a full repaint pass on very large tables. */
 
 /* ===== BUILD PROGRESS OVERLAY (large reports) ===== */
@@ -341,6 +352,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   table.data{page-break-inside:auto;break-inside:auto}
   table.data > thead{display:table-header-group!important}
   table.data > tbody{display:table-row-group!important}
+  table.data > tbody.totals-body > tr > td{background:#e2e8f0!important;font-weight:900;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   table.data > tfoot{display:table-footer-group!important}
   table.data > tbody > tr{page-break-inside:avoid;break-inside:avoid}
   table.data > thead .repeat-banner-row,
@@ -447,6 +459,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
       <tr class="columns-row">${headers.map(h => `<th>${h}</th>`).join('')}</tr>
     </thead>
     <tbody>${DEFER_ROWS ? '' : tableRows}</tbody>
+    ${totalsRowHtml}
   </table>
   <div id="sigs-end" class="signatures-wrap">
     ${signaturesHtml}
@@ -732,7 +745,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   });
 
   function initBatches(){
-    dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody > tr'));
+    dataRows = Array.prototype.slice.call(document.querySelectorAll('table.data > tbody:not(.totals-body) > tr'));
     if(bSel){
       // ترحيل لمرة واحدة: إلغاء التقسيم التلقائي القديم — الافتراضي الآن ملف واحد كامل.
       if(!prefs.batchV2){ prefs.batch = 0; prefs.batchV2 = true; savePrefs(prefs); }
