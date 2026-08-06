@@ -467,7 +467,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       filters['القسم الذي تنتمي اليه'] || filters['القسم'] ||
       filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
     const filtersInfo = activeFilterInfo.map(({ label, value }) => ({ label, value }));
-    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo, system.customSignatures, system.printPrefs, direct);
+    const printTotals: Record<string, string> = {};
+    reportHeaders.forEach((h) => { if (aggTotals[h]) printTotals[h] = aggTotals[h]; });
+    openPrintWindow(reportTitle, reportHeaders, filteredRows, FOOTER_HTML, isSinglePage, dept, filtersInfo, system.customSignatures, system.printPrefs, direct, printTotals);
   };
 
   const handleDirectPdf = async (skipWarn = false) => {
