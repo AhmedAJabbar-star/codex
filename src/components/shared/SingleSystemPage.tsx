@@ -1440,29 +1440,11 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 {system.aggregations && system.aggregations.length > 0 && (
                   <tfoot>
                     <tr style={{ background: '#f1f5f9', fontWeight: 900 }}>
-                      {system.headers.map((h) => {
-                        const agg = system.aggregations!.find((a) => a.header === h);
-                        if (!agg) return <td key={h} />;
-                        const vals = filteredRows.map((r) => (r[h] || '').trim()).filter(Boolean);
-                        const nums = vals
-                          .map((v) => parseFloat(v.replace(/[^\d.\-]/g, '')))
-                          .filter((n) => !isNaN(n));
-                        let out = '—';
-                        switch (agg.op) {
-                          case 'sum': out = nums.reduce((a, b) => a + b, 0).toLocaleString('ar'); break;
-                          case 'avg': out = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '0'; break;
-                          case 'count': out = String(vals.length); break;
-                          case 'countUnique': out = String(new Set(vals).size); break;
-                          case 'min': out = nums.length ? String(Math.min(...nums)) : '—'; break;
-                          case 'max': out = nums.length ? String(Math.max(...nums)) : '—'; break;
-                        }
-                        const opLabel = { sum: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
-                        return (
-                          <td key={h} style={{ color: '#0f172a', borderTop: '2px solid #94a3b8' }}>
-                            <span style={{ color: '#64748b', marginLeft: 4 }}>{agg.label || opLabel}:</span> {out}
-                          </td>
-                        );
-                      })}
+                      {system.headers.map((h) => (
+                        <td key={h} style={aggTotals[h] ? { color: '#0f172a', borderTop: '2px solid #94a3b8' } : undefined}>
+                          {aggTotals[h] || ''}
+                        </td>
+                      ))}
                       {showCrudActions && <td />}
                     </tr>
                   </tfoot>
