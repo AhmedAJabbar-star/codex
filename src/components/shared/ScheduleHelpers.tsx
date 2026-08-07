@@ -545,7 +545,8 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       showLogo: SP.showLogo, showTitle: SP.showTitle, showInfo: SP.showInfo,
       showFilters: SP.showFilters, showDate: SP.showDate, showDocnum: SP.showDocnum,
       showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit,
-      showWatermark: SP.showWatermark
+      showWatermark: SP.showWatermark,
+      fontScale: SP.font_scale, rowScale: SP.row_scale, onePage: SP.one_page
     };
     Object.keys(mapped).forEach(function(k){ if(mapped[k] !== undefined) prefs[k] = mapped[k]; });
     // Hide the preview toolbar unless the system explicitly asks to keep it visible.
