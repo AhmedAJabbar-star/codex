@@ -950,11 +950,16 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-show-sigs',    prefs.showSigs===undefined?true:prefs.showSigs);
   setIf('pv-show-watermark', prefs.showWatermark===undefined?true:prefs.showWatermark);
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
+  setIf('pv-font',         prefs.fontScale===undefined?'100':String(prefs.fontScale));
+  setIf('pv-rowh',         prefs.rowScale===undefined?'100':String(prefs.rowScale));
+  setIf('pv-onepage',      prefs.onePage===undefined?false:prefs.onePage);
 
   applyPage();
   togRepH(); togCompact();
   togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount(); togWM();
   applyRepeatSigs(); applyFit();
+  applyType();
+  setTimeout(function(){ ensureRepeatFits(); if(onePage && onePage.checked) applyOnePage(); }, 350);
   // Apply admin-fixed title to the banner and document title
   if(SYSTEM_PREFS && SYSTEM_PREFS.title){ syncTitle(); }
 })();
