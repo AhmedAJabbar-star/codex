@@ -664,6 +664,76 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   }
   if(fit) fit.addEventListener('change', applyFit);
 
+  /* ===== 🔠 حجم خط البيانات و ↕️ ارتفاع الخلية ===== */
+  var BASE_FS = ${parseFloat(String(parseFloat(fontSize))) || 9};
+  var BASE_PV = ${cellPadV};
+  var BASE_PH = ${cellPadH};
+  var fontSel=$('pv-font'), rowhSel=$('pv-rowh');
+  function typeScales(){
+    return {
+      f: (fontSel ? Number(fontSel.value) : 100) || 100,
+      r: (rowhSel ? Number(rowhSel.value) : 100) || 100
+    };
+  }
+  function applyTypeStyle(fScale, rScale){
+    var fs = (BASE_FS * fScale / 100).toFixed(2);
+    var pv = (BASE_PV * rScale / 100).toFixed(2);
+    $('type-style').textContent =
+      'table.data{font-size:'+fs+'px}'+
+      'table.data td{padding:'+pv+'px '+BASE_PH+'px}'+
+      'table.data th{padding:'+(Number(pv)+2).toFixed(2)+'px '+BASE_PH+'px}';
+  }
+  function applyType(){
+    var s=typeScales();
+    applyTypeStyle(s.f, s.r);
+    prefs.fontScale=s.f; prefs.rowScale=s.r; savePrefs(prefs);
+    if(onePage && onePage.checked) applyOnePage();
+  }
+  if(fontSel) fontSel.addEventListener('change', applyType);
+  if(rowhSel) rowhSel.addEventListener('change', applyType);
+
+  /* ===== 📄 الطباعة على ورقة واحدة — ضغط تلقائي متدرّج ===== */
+  var onePage=$('pv-onepage');
+  function pageHeightPx(){
+    var size=$('pv-size').value, portrait=$('pv-orient').value==='portrait';
+    var dims={A4:[210,297],A3:[297,420],Letter:[216,279]}[size]||[210,297];
+    var hmm=(portrait?dims[1]:dims[0]) - (Number($('pv-margin').value)||8)*2;
+    return hmm*96/25.4;
+  }
+  function applyOnePage(){
+    var s=typeScales();
+    if(!onePage || !onePage.checked){ applyTypeStyle(s.f, s.r); prefs.onePage=false; savePrefs(prefs); return; }
+    var area=document.querySelector('.print-area');
+    var limit=pageHeightPx();
+    var f=s.f, r=s.r, guard=0;
+    applyTypeStyle(f, r);
+    while(area.scrollHeight > limit && guard < 40 && f > 35){
+      f = Math.max(35, f - 4);
+      r = Math.max(30, r - 6);
+      applyTypeStyle(f, r);
+      guard++;
+    }
+    prefs.onePage = true; savePrefs(prefs);
+  }
+  if(onePage) onePage.addEventListener('change', applyOnePage);
+
+  /* ===== 🔁 ضمان تكرار البانر في كل الصفحات =====
+     كروم يتوقف عن تكرار رأس الجدول إذا تجاوز ارتفاعه ~35٪ من ارتفاع الصفحة،
+     وهذا سبب اختفاء البانر في الصفحة الثانية عند تفعيل كل عناصره.
+     لذلك نقيس ارتفاع الـ thead ونفعّل الضغط الإضافي تلقائياً عند الحاجة. */
+  function ensureRepeatFits(){
+    if(!body.classList.contains('repeat-header')){ body.classList.remove('ultra-compact'); return; }
+    var thead=document.querySelector('table.data > thead');
+    if(!thead) return;
+    body.classList.remove('ultra-compact');
+    var limit = pageHeightPx() * 0.33;
+    if(thead.getBoundingClientRect().height > limit){
+      body.classList.add('compact-repeat');
+      body.classList.add('ultra-compact');
+    }
+  }
+
+
   /* ===== عرض الأعمدة: ضبط تلقائي ذكي / بالمحتوى / متساوٍ / يدوي =====
      الهدف منع هدر المساحة: التوزيع الذكي يخمّد أطوال النصوص بالجذر التربيعي
      فلا يبتلع عمود «الاسم» الصفحة، ويمنح الأعمدة الفارغة (مثل «التوقيع») حداً
