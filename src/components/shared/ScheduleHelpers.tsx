@@ -285,6 +285,31 @@ body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
 body.compact-repeat table.data > thead .doc-h1,
 body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
 
+/* 🔁 ضغط تلقائي إضافي للبانر المكرر — يُفعَّل عندما يكون البانر طويلاً جداً،
+   لأن كروم يتوقف عن تكرار الـ thead إذا تجاوز ارتفاعه جزءاً كبيراً من الصفحة
+   (وهذا سبب اختفاء البانر في الصفحة الثانية عند تفعيل كل عناصره). */
+body.ultra-compact table.data > thead .official-header,
+body.ultra-compact #repeat-banner-preview .official-header{padding:2px 10px 3px}
+body.ultra-compact table.data > thead .hdr-logo,
+body.ultra-compact #repeat-banner-preview .hdr-logo{width:34px;height:34px}
+body.ultra-compact table.data > thead .header-side,
+body.ultra-compact #repeat-banner-preview .header-side{font-size:8px;line-height:1.3}
+body.ultra-compact table.data > thead .header-text .ar1,
+body.ultra-compact #repeat-banner-preview .header-text .ar1{font-size:11.5px}
+body.ultra-compact table.data > thead .header-text .ar2,
+body.ultra-compact #repeat-banner-preview .header-text .ar2{font-size:10px}
+body.ultra-compact table.data > thead .doc-h1,
+body.ultra-compact #repeat-banner-preview .doc-h1{font-size:11.5px;padding:2px 10px;margin:3px 0 3px}
+body.ultra-compact table.data > thead .info-cell,
+body.ultra-compact #repeat-banner-preview .info-cell{padding:2px 6px;font-size:8.5px}
+body.ultra-compact table.data > thead .info-cell strong,
+body.ultra-compact #repeat-banner-preview .info-cell strong{font-size:7.5px;margin-bottom:1px}
+body.ultra-compact table.data > thead .filters-band-title,
+body.ultra-compact #repeat-banner-preview .filters-band-title{font-size:8px;padding:2px 8px}
+body.ultra-compact table.data > thead .filter-chip,
+body.ultra-compact #repeat-banner-preview .filter-chip{font-size:8px;padding:1px 6px}
+
+
 /* Per-element banner toggles — apply to BOTH real banner and preview clone */
 body.hide-banner-logo    .banner .hdr-logo{display:none}
 body.hide-banner-title   .banner .doc-h1{display:none}
