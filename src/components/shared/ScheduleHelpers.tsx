@@ -427,6 +427,27 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
   <div class="sep"></div>
+  <span class="pv-title" style="font-size:12px;opacity:.85">🔠 حجم خط البيانات:</span>
+  <select id="pv-font" title="تكبير أو تصغير خط بيانات الجدول">
+    <option value="80">80٪ (مصغّر)</option>
+    <option value="90">90٪</option>
+    <option value="100" selected>100٪ (تلقائي)</option>
+    <option value="110">110٪</option>
+    <option value="125">125٪</option>
+    <option value="140">140٪</option>
+    <option value="160">160٪ (كبير جداً)</option>
+  </select>
+  <span class="pv-title" style="font-size:12px;opacity:.85">↕️ ارتفاع الخلية:</span>
+  <select id="pv-rowh" title="ارتفاع السطر/الخلية داخل الجدول">
+    <option value="60">مضغوط جداً</option>
+    <option value="80">مضغوط</option>
+    <option value="100" selected>عادي</option>
+    <option value="140">مريح</option>
+    <option value="190">واسع (مساحة كتابة)</option>
+    <option value="260">واسع جداً</option>
+  </select>
+  <label title="ضغط الخط وارتفاع الأسطر تلقائياً حتى يدخل التقرير كله في ورقة واحدة"><input type="checkbox" id="pv-onepage"/> 📄 ورقة واحدة</label>
+  <div class="sep"></div>
   <span class="pv-title" style="font-size:12px;opacity:.85">📐 عرض الأعمدة:</span>
   <select id="pv-colmode" title="طريقة توزيع عرض الأعمدة على عرض الصفحة">
     <option value="smart">ضبط تلقائي ذكي (موصى به)</option>
