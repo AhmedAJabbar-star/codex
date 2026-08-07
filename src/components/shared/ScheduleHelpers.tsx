@@ -317,21 +317,23 @@ body.ready #prep{display:none}
 
 table.data > tfoot{display:table-footer-group}
 table.data .footer-cell{padding:0!important;border:0!important;background:#fff!important}
-table.data > tfoot .signatures-wrap{margin-top:6px}
-table.data > tfoot .signatures{padding:4px 4px 2px;gap:18px}
-table.data > tfoot .sig-box{padding-top:5px}
-table.data > tfoot .sig-label{font-size:9px;margin-bottom:12px}
-table.data > tfoot .sig-name{font-size:8.5px;min-height:10px;margin-bottom:3px}
-table.data > tfoot .sig-sub{font-size:8px}
+table.data > tfoot .signatures-wrap{margin-top:4px}
+table.data > tfoot .signatures{padding:2px 4px 0;gap:14px}
+table.data > tfoot .sig-box{padding-top:4px}
+table.data > tfoot .sig-sub{font-size:8px;margin-bottom:2px}
+table.data > tfoot .sig-space{height:12px}
+table.data > tfoot .sig-name{font-size:8.5px;min-height:9px;margin-bottom:2px}
+table.data > tfoot .sig-label{font-size:8.5px}
 
-/* ===== SIGNATURES ===== */
-.signatures-wrap{margin-top:14px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:24px;padding:10px 4px 4px}
-.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:8px}
-.sig-label{font-size:11px;font-weight:800;color:#0f4c81;margin-bottom:22px}
-.sig-name{font-size:10px;color:#444;border-bottom:1px dotted #888;min-height:14px;padding-bottom:2px;margin-bottom:5px}
-.sig-sub{font-size:9px;color:#555}
-.doc-meta{margin-top:8px;display:flex;justify-content:center;font-size:9px;color:#666;padding:5px 10px;border-top:1px solid #c5d3e3}
+/* ===== SIGNATURES — الترتيب: التوقيع والختم ← الاسم ← المنصب ===== */
+.signatures-wrap{margin-top:8px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:18px;padding:4px 4px 2px}
+.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:5px}
+.sig-sub{font-size:9px;font-weight:800;color:#0f4c81;margin-bottom:3px}
+.sig-space{height:16px}
+.sig-name{font-size:9.5px;color:#333;border-bottom:1px dotted #888;min-height:12px;padding-bottom:1px;margin-bottom:3px;font-weight:700}
+.sig-label{font-size:9px;color:#555;font-weight:700}
+.doc-meta{margin-top:5px;display:flex;justify-content:center;font-size:8.5px;color:#666;padding:3px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
 
 /* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
