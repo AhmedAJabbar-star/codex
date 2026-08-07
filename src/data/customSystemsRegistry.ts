@@ -45,6 +45,12 @@ export interface PrintPrefs {
   /** When true AND lock_settings is on, the title input stays editable by the user
    *  even though every other preview control is locked. Ignored when lock_settings is false. */
   title_editable?: boolean;
+  /** 🔠 نسبة حجم خط البيانات (٪ من الحجم التلقائي). الافتراضي 100. */
+  font_scale?: number;
+  /** ↕️ نسبة ارتفاع الخلية/السطر (٪ من الحشوة التلقائية). الافتراضي 100. */
+  row_scale?: number;
+  /** 📄 محاولة ضغط التقرير تلقائياً ليُطبع على ورقة واحدة. */
+  one_page?: boolean;
 }
 
 /** A named rule attached to a filter. When the user picks it, only rows whose source cell satisfies the rule pass. */

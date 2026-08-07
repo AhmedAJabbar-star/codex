@@ -1311,6 +1311,52 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
 
 
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <strong className="text-sm">🔠 حجم الخط وارتفاع الخلية في التقرير الرسمي</strong>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    القيم الافتراضية تُحسب تلقائياً حسب عدد الأعمدة والسجلات. غيّرها هنا لتثبيت مظهر موحّد لهذا النظام.
+                    «ارتفاع الخلية» مفيد جداً للأعمدة التي يُكتب فيها يدوياً بعد الطباعة (مثل عمود التوقيع).
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-black mb-1">حجم خط البيانات</label>
+                      <select className="schedule-select w-full text-xs" value={String(pp.font_scale ?? '')}
+                        onChange={(e) => setPP({ font_scale: e.target.value ? Number(e.target.value) : undefined })}>
+                        <option value="">— تلقائي —</option>
+                        <option value="80">80٪ (مصغّر)</option>
+                        <option value="90">90٪</option>
+                        <option value="100">100٪</option>
+                        <option value="110">110٪</option>
+                        <option value="125">125٪</option>
+                        <option value="140">140٪</option>
+                        <option value="160">160٪ (كبير جداً)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-black mb-1">ارتفاع الخلية (السطر)</label>
+                      <select className="schedule-select w-full text-xs" value={String(pp.row_scale ?? '')}
+                        onChange={(e) => setPP({ row_scale: e.target.value ? Number(e.target.value) : undefined })}>
+                        <option value="">— تلقائي —</option>
+                        <option value="60">مضغوط جداً</option>
+                        <option value="80">مضغوط</option>
+                        <option value="100">عادي</option>
+                        <option value="140">مريح</option>
+                        <option value="190">واسع (مساحة كتابة)</option>
+                        <option value="260">واسع جداً</option>
+                      </select>
+                    </div>
+                  </div>
+                  <label className="flex items-start gap-2 text-xs font-bold cursor-pointer bg-white p-2 rounded border">
+                    <input type="checkbox" checked={!!pp.one_page} onChange={(e) => setPP({ one_page: e.target.checked })} />
+                    <span>
+                      📄 محاولة الطباعة على ورقة واحدة
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        يُصغَّر الخط وارتفاع الأسطر تدريجياً حتى يدخل التقرير كله في صفحة واحدة — يمنع ظهور ورقة إضافية فيها سطر أو سطران فقط.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
                   <strong className="text-sm">📐 عرض الأعمدة في التقرير الرسمي</strong>
                   <p className="text-[11px] text-slate-600 leading-relaxed">
                     يمنع هذا الإعداد هدر المساحة: «الضبط التلقائي الذكي» يخمّد أطوال النصوص فلا يبتلع عمود
@@ -1588,55 +1634,126 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 </div>
 
                 {/* Option limits */}
-                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <strong className="text-sm">🎯 سعة خيارات القوائم المنسدلة</strong>
-                      <p className="text-[11px] text-slate-500 mt-0.5">حدّد أقصى عدد ردود لكل خيار؛ عند اكتمال العدد يُعطَّل الخيار أو يُخفى.</p>
-                    </div>
-                    <button className="schedule-btn schedule-btn-primary" style={{ minHeight: 32, padding: '4px 10px' }}
-                      onClick={() => setLimit('A', { limit: 0, per: {}, mode: 'disable' })}>➕ عمود</button>
-                  </div>
-                  {Object.keys(limits).length === 0 && <p className="text-xs text-slate-500 text-center py-3 bg-white rounded border border-dashed">لا توجد قيود سعة.</p>}
-                  {Object.entries(limits).map(([letter, cfg]: [string, any]) => (
-                    <div key={letter} className="bg-white p-2 rounded-lg border space-y-2">
-                      <div className="grid grid-cols-12 gap-2 items-center">
-                        <input
-                          className="schedule-select col-span-2 text-center font-mono"
-                          value={letter}
-                          onChange={(e) => {
-                            const nl = e.target.value.toUpperCase().trim();
-                            const next: Record<string, any> = {}; 
-                            Object.entries(limits).forEach(([k, v]) => { next[k === letter ? nl : k] = v; });
-                            patch({ option_limits: next });
-                          }}
-                          placeholder="عمود"
-                        />
-                        <input className="schedule-select col-span-4" type="number" min={0} value={cfg.limit ?? 0}
-                          onChange={(e) => setLimit(letter, { ...cfg, limit: Number(e.target.value) })}
-                          placeholder="السعة العامة لكل خيار (0 = بلا حد)" />
-                        <select className="schedule-select col-span-5" value={cfg.mode || 'disable'} onChange={(e) => setLimit(letter, { ...cfg, mode: e.target.value })}>
-                          <option value="disable">تعطيل الخيار مع «اكتمل العدد»</option>
-                          <option value="hide">إخفاء الخيار نهائياً</option>
-                        </select>
-                        <button onClick={() => delLimit(letter)} className="col-span-1 text-red-600 font-black">✕</button>
+                {(() => {
+                  const selectCols = colLetters.filter((L) => (s.column_types || {})[L] === 'select');
+                  const optionsOf = (L: string): string[] =>
+                    String((s.column_options || {})[L] || '')
+                      .split(/[,،\n]+/).map((x) => x.trim()).filter(Boolean);
+                  return (
+                    <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <strong className="text-sm">🎯 سعة خيارات القوائم المنسدلة (تحديد عدد لكل خيار)</strong>
+                          <div className="text-[11px] text-slate-600 mt-1 leading-relaxed bg-white border rounded p-2">
+                            كيف تعمل؟ تختار <b>عموداً من نوع «📋 قائمة منسدلة»</b>، ثم تحدد كم رداً يُسمح به
+                            <b> لكل خيار داخل تلك القائمة</b>. يعدّ النظام الصفوف الموجودة فعلاً في الورقة لكل قيمة؛
+                            وعند بلوغ الخيار حدّه يُعطَّل أو يُخفى <b>هو وحده</b> دون بقية الخيارات، والتحقق النهائي يجري على الخادم.
+                            <br />
+                            <b>السعة العامة</b> = حدّ واحد يُطبَّق على كل الخيارات. و<b>السعة المخصّصة</b> أدناه تُحدَّد
+                            <b> لكل خيار على حدة</b> وتتقدّم على السعة العامة (0 = بلا حد).
+                          </div>
+                        </div>
+                        <button
+                          className="schedule-btn schedule-btn-primary shrink-0"
+                          style={{ minHeight: 32, padding: '4px 10px' }}
+                          onClick={() => setLimit(selectCols.find((L) => !limits[L]) || selectCols[0] || 'A', { limit: 0, per: {}, mode: 'disable' })}
+                        >➕ إضافة عمود</button>
                       </div>
-                      <input
-                        className="schedule-select w-full text-xs"
-                        value={Object.entries(cfg.per || {}).map(([k, v]) => `${k}=${v}`).join(' , ')}
-                        onChange={(e) => {
-                          const per: Record<string, number> = {};
-                          e.target.value.split(/[,،\n]+/).forEach((pair) => {
-                            const [k, v] = pair.split('=');
-                            if (k && k.trim() && v !== undefined && !Number.isNaN(Number(v))) per[k.trim()] = Number(v);
-                          });
-                          setLimit(letter, { ...cfg, per });
-                        }}
-                        placeholder="سعة مخصّصة لخيارات محددة — مثال: قاعة أ=3 , قاعة ب=5"
-                      />
+
+                      {selectCols.length === 0 && (
+                        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                          ⚠️ لا يوجد عمود من نوع «قائمة منسدلة» بعد. اذهب إلى الخطوة 5 ← «أنواع حقول الإدخال» واجعل نوع العمود «📋 قائمة منسدلة» وأدخل خياراته، ثم عُد إلى هنا.
+                        </p>
+                      )}
+                      {Object.keys(limits).length === 0 && <p className="text-xs text-slate-500 text-center py-3 bg-white rounded border border-dashed">لا توجد قيود سعة.</p>}
+
+                      {Object.entries(limits).map(([letter, cfg]: [string, any]) => {
+                        const opts = optionsOf(letter);
+                        const per: Record<string, number> = cfg.per || {};
+                        return (
+                          <div key={letter} className="bg-white p-3 rounded-lg border space-y-2">
+                            <div className="grid grid-cols-12 gap-2 items-center">
+                              <div className="col-span-4">
+                                <label className="block text-[10px] font-black mb-1">العمود (قائمة منسدلة)</label>
+                                <select
+                                  className="schedule-select w-full text-xs"
+                                  value={letter}
+                                  onChange={(e) => {
+                                    const nl = e.target.value;
+                                    const next: Record<string, any> = {};
+                                    Object.entries(limits).forEach(([k, v]) => { next[k === letter ? nl : k] = v; });
+                                    patch({ option_limits: next });
+                                  }}
+                                >
+                                  {(selectCols.length ? selectCols : colLetters).map((L) => (
+                                    <option key={L} value={L}>{L} — {labels[L] || `عمود ${L}`}</option>
+                                  ))}
+                                  {!colLetters.includes(letter) && <option value={letter}>{letter}</option>}
+                                </select>
+                              </div>
+                              <div className="col-span-3">
+                                <label className="block text-[10px] font-black mb-1">السعة العامة (0 = بلا حد)</label>
+                                <input className="schedule-select w-full text-xs" type="number" min={0} value={cfg.limit ?? 0}
+                                  onChange={(e) => setLimit(letter, { ...cfg, limit: Number(e.target.value) })} placeholder="مثال: 5" />
+                              </div>
+                              <div className="col-span-4">
+                                <label className="block text-[10px] font-black mb-1">عند اكتمال الخيار</label>
+                                <select className="schedule-select w-full text-xs" value={cfg.mode || 'disable'} onChange={(e) => setLimit(letter, { ...cfg, mode: e.target.value })}>
+                                  <option value="disable">تعطيل الخيار مع «اكتمل العدد»</option>
+                                  <option value="hide">إخفاء الخيار نهائياً</option>
+                                </select>
+                              </div>
+                              <button onClick={() => delLimit(letter)} className="col-span-1 text-red-600 font-black self-end pb-2" title="حذف">✕</button>
+                            </div>
+
+                            <div className="pt-2 border-t border-dashed">
+                              <label className="block text-[10px] font-black mb-1">سعة مخصّصة لكل خيار (اتركه 0 لاعتماد السعة العامة)</label>
+                              {opts.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {opts.map((opt) => (
+                                    <div key={opt} className="flex items-center gap-2 bg-slate-50 border rounded px-2 py-1">
+                                      <span className="text-[11px] font-bold flex-1 truncate" title={opt}>{opt}</span>
+                                      <input
+                                        className="schedule-select text-xs w-20 text-center"
+                                        type="number" min={0}
+                                        value={per[opt] ?? 0}
+                                        onChange={(e) => {
+                                          const v = Number(e.target.value) || 0;
+                                          const nextPer = { ...per };
+                                          if (v > 0) nextPer[opt] = v; else delete nextPer[opt];
+                                          setLimit(letter, { ...cfg, per: nextPer });
+                                        }}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <>
+                                  <p className="text-[11px] text-slate-500 mb-1">
+                                    لم يتم العثور على خيارات مكتوبة يدوياً لهذا العمود (ربما مصدر الخيارات «القيم الفريدة من العمود»). اكتب السعة يدوياً بصيغة «الخيار=العدد».
+                                  </p>
+                                  <input
+                                    className="schedule-select w-full text-xs"
+                                    value={Object.entries(per).map(([k, v]) => `${k}=${v}`).join(' , ')}
+                                    onChange={(e) => {
+                                      const nextPer: Record<string, number> = {};
+                                      e.target.value.split(/[,،\n]+/).forEach((pair) => {
+                                        const [k, v] = pair.split('=');
+                                        if (k && k.trim() && v !== undefined && !Number.isNaN(Number(v))) nextPer[k.trim()] = Number(v);
+                                      });
+                                      setLimit(letter, { ...cfg, per: nextPer });
+                                    }}
+                                    placeholder="مثال: قاعة أ=3 , قاعة ب=5"
+                                  />
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
 
                 {/* Audit columns */}
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">

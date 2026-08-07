@@ -124,9 +124,10 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
     <div class="signatures" style="grid-template-columns:repeat(${sigCols},1fr)">
       ${sigItems.map((s) => `
       <div class="sig-box">
-        <div class="sig-label">${s.label}</div>
-        <div class="sig-name">${s.name || '............................'}</div>
         <div class="sig-sub">التوقيع &amp; الختم</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">${s.name || '............................'}</div>
+        <div class="sig-label">${s.label}</div>
       </div>`).join('')}
     </div>`;
 
@@ -174,6 +175,7 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
 <title>${title}</title>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style id="page-style">@page{size:A4 landscape;margin:8mm}</style>
+<style id="type-style"></style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:'Cairo',sans-serif;color:#0b1f33;background:#eef2f7}
@@ -283,6 +285,31 @@ body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
 body.compact-repeat table.data > thead .doc-h1,
 body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
 
+/* 🔁 ضغط تلقائي إضافي للبانر المكرر — يُفعَّل عندما يكون البانر طويلاً جداً،
+   لأن كروم يتوقف عن تكرار الـ thead إذا تجاوز ارتفاعه جزءاً كبيراً من الصفحة
+   (وهذا سبب اختفاء البانر في الصفحة الثانية عند تفعيل كل عناصره). */
+body.ultra-compact table.data > thead .official-header,
+body.ultra-compact #repeat-banner-preview .official-header{padding:2px 10px 3px}
+body.ultra-compact table.data > thead .hdr-logo,
+body.ultra-compact #repeat-banner-preview .hdr-logo{width:34px;height:34px}
+body.ultra-compact table.data > thead .header-side,
+body.ultra-compact #repeat-banner-preview .header-side{font-size:8px;line-height:1.3}
+body.ultra-compact table.data > thead .header-text .ar1,
+body.ultra-compact #repeat-banner-preview .header-text .ar1{font-size:11.5px}
+body.ultra-compact table.data > thead .header-text .ar2,
+body.ultra-compact #repeat-banner-preview .header-text .ar2{font-size:10px}
+body.ultra-compact table.data > thead .doc-h1,
+body.ultra-compact #repeat-banner-preview .doc-h1{font-size:11.5px;padding:2px 10px;margin:3px 0 3px}
+body.ultra-compact table.data > thead .info-cell,
+body.ultra-compact #repeat-banner-preview .info-cell{padding:2px 6px;font-size:8.5px}
+body.ultra-compact table.data > thead .info-cell strong,
+body.ultra-compact #repeat-banner-preview .info-cell strong{font-size:7.5px;margin-bottom:1px}
+body.ultra-compact table.data > thead .filters-band-title,
+body.ultra-compact #repeat-banner-preview .filters-band-title{font-size:8px;padding:2px 8px}
+body.ultra-compact table.data > thead .filter-chip,
+body.ultra-compact #repeat-banner-preview .filter-chip{font-size:8px;padding:1px 6px}
+
+
 /* Per-element banner toggles — apply to BOTH real banner and preview clone */
 body.hide-banner-logo    .banner .hdr-logo{display:none}
 body.hide-banner-title   .banner .doc-h1{display:none}
@@ -316,21 +343,23 @@ body.ready #prep{display:none}
 
 table.data > tfoot{display:table-footer-group}
 table.data .footer-cell{padding:0!important;border:0!important;background:#fff!important}
-table.data > tfoot .signatures-wrap{margin-top:6px}
-table.data > tfoot .signatures{padding:4px 4px 2px;gap:18px}
-table.data > tfoot .sig-box{padding-top:5px}
-table.data > tfoot .sig-label{font-size:9px;margin-bottom:12px}
-table.data > tfoot .sig-name{font-size:8.5px;min-height:10px;margin-bottom:3px}
-table.data > tfoot .sig-sub{font-size:8px}
+table.data > tfoot .signatures-wrap{margin-top:4px}
+table.data > tfoot .signatures{padding:2px 4px 0;gap:14px}
+table.data > tfoot .sig-box{padding-top:4px}
+table.data > tfoot .sig-sub{font-size:8px;margin-bottom:2px}
+table.data > tfoot .sig-space{height:12px}
+table.data > tfoot .sig-name{font-size:8.5px;min-height:9px;margin-bottom:2px}
+table.data > tfoot .sig-label{font-size:8.5px}
 
-/* ===== SIGNATURES ===== */
-.signatures-wrap{margin-top:14px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:24px;padding:10px 4px 4px}
-.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:8px}
-.sig-label{font-size:11px;font-weight:800;color:#0f4c81;margin-bottom:22px}
-.sig-name{font-size:10px;color:#444;border-bottom:1px dotted #888;min-height:14px;padding-bottom:2px;margin-bottom:5px}
-.sig-sub{font-size:9px;color:#555}
-.doc-meta{margin-top:8px;display:flex;justify-content:center;font-size:9px;color:#666;padding:5px 10px;border-top:1px solid #c5d3e3}
+/* ===== SIGNATURES — الترتيب: التوقيع والختم ← الاسم ← المنصب ===== */
+.signatures-wrap{margin-top:8px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:18px;padding:4px 4px 2px}
+.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:5px}
+.sig-sub{font-size:9px;font-weight:800;color:#0f4c81;margin-bottom:3px}
+.sig-space{height:16px}
+.sig-name{font-size:9.5px;color:#333;border-bottom:1px dotted #888;min-height:12px;padding-bottom:1px;margin-bottom:3px;font-weight:700}
+.sig-label{font-size:9px;color:#555;font-weight:700}
+.doc-meta{margin-top:5px;display:flex;justify-content:center;font-size:8.5px;color:#666;padding:3px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
 
 /* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
@@ -397,6 +426,27 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
   <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
+  <div class="sep"></div>
+  <span class="pv-title" style="font-size:12px;opacity:.85">🔠 حجم خط البيانات:</span>
+  <select id="pv-font" title="تكبير أو تصغير خط بيانات الجدول">
+    <option value="80">80٪ (مصغّر)</option>
+    <option value="90">90٪</option>
+    <option value="100" selected>100٪ (تلقائي)</option>
+    <option value="110">110٪</option>
+    <option value="125">125٪</option>
+    <option value="140">140٪</option>
+    <option value="160">160٪ (كبير جداً)</option>
+  </select>
+  <span class="pv-title" style="font-size:12px;opacity:.85">↕️ ارتفاع الخلية:</span>
+  <select id="pv-rowh" title="ارتفاع السطر/الخلية داخل الجدول">
+    <option value="60">مضغوط جداً</option>
+    <option value="80">مضغوط</option>
+    <option value="100" selected>عادي</option>
+    <option value="140">مريح</option>
+    <option value="190">واسع (مساحة كتابة)</option>
+    <option value="260">واسع جداً</option>
+  </select>
+  <label title="ضغط الخط وارتفاع الأسطر تلقائياً حتى يدخل التقرير كله في ورقة واحدة"><input type="checkbox" id="pv-onepage"/> 📄 ورقة واحدة</label>
   <div class="sep"></div>
   <span class="pv-title" style="font-size:12px;opacity:.85">📐 عرض الأعمدة:</span>
   <select id="pv-colmode" title="طريقة توزيع عرض الأعمدة على عرض الصفحة">
@@ -495,7 +545,8 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       showLogo: SP.showLogo, showTitle: SP.showTitle, showInfo: SP.showInfo,
       showFilters: SP.showFilters, showDate: SP.showDate, showDocnum: SP.showDocnum,
       showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit,
-      showWatermark: SP.showWatermark
+      showWatermark: SP.showWatermark,
+      fontScale: SP.font_scale, rowScale: SP.row_scale, onePage: SP.one_page
     };
     Object.keys(mapped).forEach(function(k){ if(mapped[k] !== undefined) prefs[k] = mapped[k]; });
     // Hide the preview toolbar unless the system explicitly asks to keep it visible.
@@ -553,6 +604,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     function apply(){
       if(cb.checked) body.classList.remove(cls); else body.classList.add(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
+      if(typeof ensureRepeatFits==='function') ensureRepeatFits();
     }
     cb.addEventListener('change', apply); return apply;
   }
@@ -570,6 +622,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     function apply(){
       if(cb.checked) body.classList.add(cls); else body.classList.remove(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
+      if(typeof ensureRepeatFits==='function') ensureRepeatFits();
     }
     cb.addEventListener('change', apply); return apply;
   }
@@ -613,6 +666,76 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     prefs.fit=fit.checked; savePrefs(prefs);
   }
   if(fit) fit.addEventListener('change', applyFit);
+
+  /* ===== 🔠 حجم خط البيانات و ↕️ ارتفاع الخلية ===== */
+  var BASE_FS = ${parseFloat(String(parseFloat(fontSize))) || 9};
+  var BASE_PV = ${cellPadV};
+  var BASE_PH = ${cellPadH};
+  var fontSel=$('pv-font'), rowhSel=$('pv-rowh');
+  function typeScales(){
+    return {
+      f: (fontSel ? Number(fontSel.value) : 100) || 100,
+      r: (rowhSel ? Number(rowhSel.value) : 100) || 100
+    };
+  }
+  function applyTypeStyle(fScale, rScale){
+    var fs = (BASE_FS * fScale / 100).toFixed(2);
+    var pv = (BASE_PV * rScale / 100).toFixed(2);
+    $('type-style').textContent =
+      'table.data{font-size:'+fs+'px}'+
+      'table.data td{padding:'+pv+'px '+BASE_PH+'px}'+
+      'table.data th{padding:'+(Number(pv)+2).toFixed(2)+'px '+BASE_PH+'px}';
+  }
+  function applyType(){
+    var s=typeScales();
+    applyTypeStyle(s.f, s.r);
+    prefs.fontScale=s.f; prefs.rowScale=s.r; savePrefs(prefs);
+    if(onePage && onePage.checked) applyOnePage();
+  }
+  if(fontSel) fontSel.addEventListener('change', applyType);
+  if(rowhSel) rowhSel.addEventListener('change', applyType);
+
+  /* ===== 📄 الطباعة على ورقة واحدة — ضغط تلقائي متدرّج ===== */
+  var onePage=$('pv-onepage');
+  function pageHeightPx(){
+    var size=$('pv-size').value, portrait=$('pv-orient').value==='portrait';
+    var dims={A4:[210,297],A3:[297,420],Letter:[216,279]}[size]||[210,297];
+    var hmm=(portrait?dims[1]:dims[0]) - (Number($('pv-margin').value)||8)*2;
+    return hmm*96/25.4;
+  }
+  function applyOnePage(){
+    var s=typeScales();
+    if(!onePage || !onePage.checked){ applyTypeStyle(s.f, s.r); prefs.onePage=false; savePrefs(prefs); return; }
+    var area=document.querySelector('.print-area');
+    var limit=pageHeightPx();
+    var f=s.f, r=s.r, guard=0;
+    applyTypeStyle(f, r);
+    while(area.scrollHeight > limit && guard < 40 && f > 35){
+      f = Math.max(35, f - 4);
+      r = Math.max(30, r - 6);
+      applyTypeStyle(f, r);
+      guard++;
+    }
+    prefs.onePage = true; savePrefs(prefs);
+  }
+  if(onePage) onePage.addEventListener('change', applyOnePage);
+
+  /* ===== 🔁 ضمان تكرار البانر في كل الصفحات =====
+     كروم يتوقف عن تكرار رأس الجدول إذا تجاوز ارتفاعه ~35٪ من ارتفاع الصفحة،
+     وهذا سبب اختفاء البانر في الصفحة الثانية عند تفعيل كل عناصره.
+     لذلك نقيس ارتفاع الـ thead ونفعّل الضغط الإضافي تلقائياً عند الحاجة. */
+  function ensureRepeatFits(){
+    if(!body.classList.contains('repeat-header')){ body.classList.remove('ultra-compact'); return; }
+    var thead=document.querySelector('table.data > thead');
+    if(!thead) return;
+    body.classList.remove('ultra-compact');
+    var limit = pageHeightPx() * 0.33;
+    if(thead.getBoundingClientRect().height > limit){
+      body.classList.add('compact-repeat');
+      body.classList.add('ultra-compact');
+    }
+  }
+
 
   /* ===== عرض الأعمدة: ضبط تلقائي ذكي / بالمحتوى / متساوٍ / يدوي =====
      الهدف منع هدر المساحة: التوزيع الذكي يخمّد أطوال النصوص بالجذر التربيعي
@@ -828,11 +951,16 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-show-sigs',    prefs.showSigs===undefined?true:prefs.showSigs);
   setIf('pv-show-watermark', prefs.showWatermark===undefined?true:prefs.showWatermark);
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
+  setIf('pv-font',         prefs.fontScale===undefined?'100':String(prefs.fontScale));
+  setIf('pv-rowh',         prefs.rowScale===undefined?'100':String(prefs.rowScale));
+  setIf('pv-onepage',      prefs.onePage===undefined?false:prefs.onePage);
 
   applyPage();
   togRepH(); togCompact();
   togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount(); togWM();
   applyRepeatSigs(); applyFit();
+  applyType();
+  setTimeout(function(){ ensureRepeatFits(); if(onePage && onePage.checked) applyOnePage(); }, 350);
   // Apply admin-fixed title to the banner and document title
   if(SYSTEM_PREFS && SYSTEM_PREFS.title){ syncTitle(); }
 })();
