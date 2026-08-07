@@ -603,6 +603,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     function apply(){
       if(cb.checked) body.classList.remove(cls); else body.classList.add(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
+      if(typeof ensureRepeatFits==='function') ensureRepeatFits();
     }
     cb.addEventListener('change', apply); return apply;
   }
@@ -620,6 +621,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     function apply(){
       if(cb.checked) body.classList.add(cls); else body.classList.remove(cls);
       prefs[prefKey]=cb.checked; savePrefs(prefs);
+      if(typeof ensureRepeatFits==='function') ensureRepeatFits();
     }
     cb.addEventListener('change', apply); return apply;
   }
