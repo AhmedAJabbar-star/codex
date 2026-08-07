@@ -1311,6 +1311,52 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
 
 
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <strong className="text-sm">🔠 حجم الخط وارتفاع الخلية في التقرير الرسمي</strong>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    القيم الافتراضية تُحسب تلقائياً حسب عدد الأعمدة والسجلات. غيّرها هنا لتثبيت مظهر موحّد لهذا النظام.
+                    «ارتفاع الخلية» مفيد جداً للأعمدة التي يُكتب فيها يدوياً بعد الطباعة (مثل عمود التوقيع).
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-black mb-1">حجم خط البيانات</label>
+                      <select className="schedule-select w-full text-xs" value={String(pp.font_scale ?? '')}
+                        onChange={(e) => setPP({ font_scale: e.target.value ? Number(e.target.value) : undefined })}>
+                        <option value="">— تلقائي —</option>
+                        <option value="80">80٪ (مصغّر)</option>
+                        <option value="90">90٪</option>
+                        <option value="100">100٪</option>
+                        <option value="110">110٪</option>
+                        <option value="125">125٪</option>
+                        <option value="140">140٪</option>
+                        <option value="160">160٪ (كبير جداً)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-black mb-1">ارتفاع الخلية (السطر)</label>
+                      <select className="schedule-select w-full text-xs" value={String(pp.row_scale ?? '')}
+                        onChange={(e) => setPP({ row_scale: e.target.value ? Number(e.target.value) : undefined })}>
+                        <option value="">— تلقائي —</option>
+                        <option value="60">مضغوط جداً</option>
+                        <option value="80">مضغوط</option>
+                        <option value="100">عادي</option>
+                        <option value="140">مريح</option>
+                        <option value="190">واسع (مساحة كتابة)</option>
+                        <option value="260">واسع جداً</option>
+                      </select>
+                    </div>
+                  </div>
+                  <label className="flex items-start gap-2 text-xs font-bold cursor-pointer bg-white p-2 rounded border">
+                    <input type="checkbox" checked={!!pp.one_page} onChange={(e) => setPP({ one_page: e.target.checked })} />
+                    <span>
+                      📄 محاولة الطباعة على ورقة واحدة
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        يُصغَّر الخط وارتفاع الأسطر تدريجياً حتى يدخل التقرير كله في صفحة واحدة — يمنع ظهور ورقة إضافية فيها سطر أو سطران فقط.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
                   <strong className="text-sm">📐 عرض الأعمدة في التقرير الرسمي</strong>
                   <p className="text-[11px] text-slate-600 leading-relaxed">
                     يمنع هذا الإعداد هدر المساحة: «الضبط التلقائي الذكي» يخمّد أطوال النصوص فلا يبتلع عمود
