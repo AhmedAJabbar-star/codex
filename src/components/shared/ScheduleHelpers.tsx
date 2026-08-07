@@ -175,6 +175,7 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
 <title>${title}</title>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style id="page-style">@page{size:A4 landscape;margin:8mm}</style>
+<style id="type-style"></style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:'Cairo',sans-serif;color:#0b1f33;background:#eef2f7}
