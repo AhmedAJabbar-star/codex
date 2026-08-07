@@ -124,9 +124,10 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
     <div class="signatures" style="grid-template-columns:repeat(${sigCols},1fr)">
       ${sigItems.map((s) => `
       <div class="sig-box">
-        <div class="sig-label">${s.label}</div>
-        <div class="sig-name">${s.name || '............................'}</div>
         <div class="sig-sub">التوقيع &amp; الختم</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">${s.name || '............................'}</div>
+        <div class="sig-label">${s.label}</div>
       </div>`).join('')}
     </div>`;
 
