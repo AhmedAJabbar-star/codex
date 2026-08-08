@@ -309,6 +309,31 @@ body.ultra-compact #repeat-banner-preview .filters-band-title{font-size:8px;padd
 body.ultra-compact table.data > thead .filter-chip,
 body.ultra-compact #repeat-banner-preview .filter-chip{font-size:8px;padding:1px 6px}
 
+/* رأس الطباعة المتكرر يجب أن يبقى قصيراً مهما كانت عناصر البانر المفعلة.
+   نحافظ على كل المعلومات، لكن نحول المعلومات والفلاتر إلى شريطين أفقيين مضغوطين.
+   هذا يمنع Chromium من إسقاط thead في الصفحات التالية عندما يصبح طويلاً. */
+@media print{
+  body.repeat-header table.data > thead .banner{margin:0!important}
+  body.repeat-header table.data > thead .official-header{padding:1px 8px 2px!important;gap:6px!important;border-bottom-width:1px!important}
+  body.repeat-header table.data > thead .hdr-logo{width:28px!important;height:28px!important;margin:0!important}
+  body.repeat-header table.data > thead .header-side{font-size:6.5px!important;line-height:1.12!important;gap:0!important}
+  body.repeat-header table.data > thead .header-side strong{font-size:7px!important;margin:0!important}
+  body.repeat-header table.data > thead .header-text{gap:0!important}
+  body.repeat-header table.data > thead .header-text .ar1{font-size:9px!important;line-height:1.05!important}
+  body.repeat-header table.data > thead .header-text .ar2{font-size:8px!important;line-height:1.05!important}
+  body.repeat-header table.data > thead .header-text .ar3{font-size:7px!important;margin:0!important;line-height:1!important}
+  body.repeat-header table.data > thead .doc-h1{font-size:9px!important;line-height:1.1!important;padding:1px 6px!important;margin:1px 0!important;border-radius:0!important}
+  body.repeat-header table.data > thead .info-band{display:flex!important;justify-content:center!important;gap:12px!important;margin:1px 0!important;border-bottom:1px solid #c5d3e3!important}
+  body.repeat-header table.data > thead .info-cell{display:flex!important;flex-direction:row!important;gap:3px!important;padding:0!important;border:0!important;background:#fff!important;font-size:6.5px!important}
+  body.repeat-header table.data > thead .info-cell strong,
+  body.repeat-header table.data > thead .info-cell span{font-size:6.5px!important;margin:0!important;line-height:1.2!important}
+  body.repeat-header table.data > thead .filters-band{margin:1px 0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;overflow:hidden!important}
+  body.repeat-header table.data > thead .filters-band-title{display:inline!important;background:none!important;color:#0f4c81!important;font-size:6.5px!important;padding:0 3px!important}
+  body.repeat-header table.data > thead .filters-band-grid{display:inline-flex!important;flex-wrap:nowrap!important;gap:4px!important;padding:0!important;max-width:90%!important;vertical-align:middle!important;overflow:hidden!important}
+  body.repeat-header table.data > thead .filter-chip{gap:2px!important;border:0!important;border-radius:0!important;padding:0!important;font-size:6.5px!important;white-space:nowrap!important;background:#fff!important}
+  body.repeat-header table.data > thead .banner-cell{padding:0 0 1px!important}
+}
+
 
 /* Per-element banner toggles — apply to BOTH real banner and preview clone */
 body.hide-banner-logo    .banner .hdr-logo{display:none}
@@ -347,19 +372,19 @@ table.data > tfoot .signatures-wrap{margin-top:4px}
 table.data > tfoot .signatures{padding:2px 4px 0;gap:14px}
 table.data > tfoot .sig-box{padding-top:4px}
 table.data > tfoot .sig-sub{font-size:8px;margin-bottom:2px}
-table.data > tfoot .sig-space{height:12px}
+table.data > tfoot .sig-space{height:var(--sig-space,4mm)}
 table.data > tfoot .sig-name{font-size:8.5px;min-height:9px;margin-bottom:2px}
 table.data > tfoot .sig-label{font-size:8.5px}
 
 /* ===== SIGNATURES — الترتيب: التوقيع والختم ← الاسم ← المنصب ===== */
-.signatures-wrap{margin-top:8px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:18px;padding:4px 4px 2px}
-.sig-box{text-align:center;border-top:2px solid #0f4c81;padding-top:5px}
-.sig-sub{font-size:9px;font-weight:800;color:#0f4c81;margin-bottom:3px}
-.sig-space{height:16px}
-.sig-name{font-size:9.5px;color:#333;border-bottom:1px dotted #888;min-height:12px;padding-bottom:1px;margin-bottom:3px;font-weight:700}
-.sig-label{font-size:9px;color:#555;font-weight:700}
-.doc-meta{margin-top:5px;display:flex;justify-content:center;font-size:8.5px;color:#666;padding:3px 10px;border-top:1px solid #c5d3e3}
+.signatures-wrap{margin-top:3px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:12px;padding:2px 4px 0}
+.sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:2px}
+.sig-sub{font-size:8px;font-weight:800;color:#0f4c81;margin:0}
+.sig-space{height:var(--sig-space,4mm)}
+.sig-name{font-size:8.5px;color:#333;border-bottom:1px dotted #888;min-height:8px;padding:0;margin:0 0 1px;font-weight:700;line-height:1.15}
+.sig-label{font-size:8px;color:#555;font-weight:700;line-height:1.15}
+.doc-meta{margin-top:2px;display:flex;justify-content:center;font-size:7.5px;color:#666;padding:1px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
 
 /* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
@@ -445,6 +470,15 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="140">مريح</option>
     <option value="190">واسع (مساحة كتابة)</option>
     <option value="260">واسع جداً</option>
+  </select>
+  <span class="pv-title" style="font-size:12px;opacity:.85">✍️ حيز التوقيع:</span>
+  <select id="pv-sigspace" title="ارتفاع المساحة الفارغة للتوقيع والختم">
+    <option value="0">بلا حيز فارغ</option>
+    <option value="2">2 مم (مضغوط جداً)</option>
+    <option value="4" selected>4 مم (مضغوط)</option>
+    <option value="7">7 مم (متوسط)</option>
+    <option value="10">10 مم (واسع)</option>
+    <option value="15">15 مم (واسع جداً)</option>
   </select>
   <label title="ضغط الخط وارتفاع الأسطر تلقائياً حتى يدخل التقرير كله في ورقة واحدة"><input type="checkbox" id="pv-onepage"/> 📄 ورقة واحدة</label>
   <div class="sep"></div>
@@ -546,7 +580,8 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       showFilters: SP.showFilters, showDate: SP.showDate, showDocnum: SP.showDocnum,
       showCount: SP.showCount, showSigs: SP.showSigs, fit: SP.fit,
       showWatermark: SP.showWatermark,
-      fontScale: SP.font_scale, rowScale: SP.row_scale, onePage: SP.one_page
+      fontScale: SP.font_scale, rowScale: SP.row_scale, onePage: SP.one_page,
+      signatureSpace: SP.signature_space_mm
     };
     Object.keys(mapped).forEach(function(k){ if(mapped[k] !== undefined) prefs[k] = mapped[k]; });
     // Hide the preview toolbar unless the system explicitly asks to keep it visible.
@@ -594,6 +629,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     var orient=$('pv-orient').value, size=$('pv-size').value, margin=$('pv-margin').value;
     $('page-style').textContent='@page{size:'+size+' '+orient+';margin:'+margin+'mm}';
     prefs.orient=orient; prefs.size=size; prefs.margin=margin; savePrefs(prefs);
+    if(onePage && onePage.checked) setTimeout(applyOnePage, 0);
   }
   ['pv-orient','pv-size','pv-margin'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', applyPage); });
 
@@ -671,7 +707,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   var BASE_FS = ${parseFloat(String(parseFloat(fontSize))) || 9};
   var BASE_PV = ${cellPadV};
   var BASE_PH = ${cellPadH};
-  var fontSel=$('pv-font'), rowhSel=$('pv-rowh');
+  var fontSel=$('pv-font'), rowhSel=$('pv-rowh'), sigSpaceSel=$('pv-sigspace');
   function typeScales(){
     return {
       f: (fontSel ? Number(fontSel.value) : 100) || 100,
@@ -682,9 +718,9 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     var fs = (BASE_FS * fScale / 100).toFixed(2);
     var pv = (BASE_PV * rScale / 100).toFixed(2);
     $('type-style').textContent =
-      'table.data{font-size:'+fs+'px}'+
-      'table.data td{padding:'+pv+'px '+BASE_PH+'px}'+
-      'table.data th{padding:'+(Number(pv)+2).toFixed(2)+'px '+BASE_PH+'px}';
+      'table.data{font-size:'+fs+'px!important}'+
+      'table.data td{padding:'+pv+'px '+BASE_PH+'px!important}'+
+      'table.data th{padding:'+(Number(pv)+2).toFixed(2)+'px '+BASE_PH+'px!important}';
   }
   function applyType(){
     var s=typeScales();
@@ -694,6 +730,13 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   }
   if(fontSel) fontSel.addEventListener('change', applyType);
   if(rowhSel) rowhSel.addEventListener('change', applyType);
+  function applySigSpace(){
+    var mm=Math.max(0,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 4)||0));
+    document.documentElement.style.setProperty('--sig-space',mm+'mm');
+    prefs.signatureSpace=mm; savePrefs(prefs);
+    if(onePage && onePage.checked) setTimeout(applyOnePage,0);
+  }
+  if(sigSpaceSel) sigSpaceSel.addEventListener('change',applySigSpace);
 
   /* ===== 📄 الطباعة على ورقة واحدة — ضغط تلقائي متدرّج ===== */
   var onePage=$('pv-onepage');
@@ -705,17 +748,32 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   }
   function applyOnePage(){
     var s=typeScales();
-    if(!onePage || !onePage.checked){ applyTypeStyle(s.f, s.r); prefs.onePage=false; savePrefs(prefs); return; }
     var area=document.querySelector('.print-area');
-    var limit=pageHeightPx();
+    if(!onePage || !onePage.checked){
+      applyTypeStyle(s.f, s.r);
+      if(area) area.style.zoom='';
+      body.classList.remove('one-page-fitted');
+      prefs.onePage=false; savePrefs(prefs); return;
+    }
+    if(!area) return;
+    area.style.zoom='';
+    var limit=pageHeightPx()-4;
     var f=s.f, r=s.r, guard=0;
     applyTypeStyle(f, r);
-    while(area.scrollHeight > limit && guard < 40 && f > 35){
-      f = Math.max(35, f - 4);
-      r = Math.max(30, r - 6);
+    while(area.scrollHeight > limit && guard < 50 && (f > 28 || r > 20)){
+      f = Math.max(28, f - 3);
+      r = Math.max(20, r - 5);
       applyTypeStyle(f, r);
       guard++;
     }
+    /* إن بقي تجاوز بعد تصغير الخط والحشوة، نستخدم zoom الحقيقي الذي يدعمه
+       محرك طباعة Chromium. بخلاف transform، يؤثر zoom في التقسيم إلى صفحات. */
+    var finalHeight=area.scrollHeight;
+    if(finalHeight>limit){
+      var scale=Math.max(0.28,Math.min(1,limit/finalHeight));
+      area.style.zoom=scale.toFixed(4);
+    }
+    body.classList.add('one-page-fitted');
     prefs.onePage = true; savePrefs(prefs);
   }
   if(onePage) onePage.addEventListener('change', applyOnePage);
@@ -877,6 +935,9 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     }
 
     document.body.classList.add('ready');
+    /* بعد اكتمال إدراج كل الصفوف فقط يمكن قياس التقرير وملاءمته فعلياً. */
+    applyType(); applySigSpace();
+    if(onePage && onePage.checked) requestAnimationFrame(function(){ requestAnimationFrame(applyOnePage); });
 
     /* الوضع المباشر: بلا معاينة — نفتح مربع حوار الحفظ/الطباعة فوراً */
     if(${autoPrint ? 'true' : 'false'}){
@@ -939,7 +1000,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-size', prefs.size, 'A4');
   setIf('pv-margin', prefs.margin, '5');
   setIf('pv-repeat-header',  prefs.repeatHeader===undefined?true:prefs.repeatHeader);
-  setIf('pv-repeat-sigs',    prefs.repeatSigs===undefined?true:prefs.repeatSigs);
+  setIf('pv-repeat-sigs',    prefs.repeatSigs===undefined?false:prefs.repeatSigs);
   setIf('pv-compact-repeat', prefs.compactRepeat===undefined?true:prefs.compactRepeat);
   setIf('pv-show-logo',    prefs.showLogo===undefined?true:prefs.showLogo);
   setIf('pv-show-title',   prefs.showTitle===undefined?true:prefs.showTitle);
@@ -953,12 +1014,13 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
   setIf('pv-font',         prefs.fontScale===undefined?'100':String(prefs.fontScale));
   setIf('pv-rowh',         prefs.rowScale===undefined?'100':String(prefs.rowScale));
+  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'4':String(prefs.signatureSpace));
   setIf('pv-onepage',      prefs.onePage===undefined?false:prefs.onePage);
 
   applyPage();
   togRepH(); togCompact();
   togLogo(); togTitle(); togInfo(); togFilters(); togDate(); togDocnum(); togCount(); togWM();
-  applyRepeatSigs(); applyFit();
+  applyRepeatSigs(); applyFit(); applySigSpace();
   applyType();
   setTimeout(function(){ ensureRepeatFits(); if(onePage && onePage.checked) applyOnePage(); }, 350);
   // Apply admin-fixed title to the banner and document title
