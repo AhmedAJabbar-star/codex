@@ -748,8 +748,15 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   }
   function applyOnePage(){
     var s=typeScales();
-    if(!onePage || !onePage.checked){ applyTypeStyle(s.f, s.r); prefs.onePage=false; savePrefs(prefs); return; }
     var area=document.querySelector('.print-area');
+    if(!onePage || !onePage.checked){
+      applyTypeStyle(s.f, s.r);
+      if(area) area.style.zoom='';
+      body.classList.remove('one-page-fitted');
+      prefs.onePage=false; savePrefs(prefs); return;
+    }
+    if(!area) return;
+    area.style.zoom='';
     var limit=pageHeightPx()-4;
     var f=s.f, r=s.r, guard=0;
     applyTypeStyle(f, r);
@@ -759,7 +766,14 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       applyTypeStyle(f, r);
       guard++;
     }
-    body.classList.toggle('one-page-fitted',area.scrollHeight<=limit);
+    /* إن بقي تجاوز بعد تصغير الخط والحشوة، نستخدم zoom الحقيقي الذي يدعمه
+       محرك طباعة Chromium. بخلاف transform، يؤثر zoom في التقسيم إلى صفحات. */
+    var finalHeight=area.scrollHeight;
+    if(finalHeight>limit){
+      var scale=Math.max(0.28,Math.min(1,limit/finalHeight));
+      area.style.zoom=scale.toFixed(4);
+    }
+    body.classList.add('one-page-fitted');
     prefs.onePage = true; savePrefs(prefs);
   }
   if(onePage) onePage.addEventListener('change', applyOnePage);
