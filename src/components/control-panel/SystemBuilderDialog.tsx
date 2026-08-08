@@ -1354,6 +1354,19 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       </span>
                     </span>
                   </label>
+                  <div>
+                    <label className="block text-[11px] font-black mb-1">ارتفاع حيز التوقيع والختم</label>
+                    <select className="schedule-select w-full text-xs" value={String(pp.signature_space_mm ?? 4)}
+                      onChange={(e) => setPP({ signature_space_mm: Number(e.target.value) })}>
+                      <option value="0">بلا حيز فارغ — الاسم والمنصب مباشرة</option>
+                      <option value="2">2 مم — مضغوط جداً</option>
+                      <option value="4">4 مم — مضغوط (موصى به)</option>
+                      <option value="7">7 مم — متوسط</option>
+                      <option value="10">10 مم — واسع</option>
+                      <option value="15">15 مم — واسع جداً</option>
+                    </select>
+                    <p className="text-[11px] text-slate-500 mt-1">يتحكم فقط بالفراغ بين عبارة «التوقيع والختم» والاسم؛ بقية عناصر التوقيع تبقى متقاربة.</p>
+                  </div>
                 </div>
 
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">

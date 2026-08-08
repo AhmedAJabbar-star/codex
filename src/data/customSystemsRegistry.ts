@@ -51,6 +51,8 @@ export interface PrintPrefs {
   row_scale?: number;
   /** 📄 محاولة ضغط التقرير تلقائياً ليُطبع على ورقة واحدة. */
   one_page?: boolean;
+  /** ✍️ ارتفاع المساحة الفارغة المخصصة للتوقيع والختم بالملليمتر. */
+  signature_space_mm?: number;
 }
 
 /** A named rule attached to a filter. When the user picks it, only rows whose source cell satisfies the rule pass. */
