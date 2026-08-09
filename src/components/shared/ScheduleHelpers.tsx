@@ -236,7 +236,8 @@ body.hide-watermark .watermark{display:none!important}
    لأنّ overflow:hidden يمنع Chrome من تكرار <thead> في الصفحات التالية. */
 @media print{
   .print-area{overflow:visible!important;position:static!important}
-  .watermark{position:fixed;top:50%;left:50%;font-size:54px;color:rgba(15,76,129,0.05);letter-spacing:5px}
+  .print-area > *{position:static!important}
+  .watermark{position:fixed!important;top:50%;left:50%;font-size:54px;color:rgba(15,76,129,0.05);letter-spacing:5px}
 }
 
 /* ===== FULL FIRST-PAGE BANNER ===== */
