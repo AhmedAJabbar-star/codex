@@ -344,9 +344,9 @@ table.data > tfoot .sig-box{padding-top:2px}
 .signatures{display:grid;gap:10px;padding:0 4px}
 .sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:1px}
 .sig-sub{font-size:7px;font-weight:800;color:#0f4c81;margin:0;line-height:1.05}
-.sig-space{height:var(--sig-space,1.5mm)}
-.sig-name{font-size:7.5px;color:#333;border-bottom:1px dotted #888;min-height:7px;padding:0;margin:0;font-weight:700;line-height:1.05}
-.sig-label{font-size:7px;color:#555;font-weight:700;line-height:1.05}
+.sig-space{height:var(--sig-primary-gap,1mm);min-height:var(--sig-primary-gap,1mm)}
+.sig-name{font-size:8px;color:#222;border-bottom:1px dotted #888;min-height:8px;padding:0 0 1px;margin:0 0 var(--sig-secondary-gap,.5mm);font-weight:800;line-height:1.15}
+.sig-label{font-size:7.5px;color:#444;font-weight:700;line-height:1.15;min-height:8px}
 
 .doc-meta{margin-top:2px;display:flex;justify-content:center;font-size:7.5px;color:#666;padding:1px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
@@ -364,7 +364,6 @@ body.one-page-fitted .banner .info-cell{padding:2px 7px}
 body.one-page-fitted .banner .filters-band{margin:3px 0 1px}
 body.one-page-fitted .banner .filters-band-title{padding:2px 9px}
 body.one-page-fitted .banner .filters-band-grid{padding:3px 8px;gap:3px 7px}
-body.one-page-fitted .sig-space{height:0!important}
 body.one-page-fitted .signatures-wrap{margin-top:0}
 body.one-page-fitted .signatures{padding:0 3px;gap:6px}
 body.one-page-fitted .doc-meta{display:none}
@@ -458,13 +457,13 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="190">واسع (مساحة كتابة)</option>
     <option value="260">واسع جداً</option>
   </select>
-  <select id="pv-sigspace" title="ارتفاع المساحة الفارغة للتوقيع والختم">
-    <option value="0">بلا حيز فارغ</option>
-    <option value="2" selected>2 مم (مضغوط جداً)</option>
-    <option value="4">4 مم (مضغوط)</option>
-    <option value="7">7 مم (متوسط)</option>
-    <option value="10">10 مم (واسع)</option>
-    <option value="15">15 مم (واسع جداً)</option>
+  <select id="pv-sigspace" title="ارتفاع كتلة التوقيع: يوزّع المساحة بين التوقيع والختم والاسم والمنصب">
+    <option value="0">مسافة التوقيع: بلا فراغ</option>
+    <option value="2" selected>مسافة التوقيع: 2 مم (مضغوطة جداً)</option>
+    <option value="4">مسافة التوقيع: 4 مم (مضغوطة)</option>
+    <option value="7">مسافة التوقيع: 7 مم (متوسطة)</option>
+    <option value="10">مسافة التوقيع: 10 مم (واسعة)</option>
+    <option value="15">مسافة التوقيع: 15 مم (واسعة جداً)</option>
   </select>
   <label title="ضغط الخط وارتفاع الأسطر تلقائياً حتى يدخل التقرير كله في ورقة واحدة"><input type="checkbox" id="pv-onepage"/> 📄 ورقة واحدة</label>
  </div>
@@ -718,9 +717,14 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   if(rowhSel) rowhSel.addEventListener('change', applyType);
   function applySigSpace(){
     var mm=Math.max(0,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 3)||0));
+    /* القيمة هي ارتفاع كتلة التوقيع الكلي، وليست فراغاً واحداً غامضاً:
+       75٪ مساحة فعلية للتوقيع والختم، و25٪ تفصل الاسم عن المنصب. */
     document.documentElement.style.setProperty('--sig-space',mm+'mm');
+    document.documentElement.style.setProperty('--sig-primary-gap',(mm*.75).toFixed(2)+'mm');
+    document.documentElement.style.setProperty('--sig-secondary-gap',(mm*.25).toFixed(2)+'mm');
     prefs.signatureSpace=mm; savePrefs(prefs);
-    if(onePage && onePage.checked) setTimeout(applyOnePage,0);
+    /* أعد بناء قياسات الصفحات فوراً كي يظهر أثر القائمة في المعاينة والطباعة. */
+    if(typeof buildPrintPages==='function' && body.classList.contains('ready')) requestAnimationFrame(buildPrintPages);
   }
   if(sigSpaceSel) sigSpaceSel.addEventListener('change',applySigSpace);
 
@@ -748,7 +752,6 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     /* لا نغيّر خط الجدول أو ارتفاع صفوفه إطلاقاً. يضغط هذا الوضع البانر
        والتواقيع والمساحات الإدارية فقط، كما طلب المستخدم. */
     body.classList.add('one-page-fitted');
-    document.documentElement.style.setProperty('--sig-space','0mm');
     prefs.onePage = true; savePrefs(prefs);
   }
   if(onePage) onePage.addEventListener('change', applyOnePage);
