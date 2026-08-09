@@ -919,6 +919,23 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       }
     });
 
+    /* منع الصفحة اليتيمة: إذا انتهى التقرير بصفحة فيها صف أو صفان فقط، نوازن
+       آخر صفحتين بنسبة عملية (نحو 70/30) بدلاً من ترك ورقة شبه فارغة. */
+    if(pages.length>1){
+      var last=pages[pages.length-1];
+      var prev=pages[pages.length-2];
+      var pairTotal=last.tbody.children.length+prev.tbody.children.length;
+      var minLast=Math.max(3,Math.ceil(pairTotal*.28));
+      while(last.tbody.children.length<minLast && prev.tbody.lastElementChild){
+        var moved=prev.tbody.lastElementChild;
+        last.tbody.insertBefore(moved,last.tbody.firstChild);
+        if(overflows(last)){
+          prev.tbody.appendChild(moved);
+          break;
+        }
+      }
+    }
+
     /* المجاميع تخص الورقة الأخيرة فقط. إذا لم تتسع، ننقل أقل عدد لازم من
        الصفوف إلى ورقة أخيرة جديدة بدلاً من حجز ارتفاع المجاميع في كل الصفحات. */
     if(totalsBody){
