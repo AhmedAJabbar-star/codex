@@ -929,8 +929,15 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
         var previous=page;
         var lastPage=createSheet(pages.length);
         lastPage.table.appendChild(totalsClone);
-        while(overflows(lastPage) && previous.tbody.lastElementChild){
-          lastPage.tbody.insertBefore(previous.tbody.lastElementChild, lastPage.tbody.firstChild);
+        /* انقل أكبر عدد ممكن من آخر صفوف الصفحة السابقة مع المجاميع، كي لا
+           تنتج صفحة أخيرة تحتوي المجاميع وحدها، مع إبقاء الفوتر آمناً. */
+        while(previous.tbody.lastElementChild){
+          var candidate=previous.tbody.lastElementChild;
+          lastPage.tbody.insertBefore(candidate,lastPage.tbody.firstChild);
+          if(overflows(lastPage)){
+            previous.tbody.appendChild(candidate);
+            break;
+          }
         }
       }
     }
