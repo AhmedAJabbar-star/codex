@@ -339,17 +339,18 @@ table.data > tfoot .signatures-wrap{margin-top:2px}
 table.data > tfoot .signatures{padding:1px 4px 0;gap:12px}
 table.data > tfoot .sig-box{padding-top:2px}
 
-/* ===== SIGNATURES — مضغوطة ورسمية: التوقيع والختم ← الاسم ← المنصب ===== */
-.signatures-wrap{margin-top:1px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:10px;padding:0 4px}
-.sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:1px}
-.sig-sub{font-size:7px;font-weight:800;color:#0f4c81;margin:0;line-height:1.05}
-.sig-space{height:var(--sig-primary-gap,1mm);min-height:var(--sig-primary-gap,1mm)}
-.sig-name{font-size:8px;color:#222;border-bottom:1px dotted #888;min-height:8px;padding:0 0 1px;margin:0 0 var(--sig-secondary-gap,.5mm);font-weight:800;line-height:1.15}
-.sig-label{font-size:7.5px;color:#444;font-weight:700;line-height:1.15;min-height:8px}
+/* ===== SIGNATURES — كتلة Footer رسمية بمساحة محجوزة وقراءة واضحة ===== */
+.signatures-wrap{margin-top:3px;padding-top:2px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:14px;padding:0 6px}
+.sig-box{text-align:center;border-top:1px solid #0f4c81;padding:3px 2px 0}
+.sig-sub{font-size:8.5px;font-weight:800;color:#0f4c81;margin:0 0 1px;line-height:1.3}
+.sig-space{height:var(--sig-primary-gap,5mm);min-height:var(--sig-primary-gap,5mm)}
+.sig-name{font-size:10px;color:#111;border-bottom:1px dotted #7c8ea1;min-height:13px;padding:0 0 2px;margin:0 0 var(--sig-secondary-gap,2mm);font-weight:800;line-height:1.5}
+.sig-label{font-size:9px;color:#3a4a5c;font-weight:700;line-height:1.45;min-height:12px;padding-bottom:1px}
 
-.doc-meta{margin-top:2px;display:flex;justify-content:center;font-size:7.5px;color:#666;padding:1px 10px;border-top:1px solid #c5d3e3}
+.doc-meta{margin-top:4px;display:flex;justify-content:center;font-size:8px;color:#5c6b7c;padding:3px 10px 2px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
+
 
 /* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
 /* أخفِ نسخة نهاية التقرير الأصلية فقط عند طلب التكرار؛ لا تطابق النسخ
@@ -368,15 +369,17 @@ body.one-page-fitted .signatures-wrap{margin-top:0}
 body.one-page-fitted .signatures{padding:0 3px;gap:6px}
 body.one-page-fitted .doc-meta{display:none}
 
-/* صفحات طباعة صريحة: لكل ورقة بانر وجدول وعلامة مائية مستقلة. */
+/* صفحات طباعة صريحة: كل ورقة A4 مستقلة = بانر (Header) + جدول مرن + تواقيع
+   وتذييل رسمي (Footer) بمساحة محجوزة لا تُضغط مهما زاد عدد الصفوف. */
 #print-pages{display:none}
-.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:hidden;display:flex;flex-direction:column}
+.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:visible;display:grid;grid-template-rows:auto minmax(0,1fr) auto;box-sizing:border-box;padding-bottom:2mm}
 .print-sheet:last-child{break-after:auto;page-break-after:auto}
 .print-sheet > *:not(.watermark){position:relative;z-index:1}
-.print-sheet table.data{margin-top:4px}
-.print-sheet .banner{margin-bottom:5px}
-.print-sheet > .signatures-wrap{display:block!important;margin-top:auto!important;padding:2px 2px 1px!important;flex:0 0 auto;break-inside:avoid;page-break-inside:avoid}
+.print-sheet > .banner{grid-row:1;margin-bottom:5px}
+.print-sheet > table.data{grid-row:2;align-self:start;margin-top:0}
+.print-sheet > .signatures-wrap{grid-row:3;align-self:end;display:block!important;margin:0!important;padding:2px 3px 2px!important;break-inside:avoid;page-break-inside:avoid}
 .print-sheet > .signatures-wrap .signatures{display:grid}
+
 
 /* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
 #repeat-banner-preview{max-width:297mm;margin:8px auto 30px;background:transparent}
@@ -458,10 +461,9 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="260">واسع جداً</option>
   </select>
   <select id="pv-sigspace" title="ارتفاع كتلة التوقيع: يوزّع المساحة بين التوقيع والختم والاسم والمنصب">
-    <option value="0">مسافة التوقيع: بلا فراغ</option>
-    <option value="2" selected>مسافة التوقيع: 2 مم (مضغوطة جداً)</option>
+    <option value="2">مسافة التوقيع: 2 مم (مضغوطة جداً)</option>
     <option value="4">مسافة التوقيع: 4 مم (مضغوطة)</option>
-    <option value="7">مسافة التوقيع: 7 مم (متوسطة)</option>
+    <option value="7" selected>مسافة التوقيع: 7 مم (متوسطة — موصى بها)</option>
     <option value="10">مسافة التوقيع: 10 مم (واسعة)</option>
     <option value="15">مسافة التوقيع: 15 مم (واسعة جداً)</option>
   </select>
@@ -716,12 +718,12 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   if(fontSel) fontSel.addEventListener('change', applyType);
   if(rowhSel) rowhSel.addEventListener('change', applyType);
   function applySigSpace(){
-    var mm=Math.max(0,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 3)||0));
-    /* القيمة هي ارتفاع كتلة التوقيع الكلي، وليست فراغاً واحداً غامضاً:
-       75٪ مساحة فعلية للتوقيع والختم، و25٪ تفصل الاسم عن المنصب. */
+    var mm=Math.max(2,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 7)||7));
+    /* القيمة هي ارتفاع كتلة التوقيع الكلي: 65٪ فراغ فعلي للتوقيع والختم،
+       و35٪ تفصل بين خط الاسم والمنصب حتى لا تتلامس النصوص مع الخطوط. */
     document.documentElement.style.setProperty('--sig-space',mm+'mm');
-    document.documentElement.style.setProperty('--sig-primary-gap',(mm*.75).toFixed(2)+'mm');
-    document.documentElement.style.setProperty('--sig-secondary-gap',(mm*.25).toFixed(2)+'mm');
+    document.documentElement.style.setProperty('--sig-primary-gap',(mm*.65).toFixed(2)+'mm');
+    document.documentElement.style.setProperty('--sig-secondary-gap',(mm*.35).toFixed(2)+'mm');
     prefs.signatureSpace=mm; savePrefs(prefs);
     /* أعد بناء قياسات الصفحات فوراً كي يظهر أثر القائمة في المعاينة والطباعة. */
     if(typeof buildPrintPages==='function' && body.classList.contains('ready')) requestAnimationFrame(buildPrintPages);
