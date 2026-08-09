@@ -376,7 +376,7 @@ body.one-page-fitted .doc-meta{display:none}
 .print-sheet > *:not(.watermark){position:relative;z-index:1}
 .print-sheet table.data{margin-top:4px}
 .print-sheet .banner{margin-bottom:5px}
-.print-sheet > .signatures-wrap{display:block!important;margin-top:auto!important;padding-top:2px!important;flex:0 0 auto;break-inside:avoid;page-break-inside:avoid}
+.print-sheet > .signatures-wrap{display:block!important;margin-top:auto!important;padding:2px 2px 1px!important;flex:0 0 auto;break-inside:avoid;page-break-inside:avoid}
 .print-sheet > .signatures-wrap .signatures{display:grid}
 
 /* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
@@ -732,6 +732,12 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     var hmm=(portrait?dims[1]:dims[0]) - (Number($('pv-margin').value)||8)*2;
     return hmm*96/25.4;
   }
+  function pageWidthPx(){
+    var size=$('pv-size').value, portrait=$('pv-orient').value==='portrait';
+    var dims={A4:[210,297],A3:[297,420],Letter:[216,279]}[size]||[210,297];
+    var wmm=(portrait?dims[0]:dims[1]) - (Number($('pv-margin').value)||8)*2;
+    return wmm*96/25.4;
+  }
   function applyOnePage(){
     var area=document.querySelector('.print-area');
     if(!onePage || !onePage.checked){
@@ -838,7 +844,8 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
 
   /* ===== محرك صفحات طباعية صريحة =====
      كل ورقة هي: بانر ثابت + جدول بالمساحة المتبقية + تواقيع ثابتة في الأسفل.
-     نحجز ارتفاع الهيدر والفوتر قبل توزيع الصفوف، فلا تنتقل التواقيع إلى ورقة منفصلة. */
+     القياس يتم داخل ورقة مخفية بأبعاد الطباعة الفعلية، وليس اعتماداً على أبعاد
+     المعاينة؛ لذلك نملأ كل صفحة بأقصى عدد آمن من الصفوف ويبقى الفوتر داخلها. */
   function buildPrintPages(){
     var host=$('print-pages');
     var sourceTable=document.querySelector('.print-area table.data');
@@ -852,30 +859,28 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     var wm=document.querySelector('.print-area > .watermark');
     var sigs=$('sigs-end');
     var repeat=body.classList.contains('repeat-header');
-    var limit=Math.max(300,pageHeightPx()-8);
-    var bannerH=sourceBanner.getBoundingClientRect().height+6;
-    var columnsH=columns ? columns.getBoundingClientRect().height+5 : 30;
     var showSigs=!!(sigs && $('pv-show-sigs').checked);
-    var sigH=showSigs ? sigs.getBoundingClientRect().height+6 : 0;
-    var totalsH=totalsBody ? totalsBody.getBoundingClientRect().height+3 : 0;
-    var chunks=[], current=[], used=0;
-    visibleRows.forEach(function(row,index){
-      var firstPage=chunks.length===0;
-      var headerH=(firstPage || repeat) ? bannerH : 0;
-      /* التواقيع Footer حقيقي لكل ورقة، لذلك يُحجز ارتفاعها دائماً قبل الصفوف.
-         نحجز صف المجاميع أيضاً احتياطياً كي لا يدفع الفوتر خارج آخر ورقة. */
-      var reserve=columnsH+headerH+sigH+totalsH+16;
-      var rh=Math.max(12,row.getBoundingClientRect().height);
-      if(current.length && used+rh+reserve>limit){ chunks.push(current); current=[]; used=0; }
-      current.push(row); used+=rh;
-      if(index===visibleRows.length-1 && current.length) chunks.push(current);
-    });
-    if(!chunks.length) chunks=[[]];
+    /* 3mm منطقة أمان داخلية تمنع قص آخر سطر أو بيانات الوثيقة بسبب اختلاف
+       تقريب Chrome بين CSS pixel وحدود PDF الفعلية. */
+    var printSafety=3*96/25.4;
+    var limit=Math.max(300,pageHeightPx()-printSafety);
+    var pageWidth=Math.max(300,pageWidthPx());
+    var pages=[];
 
-    chunks.forEach(function(chunk,index){
+    /* نجعل الحاوية قابلة للقياس للحظات خارج الشاشة. visibility يحافظ على
+       التخطيط الكامل، بعكس display:none الذي كان يعيد قياسات صفرية/غير دقيقة. */
+    host.style.display='block';
+    host.style.position='fixed';
+    host.style.left='-100000px';
+    host.style.top='0';
+    host.style.width=pageWidth+'px';
+    host.style.visibility='hidden';
+
+    function createSheet(index){
       var sheet=document.createElement('section');
       sheet.className='print-sheet';
       sheet.style.height=limit+'px';
+      sheet.style.width=pageWidth+'px';
       if(wm && !body.classList.contains('hide-watermark')) sheet.appendChild(wm.cloneNode(true));
       if(index===0 || repeat) sheet.appendChild(sourceBanner.cloneNode(true));
       var table=document.createElement('table'); table.className='data';
@@ -884,13 +889,82 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       if(columns) thead.appendChild(columns.cloneNode(true));
       table.appendChild(thead);
       var tb=document.createElement('tbody');
-      chunk.forEach(function(row){ tb.appendChild(row.cloneNode(true)); });
       table.appendChild(tb);
-      if(index===chunks.length-1 && totalsBody) table.appendChild(totalsBody.cloneNode(true));
       sheet.appendChild(table);
       if(showSigs) sheet.appendChild(sigs.cloneNode(true));
       host.appendChild(sheet);
+      var page={sheet:sheet,table:table,tbody:tb};
+      pages.push(page);
+      return page;
+    }
+    function overflows(page){
+      var sheetRect=page.sheet.getBoundingClientRect();
+      var tableRect=page.table.getBoundingClientRect();
+      var footer=page.sheet.querySelector(':scope > .signatures-wrap');
+      var footerRect=footer ? footer.getBoundingClientRect() : null;
+      /* الفوتر مستقل في أسفل الورقة. لا نسمح للجدول بملامسته حتى لو قام
+         Flexbox بتقليص عنصر ما وأخفى التجاوز من scrollHeight. */
+      var collidesWithFooter=footerRect ? tableRect.bottom+4>footerRect.top : tableRect.bottom>sheetRect.bottom-4;
+      return collidesWithFooter || page.sheet.scrollHeight>Math.ceil(limit)+1;
+    }
+
+    var page=createSheet(0);
+    visibleRows.forEach(function(row){
+      var clone=row.cloneNode(true);
+      page.tbody.appendChild(clone);
+      if(overflows(page) && page.tbody.children.length>1){
+        page.tbody.removeChild(clone);
+        page=createSheet(pages.length);
+        page.tbody.appendChild(clone);
+      }
     });
+
+    /* منع الصفحة اليتيمة: إذا انتهى التقرير بصفحة فيها صف أو صفان فقط، نوازن
+       آخر صفحتين بنسبة عملية (نحو 70/30) بدلاً من ترك ورقة شبه فارغة. */
+    if(pages.length>1){
+      var last=pages[pages.length-1];
+      var prev=pages[pages.length-2];
+      var pairTotal=last.tbody.children.length+prev.tbody.children.length;
+      var minLast=Math.max(3,Math.ceil(pairTotal*.28));
+      while(last.tbody.children.length<minLast && prev.tbody.lastElementChild){
+        var moved=prev.tbody.lastElementChild;
+        last.tbody.insertBefore(moved,last.tbody.firstChild);
+        if(overflows(last)){
+          prev.tbody.appendChild(moved);
+          break;
+        }
+      }
+    }
+
+    /* المجاميع تخص الورقة الأخيرة فقط. إذا لم تتسع، ننقل أقل عدد لازم من
+       الصفوف إلى ورقة أخيرة جديدة بدلاً من حجز ارتفاع المجاميع في كل الصفحات. */
+    if(totalsBody){
+      var totalsClone=totalsBody.cloneNode(true);
+      page.table.appendChild(totalsClone);
+      if(overflows(page)){
+        page.table.removeChild(totalsClone);
+        var previous=page;
+        var lastPage=createSheet(pages.length);
+        lastPage.table.appendChild(totalsClone);
+        /* انقل أكبر عدد ممكن من آخر صفوف الصفحة السابقة مع المجاميع، كي لا
+           تنتج صفحة أخيرة تحتوي المجاميع وحدها، مع إبقاء الفوتر آمناً. */
+        while(previous.tbody.lastElementChild){
+          var candidate=previous.tbody.lastElementChild;
+          lastPage.tbody.insertBefore(candidate,lastPage.tbody.firstChild);
+          if(overflows(lastPage)){
+            previous.tbody.appendChild(candidate);
+            break;
+          }
+        }
+      }
+    }
+
+    host.style.removeProperty('display');
+    host.style.removeProperty('position');
+    host.style.removeProperty('left');
+    host.style.removeProperty('top');
+    host.style.removeProperty('width');
+    host.style.removeProperty('visibility');
   }
   window.addEventListener('beforeprint',buildPrintPages);
 
