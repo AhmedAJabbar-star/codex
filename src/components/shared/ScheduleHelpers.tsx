@@ -322,22 +322,19 @@ body.ready #prep{display:none}
 
 table.data > tfoot{display:table-footer-group}
 table.data .footer-cell{padding:0!important;border:0!important;background:#fff!important}
-table.data > tfoot .signatures-wrap{margin-top:4px}
-table.data > tfoot .signatures{padding:2px 4px 0;gap:14px}
-table.data > tfoot .sig-box{padding-top:4px}
-table.data > tfoot .sig-sub{font-size:8px;margin-bottom:2px}
-table.data > tfoot .sig-space{height:var(--sig-space,4mm)}
-table.data > tfoot .sig-name{font-size:8.5px;min-height:9px;margin-bottom:2px}
-table.data > tfoot .sig-label{font-size:8.5px}
+table.data > tfoot .signatures-wrap{margin-top:2px}
+table.data > tfoot .signatures{padding:1px 4px 0;gap:12px}
+table.data > tfoot .sig-box{padding-top:2px}
 
-/* ===== SIGNATURES — الترتيب: التوقيع والختم ← الاسم ← المنصب ===== */
-.signatures-wrap{margin-top:3px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:12px;padding:2px 4px 0}
+/* ===== SIGNATURES — مضغوطة ورسمية: التوقيع والختم ← الاسم ← المنصب ===== */
+.signatures-wrap{margin-top:2px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:12px;padding:1px 4px 0}
 .sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:2px}
-.sig-sub{font-size:8px;font-weight:800;color:#0f4c81;margin:0}
-.sig-space{height:var(--sig-space,4mm)}
-.sig-name{font-size:8.5px;color:#333;border-bottom:1px dotted #888;min-height:8px;padding:0;margin:0 0 1px;font-weight:700;line-height:1.15}
-.sig-label{font-size:8px;color:#555;font-weight:700;line-height:1.15}
+.sig-sub{font-size:7.5px;font-weight:800;color:#0f4c81;margin:0;line-height:1.1}
+.sig-space{height:var(--sig-space,3mm)}
+.sig-name{font-size:8px;color:#333;border-bottom:1px dotted #888;min-height:8px;padding:0;margin:0 0 1px;font-weight:700;line-height:1.1}
+.sig-label{font-size:7.5px;color:#555;font-weight:700;line-height:1.1}
+
 .doc-meta{margin-top:2px;display:flex;justify-content:center;font-size:7.5px;color:#666;padding:1px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
 
