@@ -230,9 +230,15 @@ body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
 /* ===== PRINT AREA ===== */
 .print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative;overflow:hidden}
 .print-area > *{position:relative;z-index:1}
-.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.09);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0;letter-spacing:4px}
+.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-family:'Amiri',serif;font-size:64px;color:rgba(15,76,129,0.055);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0;letter-spacing:6px}
 body.hide-watermark .watermark{display:none!important}
-@media print{ .watermark{position:fixed;top:50%;left:50%;color:rgba(15,76,129,0.08)} }
+/* في الطباعة: علامة مائية خفيفة ومتّزنة، وإلغاء overflow/position من حاوية الطباعة
+   لأنّ overflow:hidden يمنع Chrome من تكرار <thead> في الصفحات التالية. */
+@media print{
+  .print-area{overflow:visible!important;position:static!important}
+  .print-area > *{position:static!important}
+  .watermark{position:fixed!important;top:50%;left:50%;font-size:54px;color:rgba(15,76,129,0.05);letter-spacing:5px}
+}
 
 /* ===== FULL FIRST-PAGE BANNER ===== */
 .banner{background:#fff;margin-bottom:6px}
@@ -327,13 +333,13 @@ table.data > tfoot .signatures{padding:1px 4px 0;gap:12px}
 table.data > tfoot .sig-box{padding-top:2px}
 
 /* ===== SIGNATURES — مضغوطة ورسمية: التوقيع والختم ← الاسم ← المنصب ===== */
-.signatures-wrap{margin-top:2px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:12px;padding:1px 4px 0}
-.sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:2px}
-.sig-sub{font-size:7.5px;font-weight:800;color:#0f4c81;margin:0;line-height:1.1}
-.sig-space{height:var(--sig-space,3mm)}
-.sig-name{font-size:8px;color:#333;border-bottom:1px dotted #888;min-height:8px;padding:0;margin:0 0 1px;font-weight:700;line-height:1.1}
-.sig-label{font-size:7.5px;color:#555;font-weight:700;line-height:1.1}
+.signatures-wrap{margin-top:1px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:10px;padding:0 4px}
+.sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:1px}
+.sig-sub{font-size:7px;font-weight:800;color:#0f4c81;margin:0;line-height:1.05}
+.sig-space{height:var(--sig-space,1.5mm)}
+.sig-name{font-size:7.5px;color:#333;border-bottom:1px dotted #888;min-height:7px;padding:0;margin:0;font-weight:700;line-height:1.05}
+.sig-label{font-size:7px;color:#555;font-weight:700;line-height:1.05}
 
 .doc-meta{margin-top:2px;display:flex;justify-content:center;font-size:7.5px;color:#666;padding:1px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
@@ -425,8 +431,8 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <span class="pv-title" style="font-size:12px;opacity:.85">✍️ حيز التوقيع:</span>
   <select id="pv-sigspace" title="ارتفاع المساحة الفارغة للتوقيع والختم">
     <option value="0">بلا حيز فارغ</option>
-    <option value="2">2 مم (مضغوط جداً)</option>
-    <option value="4" selected>4 مم (مضغوط)</option>
+    <option value="2" selected>2 مم (مضغوط جداً)</option>
+    <option value="4">4 مم (مضغوط)</option>
     <option value="7">7 مم (متوسط)</option>
     <option value="10">10 مم (واسع)</option>
     <option value="15">15 مم (واسع جداً)</option>
@@ -959,7 +965,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
   setIf('pv-font',         prefs.fontScale===undefined?'100':String(prefs.fontScale));
   setIf('pv-rowh',         prefs.rowScale===undefined?'100':String(prefs.rowScale));
-  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'3':String(prefs.signatureSpace));
+  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'2':String(prefs.signatureSpace));
   setIf('pv-onepage',      prefs.onePage===undefined?false:prefs.onePage);
 
   applyPage();
