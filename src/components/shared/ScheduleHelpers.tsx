@@ -682,7 +682,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   if(fontSel) fontSel.addEventListener('change', applyType);
   if(rowhSel) rowhSel.addEventListener('change', applyType);
   function applySigSpace(){
-    var mm=Math.max(0,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 4)||0));
+    var mm=Math.max(0,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 3)||0));
     document.documentElement.style.setProperty('--sig-space',mm+'mm');
     prefs.signatureSpace=mm; savePrefs(prefs);
     if(onePage && onePage.checked) setTimeout(applyOnePage,0);
@@ -959,7 +959,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
   setIf('pv-font',         prefs.fontScale===undefined?'100':String(prefs.fontScale));
   setIf('pv-rowh',         prefs.rowScale===undefined?'100':String(prefs.rowScale));
-  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'4':String(prefs.signatureSpace));
+  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'3':String(prefs.signatureSpace));
   setIf('pv-onepage',      prefs.onePage===undefined?false:prefs.onePage);
 
   applyPage();
