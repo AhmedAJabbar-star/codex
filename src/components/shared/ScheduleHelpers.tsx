@@ -352,7 +352,9 @@ table.data > tfoot .sig-box{padding-top:2px}
 .doc-meta strong{color:#0f4c81}
 
 /* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
-body.repeat-sigs #sigs-end{display:none}
+/* أخفِ نسخة نهاية التقرير الأصلية فقط عند طلب التكرار؛ لا تطابق النسخ
+   الموجودة داخل الصفحات الطباعية الصريحة وإلا تختفي التواقيع من ملف PDF. */
+body.repeat-sigs .print-area > #sigs-end{display:none}
 
 /* وضع الورقة الواحدة يحافظ على الجدول كما هو ويضغط المساحات الإدارية فقط. */
 body.one-page-fitted .banner .official-header{padding-top:2px;padding-bottom:3px;gap:6px}
@@ -374,6 +376,8 @@ body.one-page-fitted .doc-meta{display:none}
 .print-sheet > *:not(.watermark){position:relative;z-index:1}
 .print-sheet table.data{margin-top:4px}
 .print-sheet .banner{margin-bottom:5px}
+.print-sheet > .signatures-wrap{display:block!important;margin-top:2px!important;break-inside:avoid;page-break-inside:avoid}
+.print-sheet > .signatures-wrap .signatures{display:grid}
 
 /* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
 #repeat-banner-preview{max-width:297mm;margin:8px auto 30px;background:transparent}
