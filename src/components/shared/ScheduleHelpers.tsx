@@ -376,7 +376,7 @@ body.one-page-fitted .doc-meta{display:none}
 .print-sheet > *:not(.watermark){position:relative;z-index:1}
 .print-sheet table.data{margin-top:4px}
 .print-sheet .banner{margin-bottom:5px}
-.print-sheet > .signatures-wrap{display:block!important;margin-top:auto!important;padding-top:2px!important;flex:0 0 auto;break-inside:avoid;page-break-inside:avoid}
+.print-sheet > .signatures-wrap{display:block!important;margin-top:auto!important;padding:2px 2px 1px!important;flex:0 0 auto;break-inside:avoid;page-break-inside:avoid}
 .print-sheet > .signatures-wrap .signatures{display:grid}
 
 /* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
@@ -860,7 +860,10 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     var sigs=$('sigs-end');
     var repeat=body.classList.contains('repeat-header');
     var showSigs=!!(sigs && $('pv-show-sigs').checked);
-    var limit=Math.max(300,pageHeightPx());
+    /* 3mm منطقة أمان داخلية تمنع قص آخر سطر أو بيانات الوثيقة بسبب اختلاف
+       تقريب Chrome بين CSS pixel وحدود PDF الفعلية. */
+    var printSafety=3*96/25.4;
+    var limit=Math.max(300,pageHeightPx()-printSafety);
     var pageWidth=Math.max(300,pageWidthPx());
     var pages=[];
 
@@ -895,7 +898,14 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       return page;
     }
     function overflows(page){
-      return page.sheet.scrollHeight>Math.ceil(limit)+1;
+      var sheetRect=page.sheet.getBoundingClientRect();
+      var tableRect=page.table.getBoundingClientRect();
+      var footer=page.sheet.querySelector(':scope > .signatures-wrap');
+      var footerRect=footer ? footer.getBoundingClientRect() : null;
+      /* الفوتر مستقل في أسفل الورقة. لا نسمح للجدول بملامسته حتى لو قام
+         Flexbox بتقليص عنصر ما وأخفى التجاوز من scrollHeight. */
+      var collidesWithFooter=footerRect ? tableRect.bottom+4>footerRect.top : tableRect.bottom>sheetRect.bottom-4;
+      return collidesWithFooter || page.sheet.scrollHeight>Math.ceil(limit)+1;
     }
 
     var page=createSheet(0);
