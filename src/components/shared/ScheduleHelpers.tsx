@@ -285,54 +285,8 @@ body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
 body.compact-repeat table.data > thead .doc-h1,
 body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
 
-/* 🔁 ضغط تلقائي إضافي للبانر المكرر — يُفعَّل عندما يكون البانر طويلاً جداً،
-   لأن كروم يتوقف عن تكرار الـ thead إذا تجاوز ارتفاعه جزءاً كبيراً من الصفحة
-   (وهذا سبب اختفاء البانر في الصفحة الثانية عند تفعيل كل عناصره). */
-body.ultra-compact table.data > thead .official-header,
-body.ultra-compact #repeat-banner-preview .official-header{padding:2px 10px 3px}
-body.ultra-compact table.data > thead .hdr-logo,
-body.ultra-compact #repeat-banner-preview .hdr-logo{width:34px;height:34px}
-body.ultra-compact table.data > thead .header-side,
-body.ultra-compact #repeat-banner-preview .header-side{font-size:8px;line-height:1.3}
-body.ultra-compact table.data > thead .header-text .ar1,
-body.ultra-compact #repeat-banner-preview .header-text .ar1{font-size:11.5px}
-body.ultra-compact table.data > thead .header-text .ar2,
-body.ultra-compact #repeat-banner-preview .header-text .ar2{font-size:10px}
-body.ultra-compact table.data > thead .doc-h1,
-body.ultra-compact #repeat-banner-preview .doc-h1{font-size:11.5px;padding:2px 10px;margin:3px 0 3px}
-body.ultra-compact table.data > thead .info-cell,
-body.ultra-compact #repeat-banner-preview .info-cell{padding:2px 6px;font-size:8.5px}
-body.ultra-compact table.data > thead .info-cell strong,
-body.ultra-compact #repeat-banner-preview .info-cell strong{font-size:7.5px;margin-bottom:1px}
-body.ultra-compact table.data > thead .filters-band-title,
-body.ultra-compact #repeat-banner-preview .filters-band-title{font-size:8px;padding:2px 8px}
-body.ultra-compact table.data > thead .filter-chip,
-body.ultra-compact #repeat-banner-preview .filter-chip{font-size:8px;padding:1px 6px}
+/* البانر المكرر يحافظ على شكله وحجمه الأصلي في كل الصفحات — لا ضغط تلقائي. */
 
-/* رأس الطباعة المتكرر يجب أن يبقى قصيراً مهما كانت عناصر البانر المفعلة.
-   نحافظ على كل المعلومات، لكن نحول المعلومات والفلاتر إلى شريطين أفقيين مضغوطين.
-   هذا يمنع Chromium من إسقاط thead في الصفحات التالية عندما يصبح طويلاً. */
-@media print{
-  body.repeat-header table.data > thead .banner{margin:0!important}
-  body.repeat-header table.data > thead .official-header{padding:1px 8px 2px!important;gap:6px!important;border-bottom-width:1px!important}
-  body.repeat-header table.data > thead .hdr-logo{width:28px!important;height:28px!important;margin:0!important}
-  body.repeat-header table.data > thead .header-side{font-size:6.5px!important;line-height:1.12!important;gap:0!important}
-  body.repeat-header table.data > thead .header-side strong{font-size:7px!important;margin:0!important}
-  body.repeat-header table.data > thead .header-text{gap:0!important}
-  body.repeat-header table.data > thead .header-text .ar1{font-size:9px!important;line-height:1.05!important}
-  body.repeat-header table.data > thead .header-text .ar2{font-size:8px!important;line-height:1.05!important}
-  body.repeat-header table.data > thead .header-text .ar3{font-size:7px!important;margin:0!important;line-height:1!important}
-  body.repeat-header table.data > thead .doc-h1{font-size:9px!important;line-height:1.1!important;padding:1px 6px!important;margin:1px 0!important;border-radius:0!important}
-  body.repeat-header table.data > thead .info-band{display:flex!important;justify-content:center!important;gap:12px!important;margin:1px 0!important;border-bottom:1px solid #c5d3e3!important}
-  body.repeat-header table.data > thead .info-cell{display:flex!important;flex-direction:row!important;gap:3px!important;padding:0!important;border:0!important;background:#fff!important;font-size:6.5px!important}
-  body.repeat-header table.data > thead .info-cell strong,
-  body.repeat-header table.data > thead .info-cell span{font-size:6.5px!important;margin:0!important;line-height:1.2!important}
-  body.repeat-header table.data > thead .filters-band{margin:1px 0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;overflow:hidden!important}
-  body.repeat-header table.data > thead .filters-band-title{display:inline!important;background:none!important;color:#0f4c81!important;font-size:6.5px!important;padding:0 3px!important}
-  body.repeat-header table.data > thead .filters-band-grid{display:inline-flex!important;flex-wrap:nowrap!important;gap:4px!important;padding:0!important;max-width:90%!important;vertical-align:middle!important;overflow:hidden!important}
-  body.repeat-header table.data > thead .filter-chip{gap:2px!important;border:0!important;border-radius:0!important;padding:0!important;font-size:6.5px!important;white-space:nowrap!important;background:#fff!important}
-  body.repeat-header table.data > thead .banner-cell{padding:0 0 1px!important}
-}
 
 
 /* Per-element banner toggles — apply to BOTH real banner and preview clone */
@@ -368,22 +322,19 @@ body.ready #prep{display:none}
 
 table.data > tfoot{display:table-footer-group}
 table.data .footer-cell{padding:0!important;border:0!important;background:#fff!important}
-table.data > tfoot .signatures-wrap{margin-top:4px}
-table.data > tfoot .signatures{padding:2px 4px 0;gap:14px}
-table.data > tfoot .sig-box{padding-top:4px}
-table.data > tfoot .sig-sub{font-size:8px;margin-bottom:2px}
-table.data > tfoot .sig-space{height:var(--sig-space,4mm)}
-table.data > tfoot .sig-name{font-size:8.5px;min-height:9px;margin-bottom:2px}
-table.data > tfoot .sig-label{font-size:8.5px}
+table.data > tfoot .signatures-wrap{margin-top:2px}
+table.data > tfoot .signatures{padding:1px 4px 0;gap:12px}
+table.data > tfoot .sig-box{padding-top:2px}
 
-/* ===== SIGNATURES — الترتيب: التوقيع والختم ← الاسم ← المنصب ===== */
-.signatures-wrap{margin-top:3px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:12px;padding:2px 4px 0}
+/* ===== SIGNATURES — مضغوطة ورسمية: التوقيع والختم ← الاسم ← المنصب ===== */
+.signatures-wrap{margin-top:2px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:12px;padding:1px 4px 0}
 .sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:2px}
-.sig-sub{font-size:8px;font-weight:800;color:#0f4c81;margin:0}
-.sig-space{height:var(--sig-space,4mm)}
-.sig-name{font-size:8.5px;color:#333;border-bottom:1px dotted #888;min-height:8px;padding:0;margin:0 0 1px;font-weight:700;line-height:1.15}
-.sig-label{font-size:8px;color:#555;font-weight:700;line-height:1.15}
+.sig-sub{font-size:7.5px;font-weight:800;color:#0f4c81;margin:0;line-height:1.1}
+.sig-space{height:var(--sig-space,3mm)}
+.sig-name{font-size:8px;color:#333;border-bottom:1px dotted #888;min-height:8px;padding:0;margin:0 0 1px;font-weight:700;line-height:1.1}
+.sig-label{font-size:7.5px;color:#555;font-weight:700;line-height:1.1}
+
 .doc-meta{margin-top:2px;display:flex;justify-content:center;font-size:7.5px;color:#666;padding:1px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
 
@@ -731,7 +682,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   if(fontSel) fontSel.addEventListener('change', applyType);
   if(rowhSel) rowhSel.addEventListener('change', applyType);
   function applySigSpace(){
-    var mm=Math.max(0,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 4)||0));
+    var mm=Math.max(0,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 3)||0));
     document.documentElement.style.setProperty('--sig-space',mm+'mm');
     prefs.signatureSpace=mm; savePrefs(prefs);
     if(onePage && onePage.checked) setTimeout(applyOnePage,0);
@@ -783,16 +734,10 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
      وهذا سبب اختفاء البانر في الصفحة الثانية عند تفعيل كل عناصره.
      لذلك نقيس ارتفاع الـ thead ونفعّل الضغط الإضافي تلقائياً عند الحاجة. */
   function ensureRepeatFits(){
-    if(!body.classList.contains('repeat-header')){ body.classList.remove('ultra-compact'); return; }
-    var thead=document.querySelector('table.data > thead');
-    if(!thead) return;
+    /* لا نغيّر شكل البانر أو حجمه تلقائياً — يبقى كما صمّمه المستخدم. */
     body.classList.remove('ultra-compact');
-    var limit = pageHeightPx() * 0.33;
-    if(thead.getBoundingClientRect().height > limit){
-      body.classList.add('compact-repeat');
-      body.classList.add('ultra-compact');
-    }
   }
+
 
 
   /* ===== عرض الأعمدة: ضبط تلقائي ذكي / بالمحتوى / متساوٍ / يدوي =====
@@ -1014,7 +959,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
   setIf('pv-font',         prefs.fontScale===undefined?'100':String(prefs.fontScale));
   setIf('pv-rowh',         prefs.rowScale===undefined?'100':String(prefs.rowScale));
-  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'4':String(prefs.signatureSpace));
+  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'3':String(prefs.signatureSpace));
   setIf('pv-onepage',      prefs.onePage===undefined?false:prefs.onePage);
 
   applyPage();
