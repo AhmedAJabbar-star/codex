@@ -369,15 +369,17 @@ body.one-page-fitted .signatures-wrap{margin-top:0}
 body.one-page-fitted .signatures{padding:0 3px;gap:6px}
 body.one-page-fitted .doc-meta{display:none}
 
-/* صفحات طباعة صريحة: لكل ورقة بانر وجدول وعلامة مائية مستقلة. */
+/* صفحات طباعة صريحة: كل ورقة A4 مستقلة = بانر (Header) + جدول مرن + تواقيع
+   وتذييل رسمي (Footer) بمساحة محجوزة لا تُضغط مهما زاد عدد الصفوف. */
 #print-pages{display:none}
-.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:hidden;display:flex;flex-direction:column}
+.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:visible;display:grid;grid-template-rows:auto minmax(0,1fr) auto;box-sizing:border-box}
 .print-sheet:last-child{break-after:auto;page-break-after:auto}
 .print-sheet > *:not(.watermark){position:relative;z-index:1}
-.print-sheet table.data{margin-top:4px}
-.print-sheet .banner{margin-bottom:5px}
-.print-sheet > .signatures-wrap{display:block!important;margin-top:auto!important;padding:2px 2px 1px!important;flex:0 0 auto;break-inside:avoid;page-break-inside:avoid}
+.print-sheet > .banner{grid-row:1;margin-bottom:5px}
+.print-sheet > table.data{grid-row:2;align-self:start;margin-top:0}
+.print-sheet > .signatures-wrap{grid-row:3;align-self:end;display:block!important;margin:0!important;padding:2px 3px 2px!important;break-inside:avoid;page-break-inside:avoid}
 .print-sheet > .signatures-wrap .signatures{display:grid}
+
 
 /* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
 #repeat-banner-preview{max-width:297mm;margin:8px auto 30px;background:transparent}
