@@ -182,18 +182,22 @@ html,body{font-family:'Cairo',sans-serif;color:#0b1f33;background:#eef2f7}
 body.in-preview{padding:0}
 
 /* ===== PREVIEW TOOLBAR ===== */
-.preview-bar{position:sticky;top:0;z-index:1000;display:flex;gap:6px;justify-content:flex-start;align-items:center;flex-wrap:wrap;padding:10px 14px;background:linear-gradient(135deg,#0f4c81 0%,#0b3558 100%);color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 8px 24px rgba(15,76,129,.35)}
-.preview-bar .pv-title{font-weight:800;font-size:14px;letter-spacing:.2px}
-.preview-bar input[type="text"]{padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.97);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12.5px;min-width:240px}
-.preview-bar select{padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.97);color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer}
-.preview-bar label{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.1);padding:6px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.2);transition:background .15s}
+.preview-bar{position:sticky;top:0;z-index:1000;display:grid;grid-template-columns:minmax(280px,1.25fr) repeat(3,minmax(210px,1fr)) auto;gap:8px;padding:10px 12px;background:#0b416d;color:#fff;font-family:'Cairo',sans-serif;box-shadow:0 8px 24px rgba(15,76,129,.3);direction:rtl}
+.pv-group{display:flex;align-content:flex-start;align-items:center;gap:6px;flex-wrap:wrap;padding:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:7px;min-height:54px}
+.pv-group-title{width:100%;font-size:10px;font-weight:800;color:#d9eafa;line-height:1;margin-bottom:1px}
+.preview-bar .pv-title{font-weight:800;font-size:13px}
+.preview-bar input[type="text"]{padding:7px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.45);background:#fff;color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:12px;min-width:180px;flex:1}
+.preview-bar select{padding:7px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.45);background:#fff;color:#0f4c81;font-weight:700;font-family:'Cairo',sans-serif;font-size:11px;cursor:pointer;max-width:190px}
+.preview-bar label{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.09);padding:5px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.16);transition:background .15s;white-space:nowrap}
 .preview-bar label:hover{background:rgba(255,255,255,.18)}
 .preview-bar label input{width:14px;height:14px;cursor:pointer;accent-color:#fff}
 .preview-bar button{font-family:'Cairo',sans-serif;border:0;border-radius:8px;font-weight:800;padding:8px 16px;cursor:pointer;font-size:12.5px;transition:transform .1s, box-shadow .15s}
 .preview-bar button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
-.preview-bar .btn-print{background:#fff;color:#0f4c81;margin-inline-start:auto}
+.preview-bar .btn-print{background:#fff;color:#0f4c81}
 .preview-bar .btn-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
 .preview-bar .sep{width:1px;height:26px;background:rgba(255,255,255,.25);margin:0 4px}
+.pv-actions{display:flex;flex-direction:column;gap:7px;justify-content:center;min-width:150px}
+@media(max-width:1250px){.preview-bar{grid-template-columns:repeat(2,minmax(280px,1fr))}.pv-actions{flex-direction:row;grid-column:1/-1}.pv-actions button{flex:1}}
 
 /* When system has locked print prefs, collapse the bar so ONLY print + close + the gear toggle remain visible. */
 body.toolbar-hidden .preview-bar > *{display:none!important}
@@ -230,14 +234,15 @@ body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
 /* ===== PRINT AREA ===== */
 .print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative;overflow:hidden}
 .print-area > *{position:relative;z-index:1}
-.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-family:'Amiri',serif;font-size:64px;color:rgba(15,76,129,0.055);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0;letter-spacing:6px}
+.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;font-family:'Amiri',serif;color:#0f4c81;font-size:16px;font-weight:700;white-space:nowrap;pointer-events:none;z-index:0;opacity:.055}
+.watermark img{width:105px;height:105px;object-fit:contain;filter:grayscale(1)}
 body.hide-watermark .watermark{display:none!important}
 /* في الطباعة: علامة مائية خفيفة ومتّزنة، وإلغاء overflow/position من حاوية الطباعة
    لأنّ overflow:hidden يمنع Chrome من تكرار <thead> في الصفحات التالية. */
 @media print{
   .print-area{overflow:visible!important;position:static!important}
   .print-area > *{position:static!important}
-  .watermark{position:fixed!important;top:50%;left:50%;font-size:54px;color:rgba(15,76,129,0.05);letter-spacing:5px}
+  .watermark{position:absolute!important;top:52%;left:50%;font-size:14px;opacity:.045}
 }
 
 /* ===== FULL FIRST-PAGE BANNER ===== */
@@ -347,6 +352,27 @@ table.data > tfoot .sig-box{padding-top:2px}
 /* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
 body.repeat-sigs #sigs-end{display:none}
 
+/* وضع الورقة الواحدة يحافظ على الجدول كما هو ويضغط المساحات الإدارية فقط. */
+body.one-page-fitted .banner .official-header{padding-top:2px;padding-bottom:3px;gap:6px}
+body.one-page-fitted .banner .hdr-logo{width:38px;height:38px;margin-bottom:0}
+body.one-page-fitted .banner .doc-h1{font-size:13px;margin:3px 0;padding:2px 10px}
+body.one-page-fitted .banner .info-cell{padding:2px 7px}
+body.one-page-fitted .banner .filters-band{margin:3px 0 1px}
+body.one-page-fitted .banner .filters-band-title{padding:2px 9px}
+body.one-page-fitted .banner .filters-band-grid{padding:3px 8px;gap:3px 7px}
+body.one-page-fitted .sig-space{height:0!important}
+body.one-page-fitted .signatures-wrap{margin-top:0}
+body.one-page-fitted .signatures{padding:0 3px;gap:6px}
+body.one-page-fitted .doc-meta{display:none}
+
+/* صفحات طباعة صريحة: لكل ورقة بانر وجدول وعلامة مائية مستقلة. */
+#print-pages{display:none}
+.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:hidden}
+.print-sheet:last-child{break-after:auto;page-break-after:auto}
+.print-sheet > *:not(.watermark){position:relative;z-index:1}
+.print-sheet table.data{margin-top:4px}
+.print-sheet .banner{margin-bottom:5px}
+
 /* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
 #repeat-banner-preview{max-width:297mm;margin:8px auto 30px;background:transparent}
 #repeat-banner-preview .page2-label{background:linear-gradient(135deg,#0f4c81,#0b3558);color:#fff;font-weight:800;padding:8px 14px;border-radius:8px 8px 0 0;font-size:12.5px;text-align:center;letter-spacing:.3px;box-shadow:0 4px 12px rgba(15,76,129,.25)}
@@ -359,7 +385,9 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   body{background:#fff!important}
   .preview-bar{display:none!important}
   #repeat-banner-preview{display:none!important}
-  .print-area{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
+  .print-area{display:none!important}
+  #print-pages{display:block!important}
+  .print-sheet{margin:0;padding:0;box-shadow:none;border-radius:0;max-width:none}
   table.data{page-break-inside:auto;break-inside:auto}
   table.data > thead{display:table-header-group!important}
   table.data > tbody{display:table-row-group!important}
@@ -371,12 +399,11 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   .signatures-wrap{page-break-inside:avoid}
 }
 </style>
-</head><body class="in-preview repeat-header compact-repeat">
+</head><body class="in-preview repeat-header">
 
 <div class="preview-bar">
-  <span class="pv-title">📄 المعاينة</span>
+ <div class="pv-group"><div class="pv-group-title">التقرير والصفحة</div>
   <input type="text" id="pv-title-input" value="${title.replace(/"/g, '&quot;')}" placeholder="عنوان التقرير"/>
-  <div class="sep"></div>
   <select id="pv-orient" title="اتجاه الصفحة">
     <option value="landscape">أفقي</option>
     <option value="portrait">عمودي</option>
@@ -391,12 +418,11 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="8" selected>هوامش عادية (8مم)</option>
     <option value="12">هوامش واسعة (12مم)</option>
   </select>
-  <div class="sep"></div>
+ </div>
+ <div class="pv-group"><div class="pv-group-title">التكرار ومحتويات البانر</div>
   <label title="تكرار البانر الكامل في أعلى كل صفحة عند الطباعة"><input type="checkbox" id="pv-repeat-header" checked/> تكرار البانر بكل صفحة</label>
-  <label title="تصغير البانر قليلاً عند التكرار لتوفير المساحة"><input type="checkbox" id="pv-compact-repeat" checked/> بانر مضغوط عند التكرار</label>
+  <label title="تصغير البانر قليلاً عند التكرار لتوفير المساحة"><input type="checkbox" id="pv-compact-repeat"/> بانر مضغوط</label>
   <label><input type="checkbox" id="pv-repeat-sigs"/> تكرار التواقيع</label>
-  <div class="sep"></div>
-  <span class="pv-title" style="font-size:12px;opacity:.85">📌 محتويات البانر:</span>
   <label><input type="checkbox" id="pv-show-logo" checked/> الشعار</label>
   <label><input type="checkbox" id="pv-show-title" checked/> العنوان</label>
   <label><input type="checkbox" id="pv-show-info" checked/> شريط المعلومات</label>
@@ -404,12 +430,11 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <label><input type="checkbox" id="pv-show-docnum" checked/> رقم الوثيقة</label>
   <label><input type="checkbox" id="pv-show-count" checked/> عدد السجلات</label>
   <label><input type="checkbox" id="pv-show-filters" checked/> معايير التصفية</label>
-  <div class="sep"></div>
+ </div>
+ <div class="pv-group"><div class="pv-group-title">الجدول والتواقيع</div>
   <label><input type="checkbox" id="pv-show-sigs" checked/> التواقيع</label>
   <label><input type="checkbox" id="pv-show-watermark" checked/> العلامة المائية</label>
   <label><input type="checkbox" id="pv-fit"/> ملاءمة الأعمدة</label>
-  <div class="sep"></div>
-  <span class="pv-title" style="font-size:12px;opacity:.85">🔠 حجم خط البيانات:</span>
   <select id="pv-font" title="تكبير أو تصغير خط بيانات الجدول">
     <option value="80">80٪ (مصغّر)</option>
     <option value="90">90٪</option>
@@ -419,7 +444,6 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="140">140٪</option>
     <option value="160">160٪ (كبير جداً)</option>
   </select>
-  <span class="pv-title" style="font-size:12px;opacity:.85">↕️ ارتفاع الخلية:</span>
   <select id="pv-rowh" title="ارتفاع السطر/الخلية داخل الجدول">
     <option value="60">مضغوط جداً</option>
     <option value="80">مضغوط</option>
@@ -428,7 +452,6 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="190">واسع (مساحة كتابة)</option>
     <option value="260">واسع جداً</option>
   </select>
-  <span class="pv-title" style="font-size:12px;opacity:.85">✍️ حيز التوقيع:</span>
   <select id="pv-sigspace" title="ارتفاع المساحة الفارغة للتوقيع والختم">
     <option value="0">بلا حيز فارغ</option>
     <option value="2" selected>2 مم (مضغوط جداً)</option>
@@ -438,8 +461,8 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="15">15 مم (واسع جداً)</option>
   </select>
   <label title="ضغط الخط وارتفاع الأسطر تلقائياً حتى يدخل التقرير كله في ورقة واحدة"><input type="checkbox" id="pv-onepage"/> 📄 ورقة واحدة</label>
-  <div class="sep"></div>
-  <span class="pv-title" style="font-size:12px;opacity:.85">📐 عرض الأعمدة:</span>
+ </div>
+ <div class="pv-group"><div class="pv-group-title">الأعمدة والتقسيم</div>
   <select id="pv-colmode" title="طريقة توزيع عرض الأعمدة على عرض الصفحة">
     <option value="smart">ضبط تلقائي ذكي (موصى به)</option>
     <option value="content">حسب طول المحتوى</option>
@@ -447,9 +470,6 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="manual">نسب يدوية</option>
   </select>
   <button class="btn-close" id="pv-cols-btn" title="تحديد نسبة عرض كل عمود يدوياً">🎛️ ضبط الأعمدة</button>
-
-  <div class="sep"></div>
-  <span class="pv-title" style="font-size:12px;opacity:.85">🧾 تقسيم اختياري (للطابعات الضعيفة فقط):</span>
   <select id="pv-batch" title="يبقى الوضع الافتراضي: طباعة كل السجلات في ملف واحد">
     <option value="0">كل السجلات (ملف واحد كامل)</option>
     <option value="200">200 سجل / دفعة</option>
@@ -460,10 +480,12 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <select id="pv-batch-page" title="اختر الدفعة المعروضة"></select>
   <button class="btn-close" id="pv-batch-all" title="طباعة الدفعات واحدة تلو الأخرى بالتتابع">🖨️ طباعة كل الدفعات</button>
   <span id="pv-batch-info" style="font-size:11.5px;font-weight:700;opacity:.9"></span>
+ </div>
+ <div class="pv-actions">
   <button class="pv-toggle btn-close" id="pv-toggle" title="إظهار/إخفاء شريط إعدادات الطباعة">⚙️ الإعدادات</button>
-
   <button class="btn-print" id="pv-print-full" title="طباعة/حفظ PDF لكامل السجلات في ملف واحد">🖨️ طباعة الكل / حفظ PDF</button>
   <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
+ </div>
 </div>
 
 <!-- لوحة ضبط عرض الأعمدة يدوياً (نِسَب مئوية من عرض الجدول) -->
@@ -491,7 +513,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
 </div>
 
 <div class="print-area">
-  <div class="watermark">${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</div>
+  <div class="watermark"><img src="${universityLogo}" alt=""/><span>${(printPrefs?.watermarkText) || 'الجامعة التكنولوجية'}</span></div>
   <div class="first-banner">${bannerHtml}</div>
   <table class="data">
     ${colgroupHtml}
@@ -507,6 +529,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <div class="doc-meta"><span><strong>وثيقة رسمية</strong> &nbsp;صادرة عن كلية الهندسة المدنية / الجامعة التكنولوجية</span></div>
   </div>
 </div>
+<div id="print-pages" aria-hidden="true"></div>
 ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/script/gi, '<\\/script')}</script>` : ''}
 
 
