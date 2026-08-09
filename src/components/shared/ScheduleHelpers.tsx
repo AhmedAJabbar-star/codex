@@ -727,33 +727,16 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     return hmm*96/25.4;
   }
   function applyOnePage(){
-    var s=typeScales();
     var area=document.querySelector('.print-area');
     if(!onePage || !onePage.checked){
-      applyTypeStyle(s.f, s.r);
-      if(area) area.style.zoom='';
       body.classList.remove('one-page-fitted');
       prefs.onePage=false; savePrefs(prefs); return;
     }
     if(!area) return;
-    area.style.zoom='';
-    var limit=pageHeightPx()-4;
-    var f=s.f, r=s.r, guard=0;
-    applyTypeStyle(f, r);
-    while(area.scrollHeight > limit && guard < 50 && (f > 28 || r > 20)){
-      f = Math.max(28, f - 3);
-      r = Math.max(20, r - 5);
-      applyTypeStyle(f, r);
-      guard++;
-    }
-    /* إن بقي تجاوز بعد تصغير الخط والحشوة، نستخدم zoom الحقيقي الذي يدعمه
-       محرك طباعة Chromium. بخلاف transform، يؤثر zoom في التقسيم إلى صفحات. */
-    var finalHeight=area.scrollHeight;
-    if(finalHeight>limit){
-      var scale=Math.max(0.28,Math.min(1,limit/finalHeight));
-      area.style.zoom=scale.toFixed(4);
-    }
+    /* لا نغيّر خط الجدول أو ارتفاع صفوفه إطلاقاً. يضغط هذا الوضع البانر
+       والتواقيع والمساحات الإدارية فقط، كما طلب المستخدم. */
     body.classList.add('one-page-fitted');
+    document.documentElement.style.setProperty('--sig-space','0mm');
     prefs.onePage = true; savePrefs(prefs);
   }
   if(onePage) onePage.addEventListener('change', applyOnePage);
@@ -847,6 +830,77 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   var bSel=$('pv-batch'), pSel=$('pv-batch-page'), bInfo=$('pv-batch-info'), bAll=$('pv-batch-all');
   var printBtn=$('pv-print-full');
 
+  /* ===== محرك صفحات طباعية صريحة =====
+     لا نعتمد على تكرار thead المختلف بين إصدارات Chrome. قبل الطباعة نقيس
+     الصفوف، نقسمها حسب ارتفاع الورقة، ثم ننشئ كل ورقة مع بانر مستقل فعلياً. */
+  function buildPrintPages(){
+    var host=$('print-pages');
+    var sourceTable=document.querySelector('.print-area table.data');
+    var sourceBanner=document.querySelector('.first-banner .banner');
+    if(!host || !sourceTable || !sourceBanner) return;
+    host.innerHTML='';
+    var visibleRows=Array.prototype.slice.call(sourceTable.querySelectorAll(':scope > tbody:not(.totals-body) > tr')).filter(function(r){ return r.style.display!=='none'; });
+    var totalsBody=sourceTable.querySelector(':scope > tbody.totals-body');
+    var cols=sourceTable.querySelector(':scope > colgroup');
+    var columns=sourceTable.querySelector(':scope > thead > .columns-row');
+    var wm=document.querySelector('.print-area > .watermark');
+    var sigs=$('sigs-end');
+    var repeat=body.classList.contains('repeat-header');
+    var repeatSigs=body.classList.contains('repeat-sigs');
+    var limit=Math.max(300,pageHeightPx()-8);
+    var bannerH=sourceBanner.getBoundingClientRect().height+6;
+    var columnsH=columns ? columns.getBoundingClientRect().height+5 : 30;
+    var sigH=(sigs && $('pv-show-sigs').checked) ? sigs.getBoundingClientRect().height+4 : 0;
+    var chunks=[], current=[], used=0;
+    visibleRows.forEach(function(row,index){
+      var firstPage=chunks.length===0;
+      var headerH=(firstPage || repeat) ? bannerH : 0;
+      var reserve=columnsH+headerH+12;
+      var rh=Math.max(12,row.getBoundingClientRect().height);
+      if(current.length && used+rh+reserve>limit){ chunks.push(current); current=[]; used=0; }
+      current.push(row); used+=rh;
+      if(index===visibleRows.length-1 && current.length) chunks.push(current);
+    });
+    if(!chunks.length) chunks=[[]];
+
+    /* إذا لم تتسع التواقيع في آخر ورقة، ننقل أقل عدد لازم من الصفوف لورقة جديدة
+       بدلاً من إنشاء فراغ هائل أو صفحة توقيعات فارغة. */
+    if(sigs && sigH && !repeatSigs && chunks.length){
+      var last=chunks[chunks.length-1];
+      var lastRowsH=last.reduce(function(sum,r){ return sum+Math.max(12,r.getBoundingClientRect().height); },0);
+      var lastHeaderH=(chunks.length===1 || repeat) ? bannerH : 0;
+      while(last.length>1 && lastRowsH+lastHeaderH+columnsH+sigH+12>limit){
+        var moved=last.pop();
+        lastRowsH-=Math.max(12,moved.getBoundingClientRect().height);
+        if(chunks.length===1 || chunks[chunks.length-2]!==last){};
+      }
+      if(last.length<visibleRows.length && chunks.length===1){
+        var remaining=visibleRows.slice(last.length);
+        if(remaining.length) chunks.push(remaining);
+      }
+    }
+
+    chunks.forEach(function(chunk,index){
+      var sheet=document.createElement('section');
+      sheet.className='print-sheet';
+      if(wm && !body.classList.contains('hide-watermark')) sheet.appendChild(wm.cloneNode(true));
+      if(index===0 || repeat) sheet.appendChild(sourceBanner.cloneNode(true));
+      var table=document.createElement('table'); table.className='data';
+      if(cols) table.appendChild(cols.cloneNode(true));
+      var thead=document.createElement('thead');
+      if(columns) thead.appendChild(columns.cloneNode(true));
+      table.appendChild(thead);
+      var tb=document.createElement('tbody');
+      chunk.forEach(function(row){ tb.appendChild(row.cloneNode(true)); });
+      table.appendChild(tb);
+      if(index===chunks.length-1 && totalsBody) table.appendChild(totalsBody.cloneNode(true));
+      sheet.appendChild(table);
+      if(sigs && (repeatSigs || index===chunks.length-1)) sheet.appendChild(sigs.cloneNode(true));
+      host.appendChild(sheet);
+    });
+  }
+  window.addEventListener('beforeprint',buildPrintPages);
+
   function batchSize(){ return parseInt((bSel && bSel.value) || '0', 10) || 0; }
   function batchCount(){ var s=batchSize(); return s>0 ? Math.max(1, Math.ceil(TOTAL_ROWS/s)) : 1; }
   function showBatch(idx){
@@ -896,7 +950,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   if(printBtn) printBtn.addEventListener('click', function(){
     if(!document.body.classList.contains('ready')) return;
     if(bSel && batchSize()>0){ bSel.value='0'; rebuildBatches(); }
-    setTimeout(function(){ window.print(); }, 60);
+    setTimeout(function(){ buildPrintPages(); window.print(); }, 60);
   });
 
   function initBatches(){
@@ -975,7 +1029,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-margin', prefs.margin, '5');
   setIf('pv-repeat-header',  prefs.repeatHeader===undefined?true:prefs.repeatHeader);
   setIf('pv-repeat-sigs',    prefs.repeatSigs===undefined?false:prefs.repeatSigs);
-  setIf('pv-compact-repeat', prefs.compactRepeat===undefined?true:prefs.compactRepeat);
+  setIf('pv-compact-repeat', prefs.compactRepeat===undefined?false:prefs.compactRepeat);
   setIf('pv-show-logo',    prefs.showLogo===undefined?true:prefs.showLogo);
   setIf('pv-show-title',   prefs.showTitle===undefined?true:prefs.showTitle);
   setIf('pv-show-info',    prefs.showInfo===undefined?true:prefs.showInfo);
