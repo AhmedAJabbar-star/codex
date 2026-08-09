@@ -371,12 +371,12 @@ body.one-page-fitted .doc-meta{display:none}
 
 /* صفحات طباعة صريحة: لكل ورقة بانر وجدول وعلامة مائية مستقلة. */
 #print-pages{display:none}
-.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:hidden}
+.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:hidden;display:flex;flex-direction:column}
 .print-sheet:last-child{break-after:auto;page-break-after:auto}
 .print-sheet > *:not(.watermark){position:relative;z-index:1}
 .print-sheet table.data{margin-top:4px}
 .print-sheet .banner{margin-bottom:5px}
-.print-sheet > .signatures-wrap{display:block!important;margin-top:2px!important;break-inside:avoid;page-break-inside:avoid}
+.print-sheet > .signatures-wrap{display:block!important;margin-top:auto!important;padding-top:2px!important;flex:0 0 auto;break-inside:avoid;page-break-inside:avoid}
 .print-sheet > .signatures-wrap .signatures{display:grid}
 
 /* ===== ON-SCREEN SIMULATION OF PAGE 2 (visualizes repetition without printing) ===== */
@@ -837,8 +837,8 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   var printBtn=$('pv-print-full');
 
   /* ===== محرك صفحات طباعية صريحة =====
-     لا نعتمد على تكرار thead المختلف بين إصدارات Chrome. قبل الطباعة نقيس
-     الصفوف، نقسمها حسب ارتفاع الورقة، ثم ننشئ كل ورقة مع بانر مستقل فعلياً. */
+     كل ورقة هي: بانر ثابت + جدول بالمساحة المتبقية + تواقيع ثابتة في الأسفل.
+     نحجز ارتفاع الهيدر والفوتر قبل توزيع الصفوف، فلا تنتقل التواقيع إلى ورقة منفصلة. */
   function buildPrintPages(){
     var host=$('print-pages');
     var sourceTable=document.querySelector('.print-area table.data');
@@ -852,16 +852,19 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     var wm=document.querySelector('.print-area > .watermark');
     var sigs=$('sigs-end');
     var repeat=body.classList.contains('repeat-header');
-    var repeatSigs=body.classList.contains('repeat-sigs');
     var limit=Math.max(300,pageHeightPx()-8);
     var bannerH=sourceBanner.getBoundingClientRect().height+6;
     var columnsH=columns ? columns.getBoundingClientRect().height+5 : 30;
-    var sigH=(sigs && $('pv-show-sigs').checked) ? sigs.getBoundingClientRect().height+4 : 0;
+    var showSigs=!!(sigs && $('pv-show-sigs').checked);
+    var sigH=showSigs ? sigs.getBoundingClientRect().height+6 : 0;
+    var totalsH=totalsBody ? totalsBody.getBoundingClientRect().height+3 : 0;
     var chunks=[], current=[], used=0;
     visibleRows.forEach(function(row,index){
       var firstPage=chunks.length===0;
       var headerH=(firstPage || repeat) ? bannerH : 0;
-      var reserve=columnsH+headerH+12;
+      /* التواقيع Footer حقيقي لكل ورقة، لذلك يُحجز ارتفاعها دائماً قبل الصفوف.
+         نحجز صف المجاميع أيضاً احتياطياً كي لا يدفع الفوتر خارج آخر ورقة. */
+      var reserve=columnsH+headerH+sigH+totalsH+16;
       var rh=Math.max(12,row.getBoundingClientRect().height);
       if(current.length && used+rh+reserve>limit){ chunks.push(current); current=[]; used=0; }
       current.push(row); used+=rh;
@@ -869,24 +872,10 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     });
     if(!chunks.length) chunks=[[]];
 
-    /* إذا لم تتسع التواقيع في آخر ورقة، ننقل أقل عدد لازم من الصفوف لورقة جديدة
-       بدلاً من إنشاء فراغ هائل أو صفحة توقيعات فارغة. */
-    if(sigs && sigH && !repeatSigs && chunks.length){
-      var last=chunks[chunks.length-1];
-      var lastRowsH=last.reduce(function(sum,r){ return sum+Math.max(12,r.getBoundingClientRect().height); },0);
-      var lastHeaderH=(chunks.length===1 || repeat) ? bannerH : 0;
-      var overflowRows=[];
-      while(last.length>1 && lastRowsH+lastHeaderH+columnsH+sigH+12>limit){
-        var moved=last.pop();
-        lastRowsH-=Math.max(12,moved.getBoundingClientRect().height);
-        overflowRows.unshift(moved);
-      }
-      if(overflowRows.length) chunks.push(overflowRows);
-    }
-
     chunks.forEach(function(chunk,index){
       var sheet=document.createElement('section');
       sheet.className='print-sheet';
+      sheet.style.height=limit+'px';
       if(wm && !body.classList.contains('hide-watermark')) sheet.appendChild(wm.cloneNode(true));
       if(index===0 || repeat) sheet.appendChild(sourceBanner.cloneNode(true));
       var table=document.createElement('table'); table.className='data';
@@ -899,7 +888,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       table.appendChild(tb);
       if(index===chunks.length-1 && totalsBody) table.appendChild(totalsBody.cloneNode(true));
       sheet.appendChild(table);
-      if(sigs && (repeatSigs || index===chunks.length-1)) sheet.appendChild(sigs.cloneNode(true));
+      if(showSigs) sheet.appendChild(sigs.cloneNode(true));
       host.appendChild(sheet);
     });
   }
