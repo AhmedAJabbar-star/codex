@@ -430,7 +430,7 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
   <span class="pv-title" style="font-size:12px;opacity:.85">✍️ حيز التوقيع:</span>
   <select id="pv-sigspace" title="ارتفاع المساحة الفارغة للتوقيع والختم">
     <option value="0">بلا حيز فارغ</option>
-    <option value="2">2 مم (مضغوط جداً)</option>
+    <option value="2" selected>2 مم (مضغوط جداً)</option>
     <option value="4">4 مم (مضغوط)</option>
     <option value="7">7 مم (متوسط)</option>
     <option value="10">10 مم (واسع)</option>
