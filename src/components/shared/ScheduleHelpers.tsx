@@ -230,9 +230,14 @@ body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
 /* ===== PRINT AREA ===== */
 .print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative;overflow:hidden}
 .print-area > *{position:relative;z-index:1}
-.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Amiri',serif;font-size:140px;color:rgba(15,76,129,0.09);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0;letter-spacing:4px}
+.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-family:'Amiri',serif;font-size:64px;color:rgba(15,76,129,0.055);font-weight:700;white-space:nowrap;pointer-events:none;z-index:0;letter-spacing:6px}
 body.hide-watermark .watermark{display:none!important}
-@media print{ .watermark{position:fixed;top:50%;left:50%;color:rgba(15,76,129,0.08)} }
+/* في الطباعة: علامة مائية خفيفة ومتّزنة، وإلغاء overflow/position من حاوية الطباعة
+   لأنّ overflow:hidden يمنع Chrome من تكرار <thead> في الصفحات التالية. */
+@media print{
+  .print-area{overflow:visible!important;position:static!important}
+  .watermark{position:fixed;top:50%;left:50%;font-size:54px;color:rgba(15,76,129,0.05);letter-spacing:5px}
+}
 
 /* ===== FULL FIRST-PAGE BANNER ===== */
 .banner{background:#fff;margin-bottom:6px}
