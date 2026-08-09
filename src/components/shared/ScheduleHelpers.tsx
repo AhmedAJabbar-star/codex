@@ -339,17 +339,18 @@ table.data > tfoot .signatures-wrap{margin-top:2px}
 table.data > tfoot .signatures{padding:1px 4px 0;gap:12px}
 table.data > tfoot .sig-box{padding-top:2px}
 
-/* ===== SIGNATURES — مضغوطة ورسمية: التوقيع والختم ← الاسم ← المنصب ===== */
-.signatures-wrap{margin-top:1px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:10px;padding:0 4px}
-.sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:1px}
-.sig-sub{font-size:7px;font-weight:800;color:#0f4c81;margin:0;line-height:1.05}
-.sig-space{height:var(--sig-primary-gap,1mm);min-height:var(--sig-primary-gap,1mm)}
-.sig-name{font-size:8px;color:#222;border-bottom:1px dotted #888;min-height:8px;padding:0 0 1px;margin:0 0 var(--sig-secondary-gap,.5mm);font-weight:800;line-height:1.15}
-.sig-label{font-size:7.5px;color:#444;font-weight:700;line-height:1.15;min-height:8px}
+/* ===== SIGNATURES — كتلة Footer رسمية بمساحة محجوزة وقراءة واضحة ===== */
+.signatures-wrap{margin-top:3px;padding-top:2px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:14px;padding:0 6px}
+.sig-box{text-align:center;border-top:1px solid #0f4c81;padding:3px 2px 0}
+.sig-sub{font-size:8.5px;font-weight:800;color:#0f4c81;margin:0 0 1px;line-height:1.3}
+.sig-space{height:var(--sig-primary-gap,5mm);min-height:var(--sig-primary-gap,5mm)}
+.sig-name{font-size:10px;color:#111;border-bottom:1px dotted #7c8ea1;min-height:13px;padding:0 0 2px;margin:0 0 var(--sig-secondary-gap,2mm);font-weight:800;line-height:1.5}
+.sig-label{font-size:9px;color:#3a4a5c;font-weight:700;line-height:1.45;min-height:12px;padding-bottom:1px}
 
-.doc-meta{margin-top:2px;display:flex;justify-content:center;font-size:7.5px;color:#666;padding:1px 10px;border-top:1px solid #c5d3e3}
+.doc-meta{margin-top:4px;display:flex;justify-content:center;font-size:8px;color:#5c6b7c;padding:3px 10px 2px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
+
 
 /* tfoot is built DYNAMICALLY by JS only when "repeat-sigs" is enabled — never present in the DOM otherwise (was causing every page to reserve footer space and push the table to the next page). */
 /* أخفِ نسخة نهاية التقرير الأصلية فقط عند طلب التكرار؛ لا تطابق النسخ
