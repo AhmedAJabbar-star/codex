@@ -332,13 +332,13 @@ table.data > tfoot .signatures{padding:1px 4px 0;gap:12px}
 table.data > tfoot .sig-box{padding-top:2px}
 
 /* ===== SIGNATURES — مضغوطة ورسمية: التوقيع والختم ← الاسم ← المنصب ===== */
-.signatures-wrap{margin-top:2px;page-break-inside:avoid;break-inside:avoid}
-.signatures{display:grid;gap:12px;padding:1px 4px 0}
-.sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:2px}
-.sig-sub{font-size:7.5px;font-weight:800;color:#0f4c81;margin:0;line-height:1.1}
-.sig-space{height:var(--sig-space,3mm)}
-.sig-name{font-size:8px;color:#333;border-bottom:1px dotted #888;min-height:8px;padding:0;margin:0 0 1px;font-weight:700;line-height:1.1}
-.sig-label{font-size:7.5px;color:#555;font-weight:700;line-height:1.1}
+.signatures-wrap{margin-top:1px;page-break-inside:avoid;break-inside:avoid}
+.signatures{display:grid;gap:10px;padding:0 4px}
+.sig-box{text-align:center;border-top:1px solid #0f4c81;padding-top:1px}
+.sig-sub{font-size:7px;font-weight:800;color:#0f4c81;margin:0;line-height:1.05}
+.sig-space{height:var(--sig-space,1.5mm)}
+.sig-name{font-size:7.5px;color:#333;border-bottom:1px dotted #888;min-height:7px;padding:0;margin:0;font-weight:700;line-height:1.05}
+.sig-label{font-size:7px;color:#555;font-weight:700;line-height:1.05}
 
 .doc-meta{margin-top:2px;display:flex;justify-content:center;font-size:7.5px;color:#666;padding:1px 10px;border-top:1px solid #c5d3e3}
 .doc-meta strong{color:#0f4c81}
