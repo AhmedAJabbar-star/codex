@@ -718,12 +718,12 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   if(fontSel) fontSel.addEventListener('change', applyType);
   if(rowhSel) rowhSel.addEventListener('change', applyType);
   function applySigSpace(){
-    var mm=Math.max(0,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 3)||0));
-    /* القيمة هي ارتفاع كتلة التوقيع الكلي، وليست فراغاً واحداً غامضاً:
-       75٪ مساحة فعلية للتوقيع والختم، و25٪ تفصل الاسم عن المنصب. */
+    var mm=Math.max(2,Math.min(20,Number(sigSpaceSel ? sigSpaceSel.value : 7)||7));
+    /* القيمة هي ارتفاع كتلة التوقيع الكلي: 65٪ فراغ فعلي للتوقيع والختم،
+       و35٪ تفصل بين خط الاسم والمنصب حتى لا تتلامس النصوص مع الخطوط. */
     document.documentElement.style.setProperty('--sig-space',mm+'mm');
-    document.documentElement.style.setProperty('--sig-primary-gap',(mm*.75).toFixed(2)+'mm');
-    document.documentElement.style.setProperty('--sig-secondary-gap',(mm*.25).toFixed(2)+'mm');
+    document.documentElement.style.setProperty('--sig-primary-gap',(mm*.65).toFixed(2)+'mm');
+    document.documentElement.style.setProperty('--sig-secondary-gap',(mm*.35).toFixed(2)+'mm');
     prefs.signatureSpace=mm; savePrefs(prefs);
     /* أعد بناء قياسات الصفحات فوراً كي يظهر أثر القائمة في المعاينة والطباعة. */
     if(typeof buildPrintPages==='function' && body.classList.contains('ready')) requestAnimationFrame(buildPrintPages);
