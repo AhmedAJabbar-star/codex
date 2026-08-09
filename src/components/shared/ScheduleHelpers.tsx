@@ -372,7 +372,7 @@ body.one-page-fitted .doc-meta{display:none}
 /* صفحات طباعة صريحة: كل ورقة A4 مستقلة = بانر (Header) + جدول مرن + تواقيع
    وتذييل رسمي (Footer) بمساحة محجوزة لا تُضغط مهما زاد عدد الصفوف. */
 #print-pages{display:none}
-.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:visible;display:grid;grid-template-rows:auto minmax(0,1fr) auto;box-sizing:border-box}
+.print-sheet{position:relative;background:#fff;break-after:page;page-break-after:always;overflow:visible;display:grid;grid-template-rows:auto minmax(0,1fr) auto;box-sizing:border-box;padding-bottom:2mm}
 .print-sheet:last-child{break-after:auto;page-break-after:auto}
 .print-sheet > *:not(.watermark){position:relative;z-index:1}
 .print-sheet > .banner{grid-row:1;margin-bottom:5px}
