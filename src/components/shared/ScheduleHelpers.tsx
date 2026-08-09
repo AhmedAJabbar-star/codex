@@ -734,16 +734,10 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
      وهذا سبب اختفاء البانر في الصفحة الثانية عند تفعيل كل عناصره.
      لذلك نقيس ارتفاع الـ thead ونفعّل الضغط الإضافي تلقائياً عند الحاجة. */
   function ensureRepeatFits(){
-    if(!body.classList.contains('repeat-header')){ body.classList.remove('ultra-compact'); return; }
-    var thead=document.querySelector('table.data > thead');
-    if(!thead) return;
+    /* لا نغيّر شكل البانر أو حجمه تلقائياً — يبقى كما صمّمه المستخدم. */
     body.classList.remove('ultra-compact');
-    var limit = pageHeightPx() * 0.33;
-    if(thead.getBoundingClientRect().height > limit){
-      body.classList.add('compact-repeat');
-      body.classList.add('ultra-compact');
-    }
   }
+
 
 
   /* ===== عرض الأعمدة: ضبط تلقائي ذكي / بالمحتوى / متساوٍ / يدوي =====
