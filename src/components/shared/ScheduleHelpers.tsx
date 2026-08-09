@@ -285,54 +285,8 @@ body.compact-repeat #repeat-banner-preview .hdr-logo{width:48px;height:48px}
 body.compact-repeat table.data > thead .doc-h1,
 body.compact-repeat #repeat-banner-preview .doc-h1{font-size:14px;padding:3px 14px;margin:5px 0 4px}
 
-/* 🔁 ضغط تلقائي إضافي للبانر المكرر — يُفعَّل عندما يكون البانر طويلاً جداً،
-   لأن كروم يتوقف عن تكرار الـ thead إذا تجاوز ارتفاعه جزءاً كبيراً من الصفحة
-   (وهذا سبب اختفاء البانر في الصفحة الثانية عند تفعيل كل عناصره). */
-body.ultra-compact table.data > thead .official-header,
-body.ultra-compact #repeat-banner-preview .official-header{padding:2px 10px 3px}
-body.ultra-compact table.data > thead .hdr-logo,
-body.ultra-compact #repeat-banner-preview .hdr-logo{width:34px;height:34px}
-body.ultra-compact table.data > thead .header-side,
-body.ultra-compact #repeat-banner-preview .header-side{font-size:8px;line-height:1.3}
-body.ultra-compact table.data > thead .header-text .ar1,
-body.ultra-compact #repeat-banner-preview .header-text .ar1{font-size:11.5px}
-body.ultra-compact table.data > thead .header-text .ar2,
-body.ultra-compact #repeat-banner-preview .header-text .ar2{font-size:10px}
-body.ultra-compact table.data > thead .doc-h1,
-body.ultra-compact #repeat-banner-preview .doc-h1{font-size:11.5px;padding:2px 10px;margin:3px 0 3px}
-body.ultra-compact table.data > thead .info-cell,
-body.ultra-compact #repeat-banner-preview .info-cell{padding:2px 6px;font-size:8.5px}
-body.ultra-compact table.data > thead .info-cell strong,
-body.ultra-compact #repeat-banner-preview .info-cell strong{font-size:7.5px;margin-bottom:1px}
-body.ultra-compact table.data > thead .filters-band-title,
-body.ultra-compact #repeat-banner-preview .filters-band-title{font-size:8px;padding:2px 8px}
-body.ultra-compact table.data > thead .filter-chip,
-body.ultra-compact #repeat-banner-preview .filter-chip{font-size:8px;padding:1px 6px}
+/* البانر المكرر يحافظ على شكله وحجمه الأصلي في كل الصفحات — لا ضغط تلقائي. */
 
-/* رأس الطباعة المتكرر يجب أن يبقى قصيراً مهما كانت عناصر البانر المفعلة.
-   نحافظ على كل المعلومات، لكن نحول المعلومات والفلاتر إلى شريطين أفقيين مضغوطين.
-   هذا يمنع Chromium من إسقاط thead في الصفحات التالية عندما يصبح طويلاً. */
-@media print{
-  body.repeat-header table.data > thead .banner{margin:0!important}
-  body.repeat-header table.data > thead .official-header{padding:1px 8px 2px!important;gap:6px!important;border-bottom-width:1px!important}
-  body.repeat-header table.data > thead .hdr-logo{width:28px!important;height:28px!important;margin:0!important}
-  body.repeat-header table.data > thead .header-side{font-size:6.5px!important;line-height:1.12!important;gap:0!important}
-  body.repeat-header table.data > thead .header-side strong{font-size:7px!important;margin:0!important}
-  body.repeat-header table.data > thead .header-text{gap:0!important}
-  body.repeat-header table.data > thead .header-text .ar1{font-size:9px!important;line-height:1.05!important}
-  body.repeat-header table.data > thead .header-text .ar2{font-size:8px!important;line-height:1.05!important}
-  body.repeat-header table.data > thead .header-text .ar3{font-size:7px!important;margin:0!important;line-height:1!important}
-  body.repeat-header table.data > thead .doc-h1{font-size:9px!important;line-height:1.1!important;padding:1px 6px!important;margin:1px 0!important;border-radius:0!important}
-  body.repeat-header table.data > thead .info-band{display:flex!important;justify-content:center!important;gap:12px!important;margin:1px 0!important;border-bottom:1px solid #c5d3e3!important}
-  body.repeat-header table.data > thead .info-cell{display:flex!important;flex-direction:row!important;gap:3px!important;padding:0!important;border:0!important;background:#fff!important;font-size:6.5px!important}
-  body.repeat-header table.data > thead .info-cell strong,
-  body.repeat-header table.data > thead .info-cell span{font-size:6.5px!important;margin:0!important;line-height:1.2!important}
-  body.repeat-header table.data > thead .filters-band{margin:1px 0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;overflow:hidden!important}
-  body.repeat-header table.data > thead .filters-band-title{display:inline!important;background:none!important;color:#0f4c81!important;font-size:6.5px!important;padding:0 3px!important}
-  body.repeat-header table.data > thead .filters-band-grid{display:inline-flex!important;flex-wrap:nowrap!important;gap:4px!important;padding:0!important;max-width:90%!important;vertical-align:middle!important;overflow:hidden!important}
-  body.repeat-header table.data > thead .filter-chip{gap:2px!important;border:0!important;border-radius:0!important;padding:0!important;font-size:6.5px!important;white-space:nowrap!important;background:#fff!important}
-  body.repeat-header table.data > thead .banner-cell{padding:0 0 1px!important}
-}
 
 
 /* Per-element banner toggles — apply to BOTH real banner and preview clone */
