@@ -461,10 +461,9 @@ body:not(.repeat-header) #repeat-banner-preview .page2-paper::before{content:"�
     <option value="260">واسع جداً</option>
   </select>
   <select id="pv-sigspace" title="ارتفاع كتلة التوقيع: يوزّع المساحة بين التوقيع والختم والاسم والمنصب">
-    <option value="0">مسافة التوقيع: بلا فراغ</option>
-    <option value="2" selected>مسافة التوقيع: 2 مم (مضغوطة جداً)</option>
+    <option value="2">مسافة التوقيع: 2 مم (مضغوطة جداً)</option>
     <option value="4">مسافة التوقيع: 4 مم (مضغوطة)</option>
-    <option value="7">مسافة التوقيع: 7 مم (متوسطة)</option>
+    <option value="7" selected>مسافة التوقيع: 7 مم (متوسطة — موصى بها)</option>
     <option value="10">مسافة التوقيع: 10 مم (واسعة)</option>
     <option value="15">مسافة التوقيع: 15 مم (واسعة جداً)</option>
   </select>
