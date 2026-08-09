@@ -964,7 +964,7 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
   setIf('pv-fit',          prefs.fit===undefined?true:prefs.fit);
   setIf('pv-font',         prefs.fontScale===undefined?'100':String(prefs.fontScale));
   setIf('pv-rowh',         prefs.rowScale===undefined?'100':String(prefs.rowScale));
-  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'3':String(prefs.signatureSpace));
+  setIf('pv-sigspace',     prefs.signatureSpace===undefined?'2':String(prefs.signatureSpace));
   setIf('pv-onepage',      prefs.onePage===undefined?false:prefs.onePage);
 
   applyPage();
