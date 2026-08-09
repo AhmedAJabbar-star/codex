@@ -203,8 +203,10 @@ body.in-preview{padding:0}
 body.toolbar-hidden .preview-bar > *{display:none!important}
 body.toolbar-hidden .preview-bar > .btn-print,
 body.toolbar-hidden .preview-bar > .btn-close,
-body.toolbar-hidden .preview-bar > .pv-toggle{display:inline-flex!important}
+body.toolbar-hidden .preview-bar > .pv-toggle,
+body.toolbar-hidden .preview-bar > .pv-actions{display:flex!important}
 body.toolbar-hidden .preview-bar{justify-content:flex-end;gap:8px}
+body.toolbar-hidden .pv-actions{grid-column:1/-1;flex-direction:row;justify-content:flex-end}
 @media print{.preview-bar,.pv-toggle,#cols-panel{display:none!important}}
 
 /* ===== لوحة ضبط عرض الأعمدة ===== */
@@ -869,15 +871,13 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
       var last=chunks[chunks.length-1];
       var lastRowsH=last.reduce(function(sum,r){ return sum+Math.max(12,r.getBoundingClientRect().height); },0);
       var lastHeaderH=(chunks.length===1 || repeat) ? bannerH : 0;
+      var overflowRows=[];
       while(last.length>1 && lastRowsH+lastHeaderH+columnsH+sigH+12>limit){
         var moved=last.pop();
         lastRowsH-=Math.max(12,moved.getBoundingClientRect().height);
-        if(chunks.length===1 || chunks[chunks.length-2]!==last){};
+        overflowRows.unshift(moved);
       }
-      if(last.length<visibleRows.length && chunks.length===1){
-        var remaining=visibleRows.slice(last.length);
-        if(remaining.length) chunks.push(remaining);
-      }
+      if(overflowRows.length) chunks.push(overflowRows);
     }
 
     chunks.forEach(function(chunk,index){
