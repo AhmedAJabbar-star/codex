@@ -236,15 +236,15 @@ body.toolbar-hidden .pv-actions{grid-column:1/-1;flex-direction:row;justify-cont
 /* ===== PRINT AREA ===== */
 .print-area{max-width:297mm;margin:14px auto;background:#fff;padding:8mm 6mm;box-shadow:0 12px 32px rgba(0,0,0,.12);border-radius:6px;position:relative;overflow:hidden}
 .print-area > *{position:relative;z-index:1}
-.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;font-family:'Amiri',serif;color:#0f4c81;font-size:80px;font-weight:700;white-space:nowrap;pointer-events:none;z-index:5;opacity:.07;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.watermark img{width:525px;height:525px;object-fit:contain;filter:grayscale(1);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;font-family:'Amiri',serif;color:#0f4c81;font-size:40px;font-weight:700;white-space:nowrap;pointer-events:none;z-index:5;opacity:.07;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.watermark img{width:263px;height:263px;object-fit:contain;filter:grayscale(1);-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body.hide-watermark .watermark{display:none!important}
 /* في الطباعة: علامة مائية خفيفة ومتّزنة، وإلغاء overflow/position من حاوية الطباعة
    لأنّ overflow:hidden يمنع Chrome من تكرار <thead> في الصفحات التالية. */
 @media print{
   .print-area{overflow:visible!important;position:static!important}
   .print-area > *{position:static!important}
-  .print-sheet > .watermark{position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;font-size:75px;opacity:.07;z-index:5!important}
+  .print-sheet > .watermark{position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;font-size:38px;opacity:.07;z-index:5!important}
 }
 
 
