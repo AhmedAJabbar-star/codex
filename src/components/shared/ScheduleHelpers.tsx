@@ -23,9 +23,9 @@ export function parseTimeToMinutes(timeStr: string): number | null {
 }
 
 /* ───── Official Print helper (Unified University Schedule) ───── */
-export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs, autoPrint?: boolean, totals?: Record<string, string>) {
-  const w = window.open('', '_blank');
-  if (!w) return;
+/** يبني مستند الطباعة الرسمي كاملاً كنص HTML (نفس المحرك المستخدم في زر الطباعة). */
+export function buildPrintDocHtml(title: string, headers: string[], rows: ScheduleRow[], _footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs, autoPrint?: boolean, totals?: Record<string, string>): string {
+
 
   const isNotes = (h: string) => (h || '').trim() === 'الملاحظات';
   const esc = (v: unknown) => (v == null ? '' : String(v)).replace(/</g, '&lt;');
@@ -170,7 +170,7 @@ export function openPrintWindow(title: string, headers: string[], rows: Schedule
 
   // No separate "running header" — we repeat the SAME full banner via <thead>.
 
-  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+  return (`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1036,6 +1036,11 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
     }
 
     document.body.classList.add('ready');
+    /* واجهة برمجية للتصدير الخارجي (زر: حفظ PDF كامل على الحاسبة) */
+    window.__reportExport = {
+      ready: true,
+      build: function(){ buildPrintPages(); return document.querySelectorAll('#print-pages .print-sheet').length; }
+    };
     /* بعد اكتمال إدراج كل الصفوف فقط يمكن قياس التقرير وملاءمته فعلياً. */
     applyType(); applySigSpace();
     if(onePage && onePage.checked) requestAnimationFrame(function(){ requestAnimationFrame(applyOnePage); });
@@ -1129,6 +1134,13 @@ ${DEFER_ROWS ? `<script type="text/html" id="rows-src">${tableRows.replace(/<\/s
 })();
 </script>
 </body></html>`);
+}
+
+/** يفتح نافذة الطباعة الرسمية (نفس المحرك الذي يبني ملف PDF المحفوظ على الحاسبة). */
+export function openPrintWindow(title: string, headers: string[], rows: ScheduleRow[], footerHtml: string, singlePage?: boolean, department?: string, filtersInfo?: { label: string; value: string }[], customSignatures?: { label: string; name?: string }[], printPrefs?: import('@/data/customSystemsRegistry').PrintPrefs, autoPrint?: boolean, totals?: Record<string, string>) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(buildPrintDocHtml(title, headers, rows, footerHtml, singlePage, department, filtersInfo, customSignatures, printPrefs, autoPrint, totals));
   w.document.close();
 }
 
