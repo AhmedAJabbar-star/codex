@@ -1,9 +1,8 @@
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas-pro';
 import type { ScheduleRow } from '@/data/scheduleData';
 import type { PrintPrefs, SignatureItem } from '@/data/customSystemsRegistry';
-import universityLogo from '@/assets/university-logo.jpg';
-import arabicFontAsset from '@/assets/noto-naskh-arabic.ttf.asset.json';
+import { buildPrintDocHtml } from '@/components/shared/ScheduleHelpers';
 
 interface DirectoryHandle {
   getFileHandle(name: string, options: { create: boolean }): Promise<{
@@ -19,32 +18,16 @@ interface DirectPdfOptions {
   filtersInfo?: { label: string; value: string }[];
   signatures?: SignatureItem[];
   printPrefs?: PrintPrefs;
+  totals?: Record<string, string>;
   onProgress?: (completed: number, total: number, part: number, parts: number) => void;
   signal?: AbortSignal;
 }
 
-const PART_ROWS = 2_000;
-
 const nextPaint = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 function safeName(value: string): string {
   return value.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 90) || 'تقرير';
-}
-
-async function asDataUrl(url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error('تعذر تحميل أحد أصول التقرير');
-  const blob = await response.blob();
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
-
-function base64Body(dataUrl: string): string {
-  return dataUrl.slice(dataUrl.indexOf(',') + 1);
 }
 
 async function saveBlob(directory: DirectoryHandle | null, blob: Blob, filename: string) {
@@ -65,9 +48,12 @@ async function saveBlob(directory: DirectoryHandle | null, blob: Blob, filename:
   window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
+interface ExportApi { ready?: boolean; build?: () => number }
+
 /**
- * Generates bounded-size PDF parts and writes each part immediately. This keeps
- * memory stable even for 40k+ rows and never creates a giant printable DOM tree.
+ * يُنتج ملف PDF بنفس جودة «طباعة الجدول» تماماً: نُشغّل محرّك الطباعة الرسمي
+ * نفسه داخل إطار مخفي (بانر + علامة مائية + تواقيع + تذييل لكل ورقة)، ثم
+ * نلتقط كل ورقة A4 بدقة عالية ونضعها في ملف PDF واحد.
  */
 export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<{ files: number; folderMode: boolean }> {
   const picker = (window as unknown as { showDirectoryPicker?: (options?: { mode: 'readwrite' }) => Promise<DirectoryHandle> }).showDirectoryPicker;
@@ -76,150 +62,112 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
     try {
       directory = await picker.call(window, { mode: 'readwrite' });
     } catch (error) {
-      const name = (error as DOMException)?.name;
-      // المستخدم ألغى الاختيار => نوقف العملية. أي خطأ آخر (مثل التشغيل داخل إطار
-      // معاينة cross-origin) => نتابع بالتنزيل العادي إلى مجلد التنزيلات.
-      if (name === 'AbortError') throw error;
+      if ((error as DOMException)?.name === 'AbortError') throw error;
       directory = null;
     }
   }
 
-
-  const [fontDataUrl, logoDataUrl] = await Promise.all([
-    asDataUrl(arabicFontAsset.url),
-    asDataUrl(universityLogo),
-  ]);
-
   const total = options.rows.length;
-  const chunks = Math.max(1, Math.ceil(total / PART_ROWS));
   const reportName = safeName(options.printPrefs?.title || options.title);
-  const date = new Date().toLocaleDateString('en-GB');
-  const signatures = options.signatures?.length
-    ? options.signatures
-    : [{ label: 'مقرر القسم' }, { label: 'رئيس القسم' }, { label: 'مصادقة العميد' }];
 
-  const wide = options.headers.length > 12;
-  const doc = new jsPDF({
-    orientation: options.printPrefs?.orient || 'landscape',
-    unit: 'mm',
-    format: wide ? 'a3' : (options.printPrefs?.size?.toLowerCase() || 'a4'),
-    compress: true,
-    putOnlyUsedFonts: true,
-  });
-  doc.addFileToVFS('NotoNaskhArabic.ttf', base64Body(fontDataUrl));
-  doc.addFont('NotoNaskhArabic.ttf', 'NotoNaskhArabic', 'normal');
-  doc.setFont('NotoNaskhArabic', 'normal');
+  const html = buildPrintDocHtml(
+    options.title,
+    options.headers,
+    options.rows,
+    '',
+    false,
+    options.department,
+    options.filtersInfo,
+    options.signatures,
+    options.printPrefs,
+    false,
+    options.totals,
+  );
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = Number(options.printPrefs?.margin || 8);
-  const headerHeight = options.printPrefs?.compactRepeat ? 29 : 37;
+  const frame = document.createElement('iframe');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = 'position:fixed;left:-100000px;top:0;width:1600px;height:1200px;border:0;opacity:0;pointer-events:none';
+  document.body.appendChild(frame);
 
-  // jsPDF لا يطبّق خوارزمية bidi على النص المختلط (عربي + أرقام + رموز)،
-  // فتظهر أسطر الترويسة مبعثرة. لذلك نقسّم النص إلى مقاطع متجانسة
-  // (عربية / غير عربية) ونرسمها يميناً إلى يسار مع فراغات ثابتة.
-  const GAP = 1.8;
-  const WIDE_GAP = 7; // فاصل بصري بدل رموز الفصل التي تربك ترتيب النص
-  const toSegments = (text: string): string[] =>
-    (text.match(/[\u0600-\u06FF\u0750-\u077F]+(?:\s+[\u0600-\u06FF\u0750-\u077F]+)*|[^\u0600-\u06FF\u0750-\u077F\s]+/g) || []);
-  // القيمة '' تعني فاصلاً واسعاً بلا رموز.
-  const drawRtlSegments = (segments: string[], centerX: number, y: number) => {
-    const widths = segments.map((segment) => (segment === '' ? WIDE_GAP : doc.getTextWidth(segment)));
-    const totalWidth = widths.reduce((sum, w) => sum + w, 0) + GAP * Math.max(0, segments.length - 1);
-    let x = centerX + totalWidth / 2;
-    segments.forEach((segment, index) => {
-      x -= widths[index];
-      if (segment !== '') doc.text(segment, x, y, { align: 'left' });
-      x -= GAP;
-    });
-  };
-  const drawRtlText = (text: string, centerX: number, y: number) => drawRtlSegments(toSegments(text), centerX, y);
+  try {
+    const doc = frame.contentDocument;
+    const win = frame.contentWindow as (Window & { __reportExport?: ExportApi }) | null;
+    if (!doc || !win) throw new Error('تعذر تجهيز محرك التقرير');
+    doc.open();
+    doc.write(html);
+    doc.close();
 
-  const drawHeader = () => {
-    doc.setFont('NotoNaskhArabic', 'normal');
-    doc.setDrawColor(15, 76, 129);
-    doc.setLineWidth(0.45);
-    doc.line(margin, headerHeight, pageWidth - margin, headerHeight);
-    if (options.printPrefs?.showLogo !== false) doc.addImage(logoDataUrl, 'JPEG', pageWidth / 2 - 8, 3, 16, 25, undefined, 'FAST');
-    doc.setTextColor(15, 76, 129);
-    doc.setFontSize(10);
-    doc.text('جمهورية العراق\nوزارة التعليم العالي والبحث العلمي', pageWidth - margin, 8, { align: 'right' });
-    doc.text(`الجامعة التكنولوجية\nكلية الهندسة المدنية${options.department ? `\n${options.department}` : ''}`, margin, 8, { align: 'left' });
-    if (options.printPrefs?.showTitle !== false) {
-      doc.setFontSize(13);
-      doc.text(options.printPrefs?.title || options.title, pageWidth / 2, 31, { align: 'center' });
+    options.onProgress?.(0, total, 0, 1);
+
+    // ننتظر جاهزية المستند (إدراج كل الصفوف + الخطوط)
+    const deadline = Date.now() + 180_000;
+    while (!win.__reportExport?.ready) {
+      if (options.signal?.aborted) throw new DOMException('تم إلغاء إنشاء التقرير', 'AbortError');
+      if (Date.now() > deadline) throw new Error('استغرق تجهيز التقرير وقتاً طويلاً');
+      await wait(120);
     }
-    doc.setFontSize(7.5);
-    doc.setTextColor(65, 82, 102);
-    drawRtlSegments(['التاريخ', date, '', 'عدد السجلات', String(total)], pageWidth / 2, headerHeight - 2);
-    if (options.printPrefs?.showFilters !== false && options.filtersInfo?.length) {
-      doc.setFontSize(6.5);
-      const filterSegments: string[] = [];
-      options.filtersInfo.slice(0, 8).forEach((item, index) => {
-        if (index > 0) filterSegments.push('');
-        filterSegments.push(...toSegments(item.label), ...toSegments(item.value));
-      });
-      drawRtlSegments(filterSegments, pageWidth / 2, headerHeight + 1.5);
-    }
+    try { await (doc as Document & { fonts?: FontFaceSet }).fonts?.ready; } catch { /* الخط الافتراضي كافٍ */ }
+    await wait(350);
 
-  };
+    // إخفاء عناصر المعاينة التي لا تُطبع، وإظهار صفحات الطباعة الفعلية
+    const style = doc.createElement('style');
+    style.textContent = `
+      .preview-bar,#repeat-banner-preview,.print-area,.pdf-tip,#prep{display:none!important}
+      body{background:#fff!important;margin:0!important;padding:0!important}
+      #print-pages{display:block!important}
+      .print-sheet{margin:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important;max-width:none!important;background:#fff!important}
+    `;
+    doc.head.appendChild(style);
 
-
-  // الجدول في PDF يُرسم من اليسار لليمين، لذلك نعكس ترتيب الأعمدة
-  // كي تظهر القراءة من اليمين إلى اليسار مثل زر الطباعة.
-  const rtlHeaders = [...options.headers].reverse();
-
-  for (let chunk = 0; chunk < chunks; chunk += 1) {
-    if (options.signal?.aborted) throw new DOMException('تم إلغاء إنشاء التقرير', 'AbortError');
-    const start = chunk * PART_ROWS;
-    const end = Math.min(total, start + PART_ROWS);
-    if (chunk > 0) doc.addPage();
-
-    autoTable(doc, {
-      head: [rtlHeaders],
-      body: options.rows.slice(start, end).map((row) => rtlHeaders.map((header) => String(row[header] ?? ''))),
-      startY: headerHeight + 2,
-      margin: { top: headerHeight + 2, right: margin, bottom: 15, left: margin },
-      theme: 'grid',
-      styles: {
-        font: 'NotoNaskhArabic',
-        fontStyle: 'normal',
-        fontSize: wide ? 5.4 : options.headers.length > 8 ? 6.2 : 7,
-        cellPadding: 1.15,
-        halign: 'center',
-        valign: 'middle',
-        overflow: 'linebreak',
-        lineColor: [197, 211, 227],
-        lineWidth: 0.15,
-        textColor: [11, 31, 51],
-      },
-      headStyles: { fillColor: [15, 76, 129], textColor: [255, 255, 255], fontSize: wide ? 5.8 : 7.2 },
-      alternateRowStyles: { fillColor: [244, 248, 253] },
-      didDrawPage: () => drawHeader(),
-    });
-
-    options.onProgress?.(end, total, chunk + 1, chunks);
+    const sheetCount = win.__reportExport?.build?.() || 0;
     await nextPaint();
-  }
+    const sheets = Array.from(doc.querySelectorAll<HTMLElement>('#print-pages .print-sheet'));
+    if (!sheets.length || !sheetCount) throw new Error('تعذر تقسيم التقرير إلى صفحات');
 
-  const pageCount = doc.getNumberOfPages();
-  for (let page = 1; page <= pageCount; page += 1) {
-    doc.setPage(page);
-    doc.setFont('NotoNaskhArabic', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(75, 91, 110);
-    drawRtlText(`صفحة ${page} من ${pageCount}`, pageWidth / 2, pageHeight - 5);
-  }
-  if (options.printPrefs?.showSigs !== false && signatures.length) {
-    doc.setPage(pageCount);
-    doc.setFontSize(8);
-    const y = pageHeight - 10;
-    signatures.forEach((signature, index) => {
-      const x = margin + ((pageWidth - margin * 2) * (index + 0.5)) / signatures.length;
-      drawRtlText(`${signature.label}${signature.name ? `: ${signature.name}` : ''}`, x, y);
+    const first = sheets[0];
+    const widthPx = first.offsetWidth;
+    const heightPx = first.offsetHeight;
+    const pxToMm = 25.4 / 96;
+    const pageW = widthPx * pxToMm;
+    const pageH = heightPx * pxToMm;
+
+    const pdf = new jsPDF({
+      orientation: pageW >= pageH ? 'landscape' : 'portrait',
+      unit: 'mm',
+      format: [pageW, pageH],
+      compress: true,
     });
-  }
 
-  await saveBlob(directory, doc.output('blob'), `${reportName}.pdf`);
-  return { files: 1, folderMode: Boolean(directory) };
+    // دقة أعلى للتقارير القصيرة، وأخف للتقارير الضخمة حفاظاً على الذاكرة
+    const scale = sheets.length > 120 ? 1.6 : sheets.length > 40 ? 2 : 2.6;
+
+    for (let i = 0; i < sheets.length; i += 1) {
+      if (options.signal?.aborted) throw new DOMException('تم إلغاء إنشاء التقرير', 'AbortError');
+      const canvas = await html2canvas(sheets[i], {
+        scale,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+        windowWidth: widthPx,
+        windowHeight: heightPx,
+      });
+      const image = canvas.toDataURL('image/jpeg', 0.95);
+      if (i > 0) pdf.addPage([pageW, pageH], pageW >= pageH ? 'landscape' : 'portrait');
+      pdf.addImage(image, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
+      canvas.width = 0;
+      canvas.height = 0;
+      options.onProgress?.(
+        Math.round((total * (i + 1)) / sheets.length),
+        total,
+        i + 1,
+        sheets.length,
+      );
+      await nextPaint();
+    }
+
+    await saveBlob(directory, pdf.output('blob'), `${reportName}.pdf`);
+    return { files: 1, folderMode: Boolean(directory) };
+  } finally {
+    frame.remove();
+  }
 }

@@ -483,6 +483,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     setPdfProgress({ completed: 0, total: filteredRows.length, part: 0, parts: Math.max(1, Math.ceil(filteredRows.length / 2000)) });
     try {
       const dept = filters['القسم الذي تنتمي اليه'] || filters['القسم'] || filters['القسم للفصل الدراسي الثاني'] || filters['T'] || filters['P'] || '';
+      const pdfTotals: Record<string, string> = {};
+      reportHeaders.forEach((h) => { if (aggTotals[h]) pdfTotals[h] = aggTotals[h]; });
       const result = await exportOfficialPdfToPc({
         title: reportTitle,
         headers: reportHeaders,
@@ -491,6 +493,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         filtersInfo: activeFilterInfo.map(({ label, value }) => ({ label, value })),
         signatures: system.customSignatures,
         printPrefs: system.printPrefs,
+        totals: pdfTotals,
         signal: controller.signal,
         onProgress: (completed, total, part, parts) => setPdfProgress({ completed, total, part, parts }),
       });
