@@ -87,6 +87,24 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
   let pageH = 0;
   let processedRows = 0;
   let pageIndex = 0;
+  let pagesInFile = 0;
+  let fileIndex = 0;
+  let savedFiles = 0;
+
+  /** حد أقصى لعدد الصفحات في الملف الواحد: تجاوزه يفجّر ذاكرة النصوص في jsPDF (Invalid string length). */
+  const PAGES_PER_FILE = 120;
+
+  const flushPdf = async () => {
+    if (!pdf || !pagesInFile) return;
+    fileIndex += 1;
+    const blob = pdf.output('blob');
+    const name = `${reportName}${fileIndex > 1 || pagesInFile >= PAGES_PER_FILE ? ` - جزء ${fileIndex}` : ''}.pdf`;
+    await saveBlob(directory, blob, name);
+    savedFiles += 1;
+    pdf = null;
+    pagesInFile = 0;
+  };
+
 
   const renderChunk = async (rows: ScheduleRow[], isLast: boolean) => {
     const html = buildPrintDocHtml(
@@ -139,17 +157,11 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
       const sheets = Array.from(doc.querySelectorAll<HTMLElement>('#print-pages .print-sheet'));
       if (!sheets.length || !sheetCount) throw new Error('تعذر تقسيم التقرير إلى صفحات');
 
-      if (!pdf) {
+      if (!pageW || !pageH) {
         const first = sheets[0];
         const pxToMm = 25.4 / 96;
         pageW = first.offsetWidth * pxToMm;
         pageH = first.offsetHeight * pxToMm;
-        pdf = new jsPDF({
-          orientation: pageW >= pageH ? 'landscape' : 'portrait',
-          unit: 'mm',
-          format: [pageW, pageH],
-          compress: true,
-        });
       }
 
       // دقة أعلى للتقارير القصيرة، وأخف للتقارير الضخمة حفاظاً على الذاكرة والوقت
@@ -166,9 +178,20 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
           windowHeight: sheets[i].offsetHeight,
         });
         const image = canvas.toDataURL('image/jpeg', 0.92);
-        if (pageIndex > 0) pdf.addPage([pageW, pageH], pageW >= pageH ? 'landscape' : 'portrait');
+        if (pagesInFile >= PAGES_PER_FILE) await flushPdf();
+        if (!pdf) {
+          pdf = new jsPDF({
+            orientation: pageW >= pageH ? 'landscape' : 'portrait',
+            unit: 'mm',
+            format: [pageW, pageH],
+            compress: true,
+          });
+        } else {
+          pdf.addPage([pageW, pageH], pageW >= pageH ? 'landscape' : 'portrait');
+        }
         pdf.addImage(image, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
         pageIndex += 1;
+        pagesInFile += 1;
         canvas.width = 0;
         canvas.height = 0;
         const done = processedRows + Math.round((rows.length * (i + 1)) / sheets.length);
@@ -187,8 +210,9 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
     await renderChunk(chunks[c], c === chunks.length - 1);
   }
 
-  if (!pdf) throw new Error('تعذر إنشاء الملف');
-  await saveBlob(directory, pdf.output('blob'), `${reportName}.pdf`);
-  return { files: 1, folderMode: Boolean(directory) };
+  await flushPdf();
+  if (!savedFiles) throw new Error('تعذر إنشاء الملف');
+  return { files: savedFiles, folderMode: Boolean(directory) };
+
 }
 
