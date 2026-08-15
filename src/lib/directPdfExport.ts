@@ -23,12 +23,66 @@ interface DirectPdfOptions {
   signal?: AbortSignal;
 }
 
-const nextPaint = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+/** لا نعتمد على requestAnimationFrame وحده: المتصفح يوقفه عند تصغير النافذة أو تبديل التبويب. */
+const nextPaint = () =>
+  new Promise<void>((resolve) => {
+    let done = false;
+    const finish = () => { if (!done) { done = true; resolve(); } };
+    try { requestAnimationFrame(finish); } catch { /* تجاهل */ }
+    window.setTimeout(finish, 24);
+  });
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 function safeName(value: string): string {
   return value.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 90) || 'تقرير';
 }
+
+/* ── تذكّر مجلد الحفظ: يُطلب أول مرة فقط ثم يُعاد استخدامه ── */
+const DB_NAME = 'report-export';
+const STORE = 'handles';
+const KEY = 'pdf-folder';
+
+function idb(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+async function loadSavedDirectory(): Promise<DirectoryHandle | null> {
+  const db = await idb();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY);
+      req.onsuccess = () => resolve((req.result as DirectoryHandle) || null);
+      req.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+async function saveDirectory(handle: DirectoryHandle) {
+  const db = await idb();
+  if (!db) return;
+  try { db.transaction(STORE, 'readwrite').objectStore(STORE).put(handle, KEY); } catch { /* تجاهل */ }
+}
+
+async function ensurePermission(handle: DirectoryHandle | null): Promise<boolean> {
+  if (!handle) return false;
+  const h = handle as unknown as {
+    queryPermission?: (o: { mode: 'readwrite' }) => Promise<PermissionState>;
+    requestPermission?: (o: { mode: 'readwrite' }) => Promise<PermissionState>;
+  };
+  try {
+    if ((await h.queryPermission?.({ mode: 'readwrite' })) === 'granted') return true;
+    return (await h.requestPermission?.({ mode: 'readwrite' })) === 'granted';
+  } catch { return false; }
+}
+
 
 async function saveBlob(directory: DirectoryHandle | null, blob: Blob, filename: string) {
   if (directory) {
