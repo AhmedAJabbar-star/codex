@@ -121,13 +121,27 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
   const picker = (window as unknown as { showDirectoryPicker?: (options?: { mode: 'readwrite' }) => Promise<DirectoryHandle> }).showDirectoryPicker;
   let directory: DirectoryHandle | null = null;
   if (picker) {
-    try {
-      directory = await picker.call(window, { mode: 'readwrite' });
-    } catch (error) {
-      if ((error as DOMException)?.name === 'AbortError') throw error;
-      directory = null;
+    const saved = await loadSavedDirectory();
+    if (await ensurePermission(saved)) {
+      directory = saved;
+    } else {
+      try {
+        directory = await picker.call(window, { mode: 'readwrite' });
+        if (directory) await saveDirectory(directory);
+      } catch (error) {
+        if ((error as DOMException)?.name === 'AbortError') throw error;
+        directory = null;
+      }
     }
   }
+
+  // منع إيقاف العمل عند تصغير النافذة أو الانتقال لتبويب آخر
+  let wakeLock: { release: () => Promise<void> } | null = null;
+  try {
+    wakeLock = await (navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } })
+      .wakeLock?.request('screen') ?? null;
+  } catch { wakeLock = null; }
+
 
   const total = options.rows.length;
   const reportName = safeName(options.printPrefs?.title || options.title);
