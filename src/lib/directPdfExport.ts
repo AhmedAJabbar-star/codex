@@ -272,15 +272,19 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
     }
   };
 
-  options.onProgress?.(0, total, 0, 1);
-  for (let c = 0; c < chunks.length; c += 1) {
-    if (options.signal?.aborted) throw new DOMException('تم إلغاء إنشاء التقرير', 'AbortError');
-    await renderChunk(chunks[c], c === chunks.length - 1);
-  }
+  try {
+    options.onProgress?.(0, total, 0, 1);
+    for (let c = 0; c < chunks.length; c += 1) {
+      if (options.signal?.aborted) throw new DOMException('تم إلغاء إنشاء التقرير', 'AbortError');
+      await renderChunk(chunks[c], c === chunks.length - 1);
+    }
 
-  await flushPdf();
+    await flushPdf();
+  } finally {
+    try { await wakeLock?.release(); } catch { /* تجاهل */ }
+  }
   if (!savedFiles) throw new Error('تعذر إنشاء الملف');
   return { files: savedFiles, folderMode: Boolean(directory) };
-
 }
+
 
