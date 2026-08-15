@@ -87,6 +87,24 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
   let pageH = 0;
   let processedRows = 0;
   let pageIndex = 0;
+  let pagesInFile = 0;
+  let fileIndex = 0;
+  let savedFiles = 0;
+
+  /** حد أقصى لعدد الصفحات في الملف الواحد: تجاوزه يفجّر ذاكرة النصوص في jsPDF (Invalid string length). */
+  const PAGES_PER_FILE = 120;
+
+  const flushPdf = async () => {
+    if (!pdf || !pagesInFile) return;
+    fileIndex += 1;
+    const blob = pdf.output('blob');
+    const name = `${reportName}${fileIndex > 1 || pagesInFile >= PAGES_PER_FILE ? ` - جزء ${fileIndex}` : ''}.pdf`;
+    await saveBlob(directory, blob, name);
+    savedFiles += 1;
+    pdf = null;
+    pagesInFile = 0;
+  };
+
 
   const renderChunk = async (rows: ScheduleRow[], isLast: boolean) => {
     const html = buildPrintDocHtml(
