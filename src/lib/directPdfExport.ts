@@ -23,15 +23,29 @@ interface DirectPdfOptions {
   signal?: AbortSignal;
 }
 
-/** لا نعتمد على requestAnimationFrame وحده: المتصفح يوقفه عند تصغير النافذة أو تبديل التبويب. */
-const nextPaint = () =>
+/**
+ * MessageChannel لا يعتمد على requestAnimationFrame ولا على مؤقّتات التبويب؛
+ * لذلك يبقى تسليم الدُفعات جارياً عند تصغير النافذة أو الانتقال إلى تبويب آخر.
+ */
+const yieldTask = () =>
   new Promise<void>((resolve) => {
-    let done = false;
-    const finish = () => { if (!done) { done = true; resolve(); } };
-    try { requestAnimationFrame(finish); } catch { /* تجاهل */ }
-    window.setTimeout(finish, 24);
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      channel.port2.close();
+      resolve();
+    };
+    channel.port2.postMessage(0);
   });
-const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
+const wait = (ms: number) => new Promise<void>((resolve) => {
+  const started = Date.now();
+  const check = () => {
+    if (Date.now() - started >= ms) resolve();
+    else yieldTask().then(check);
+  };
+  check();
+});
 
 function safeName(value: string): string {
   return value.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 90) || 'تقرير';
@@ -107,8 +121,33 @@ interface ExportApi { ready?: boolean; build?: () => number }
 /** حجم الدفعة الداخلية: تجهيز 45 ألف صف دفعة واحدة يُجمّد المتصفح، لذا نعالجها مقاطع. */
 function chunkSizeFor(total: number): number {
   if (total <= 1200) return total || 1;
-  if (total <= 6000) return 800;
-  return 600;
+  if (total <= 6000) return 500;
+  return 300;
+}
+
+async function captureSheet(sheet: HTMLElement, scale: number, signal?: AbortSignal): Promise<HTMLCanvasElement> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (signal?.aborted) throw new DOMException('تم إلغاء إنشاء التقرير', 'AbortError');
+    try {
+      return await html2canvas(sheet, {
+        scale: attempt === 2 ? Math.max(1.35, scale - 0.25) : scale,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        removeContainer: true,
+        windowWidth: sheet.offsetWidth,
+        windowHeight: sheet.offsetHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
+    } catch (error) {
+      lastError = error;
+      await yieldTask();
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('تعذر التقاط صفحة من التقرير');
 }
 
 /**
@@ -191,7 +230,9 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
 
     const frame = document.createElement('iframe');
     frame.setAttribute('aria-hidden', 'true');
-    frame.style.cssText = 'position:fixed;left:-100000px;top:0;width:1600px;height:1200px;border:0;opacity:0;pointer-events:none';
+    /* لا نستخدم opacity:0 أو إزاحة -100000px؛ كلاهما قد يجعل html2canvas
+       يفقد العنصر داخل الـ cloned iframe. القص البصري يبقيه قابلاً للرسم بلا ظهوره. */
+    frame.style.cssText = 'position:fixed;left:0;top:0;width:1600px;height:1200px;border:0;clip-path:inset(0 0 100% 100%);pointer-events:none;z-index:-1';
     document.body.appendChild(frame);
 
     try {
@@ -221,7 +262,7 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
       doc.head.appendChild(style);
 
       const sheetCount = win.__reportExport?.build?.() || 0;
-      await nextPaint();
+      await yieldTask();
       const sheets = Array.from(doc.querySelectorAll<HTMLElement>('#print-pages .print-sheet'));
       if (!sheets.length || !sheetCount) throw new Error('تعذر تقسيم التقرير إلى صفحات');
 
@@ -237,14 +278,7 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
 
       for (let i = 0; i < sheets.length; i += 1) {
         if (options.signal?.aborted) throw new DOMException('تم إلغاء إنشاء التقرير', 'AbortError');
-        const canvas = await html2canvas(sheets[i], {
-          scale,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          logging: false,
-          windowWidth: sheets[i].offsetWidth,
-          windowHeight: sheets[i].offsetHeight,
-        });
+        const canvas = await captureSheet(sheets[i], scale, options.signal);
         const image = canvas.toDataURL('image/jpeg', 0.92);
         if (pagesInFile >= PAGES_PER_FILE) await flushPdf();
         if (!pdf) {
@@ -264,7 +298,7 @@ export async function exportOfficialPdfToPc(options: DirectPdfOptions): Promise<
         canvas.height = 0;
         const done = processedRows + Math.round((rows.length * (i + 1)) / sheets.length);
         options.onProgress?.(Math.min(total, done), total, pageIndex, pageIndex);
-        await nextPaint();
+        await yieldTask();
       }
       processedRows += rows.length;
     } finally {
