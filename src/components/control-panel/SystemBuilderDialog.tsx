@@ -575,6 +575,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 <input className="schedule-select w-full" value={s.columns_range} onChange={(e) => patch({ columns_range: e.target.value })} placeholder="مثال: A:B,D:J,L أو F,G,I,K" />
                 <p className="text-xs text-slate-500 mt-1">يدعم نطاقات متعددة بفواصل: مثال <code>A:B,D:J,L</code>. الترتيب يحدد ترتيب الأعمدة.</p>
               </div>
+              <div>
+                <label className="block text-sm font-black mb-1">🙈 أعمدة مخفية مساعِدة (اختياري)</label>
+                <input className="schedule-select w-full font-mono" dir="ltr" value={(s as any).hidden_columns || ''} onChange={(e) => patch({ hidden_columns: e.target.value } as any)} placeholder="مثال: E أو E, M" />
+                <p className="text-xs text-slate-500 mt-1">أعمدة تُحمَّل لاستخدامها في الفلاتر والشروط والمعادلات لكنها <strong>لا تظهر</strong> في الجدول ولا في نموذج الإضافة — مفيدة للفلترة على عمود غير معروض.</p>
+              </div>
 
               {colLetters.length > 0 && (
                 <div>
