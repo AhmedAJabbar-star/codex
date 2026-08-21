@@ -38,8 +38,11 @@ export function getEffectivePerms(
   user: { role?: string; permissions?: UserPermissions | null } | null | undefined,
 ): Required<CrudPermissions> {
   const sysPerms = getCrudPerms(def);
+  // أنظمة لا تشترط دخول التدريسي: الصلاحيات تُحدَّد من إعدادات النظام نفسه (لا يوجد مستخدم/دور).
+  if (!def.require_teacher_auth) return sysPerms;
   const role = ((user?.role as AppRole) || 'user');
   const roleDefaults = ROLE_DEFAULTS[role] || ROLE_DEFAULTS.user;
+
   const override = user?.permissions?.systems?.[String(def.id || '')] || {};
   const userPerms: Required<CrudPermissions> = {
     view:   override.view   ?? roleDefaults.view,
