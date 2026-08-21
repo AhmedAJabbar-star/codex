@@ -71,6 +71,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [crudBusy, setCrudBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrStatus, setOcrStatus] = useState('');
+  // منتقي وضع استخراج النص بعد الرفع: شامل / مُلخَّص / ذكي
+  const [ocrPick, setOcrPick] = useState<{ files: File[]; letter: string } | null>(null);
   const ocrFileRef = useRef<HTMLInputElement | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const qc = useQueryClient();
@@ -834,12 +836,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   }, [crudCtx, crudEditing]);
 
   // 📝 استخراج نص الملفات المرفوعة (صورة / PDF / أي ملف) وحفظه في أول عمود فارغ مجاور
-  const extractUploadedText = useCallback(async (files: File[], fileLetter: string) => {
+  // mode: 'full' = نسخ حرفي شامل | 'summary' = مُلخَّص منظم | 'smart' = وفق معايير المنشئ
+  const extractUploadedText = useCallback(async (files: File[], fileLetter: string, mode: 'full' | 'summary' | 'smart' = 'full') => {
     if (!crudCtx) return;
     const def = crudCtx.def as any;
     // Existing systems that enabled OCR before the separate text-extraction switch was added
     // still receive deterministic full-text extraction for uploaded files.
     if (!def.ocr_text_enabled && !def.ocr_enabled) return;
+    if (mode === 'smart' && !(def.ocr_text_prompt || '').trim()) {
+      toast.warning('وضع «الذكي» يحتاج معايير استخراج — عرّفها في منشئ الأنظمة ضمن «تعليمات استخراج النص»، أو استخدم الوضع الشامل');
+      return;
+    }
     const cols = crudCtx.cols;
     const idx = cols.findIndex((c) => c.letter === fileLetter);
     const configured: string = (def.ocr_text_targets || {})[fileLetter] || '';
