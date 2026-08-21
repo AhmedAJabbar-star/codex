@@ -1163,8 +1163,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <>
                         <option value="">⚖️ تلقائي (الافتراضي) — gemini-3.6-flash · ضمن الحصة المجانية اليومية</option>
                         <option value="gemini-3.6-flash">🆓 gemini-3.6-flash — حصة مجانية يومية · مناسب للمستندات الواضحة</option>
-                        <option value="gemini-3.6-flash-lite">⚡ gemini-3.6-flash-lite — الأسرع · أوسع حصة مجانية</option>
-                        <option value="gemini-3.1-pro">💎 gemini-3.1-pro — أعلى دقة · قد يتطلب تفعيل الفوترة في حساب Google</option>
+                        <option value="gemini-3.5-flash">⚡ gemini-3.5-flash — سريع ومستقر</option>
+                        <option value="gemini-3.5-flash-lite">🪶 gemini-3.5-flash-lite — الأسرع · أوسع حصة مجانية</option>
+                        <option value="gemini-3.7-flash">🚀 gemini-3.7-flash — أحدث جيل flash</option>
+                        <option value="gemini-3.1-pro-preview">💎 gemini-3.1-pro — أعلى دقة · قد يتطلب تفعيل الفوترة في حساب Google</option>
                       </>
                     ) : (
                       <>

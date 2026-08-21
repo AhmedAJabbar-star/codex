@@ -28,14 +28,15 @@ const ALLOWED_MODELS = ["google/gemini-3.1-pro-preview", "google/gemini-3.7-flas
 const DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
 
 // موديلات Google AI Studio المسموحة عند اختيار المزوّد الخارجي (مفتاح المستخدم الخاص — بلا كريدت Lovable).
+// ملاحظة: عائلة 2.5 أُوقفت للمشاريع الجديدة من طرف Google (404) — الأسماء هنا متحقق منها عبر ListModels.
 const GOOGLE_ALLOWED_MODELS = [
-  "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest",
-  "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro",
-  "gemini-3.5-flash", "gemini-3.5-flash-lite",
-  "gemini-3.6-flash", "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.7-flash",
   "gemini-3.1-pro-preview",
 ] as const;
-const GOOGLE_DEFAULT_MODEL = "gemini-flash-latest";
+const GOOGLE_DEFAULT_MODEL = "gemini-3.6-flash";
 
 class ProviderError extends Error {
   status: number;
@@ -73,9 +74,19 @@ async function callGoogle(opts: {
   if (res.status === 429) {
     throw new ProviderError("تم تجاوز الحصة المجانية لمفتاح Google AI Studio — حاول لاحقاً أو اختر موديلاً أخف من منشئ الأنظمة", 429);
   }
-  if (res.status === 400 || res.status === 403) {
+  if (res.status === 403) {
     const t = await res.text();
-    throw new ProviderError(`مفتاح Google API غير صالح أو الموديل غير متاح له (${res.status}): ${t.slice(0, 200)}`, 400);
+    if (t.includes("denied access")) {
+      throw new ProviderError(
+        "Google حظرت مشروع هذا المفتاح (Your project has been denied access) — الحل: أنشئ مشروعاً جديداً في Google AI Studio (aistudio.google.com) وأصدر مفتاح API جديداً منه، ثم حدّث سر GOOGLE_API_KEY في أسرار المشروع",
+        400,
+      );
+    }
+    throw new ProviderError(`مفتاح Google API غير صالح أو غير مفعّل (403): ${t.slice(0, 200)}`, 400);
+  }
+  if (res.status === 400) {
+    const t = await res.text();
+    throw new ProviderError(`طلب غير صالح لمزوّد Google (400): ${t.slice(0, 200)}`, 400);
   }
   if (!res.ok) {
     const t = await res.text();
