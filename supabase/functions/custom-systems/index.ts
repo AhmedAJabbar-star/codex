@@ -175,7 +175,7 @@ async function rangeForRow(rowIdx0: number) {
 let cachedColOrder: string[] | null = null;
 async function getColOrder(): Promise<string[]> {
   if (cachedColOrder) return cachedColOrder;
-  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:AZ1`);
+  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:ZZ1`);
   const row: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "").trim()) : HEADERS;
   cachedColOrder = row.length > 0 ? row : HEADERS;
   return cachedColOrder;
@@ -185,7 +185,7 @@ async function readAll(): Promise<Record<string, string>[]> {
   await ensureSheet();
   cachedColOrder = null; // re-read after ensureSheet (may have extended)
   const order = await getColOrder();
-  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A2:AZ`);
+  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A2:ZZ`);
   const rows = (r.values || []) as string[][];
   return rows
     .filter((row) => row.some((c) => clean(c)))
