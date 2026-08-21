@@ -13,6 +13,7 @@ import { applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
   evaluateAll, evaluateCondition, applyDerivedColumns,
+  computeColumnValue, applyGroupStage, applyConflictDetection,
 } from '@/lib/conditionEngine';
 
 const CRUD_SNAPSHOT_KEY = '__crud_snapshot__';
@@ -29,16 +30,26 @@ export function buildConfigFromDef(
   const colIdxs = parseColumnsRange(def.columns_range);
   const labelMap = def.header_labels || {};
 
+  // Hidden helper columns: loaded for filters/logic/projection but excluded from the table and CRUD form.
+  const hiddenIdxs = String((def as any).hidden_columns || '')
+    .split(/[,\s]+/).filter(Boolean)
+    .map(colLetterToIndex)
+    .filter((i) => i >= 0 && !colIdxs.includes(i));
+  const projIdxs = [...colIdxs, ...hiddenIdxs];
+
   // Source headers (real names in sheet) and display labels (renamed)
   const sourceHeaders: string[] = [];
   const displayHeaders: string[] = [];
-  colIdxs.forEach((i) => {
+  const hiddenDisp = new Set<string>();
+  projIdxs.forEach((i) => {
     const real = sheet.headers[i];
     if (!real) return;
     sourceHeaders.push(real);
     const letter = colIndexToLetter(i);
     const override = (labelMap[letter] || labelMap[letter.toLowerCase()] || '').trim();
-    displayHeaders.push(override || real);
+    const disp = override || real;
+    displayHeaders.push(disp);
+    if (hiddenIdxs.includes(i)) hiddenDisp.add(disp);
   });
 
   // Per-column link buttons: map display header -> button label
@@ -56,7 +67,14 @@ export function buildConfigFromDef(
   });
 
   const derivedNames = (def.derived_columns || []).map((d) => d.name);
-  const allHeaders = [...displayHeaders, ...derivedNames];
+  const computedNames = (def.computed_columns || []).map((c) => c?.name).filter(Boolean) as string[];
+  const groupAggNames = ((def.group_stage?.aggs) || []).map((a) => a.name).filter(Boolean);
+  const flagColName = def.conflict_detector ? (def.conflict_detector.flag_column || '⚠️ تعارض') : '';
+  const allHeaders = Array.from(new Set([
+    ...displayHeaders.filter((h) => !hiddenDisp.has(h)),
+    ...derivedNames, ...computedNames, ...groupAggNames,
+    ...(flagColName ? [flagColName] : []),
+  ]));
 
   // Build filters: prefer filters_config when provided; fall back to filter_columns
   const builtFilters: SystemConfig['filters'] = [];
@@ -189,15 +207,38 @@ export function buildConfigFromDef(
     color: qf.color,
   }));
 
+  // ⚙️ Raw-stage v2: conflict detection → computed columns → group stage (all on raw rows by Excel letter)
+  let workingRows = sheet.rows.filter((r) => passes(r) && (!teacherFilter || teacherFilter(r)));
+  if (def.conflict_detector && (def.conflict_detector.group_by || []).length > 0) {
+    workingRows = applyConflictDetection(def.conflict_detector, workingRows, sheet.headers);
+  }
+  (def.computed_columns || []).forEach((cc) => {
+    if (!cc?.name || cc.type === 'row_number') return;
+    workingRows = workingRows.map((r) => ({ ...r, [cc.name]: computeColumnValue(cc, r, sheet.headers) }));
+  });
+  if (def.group_stage && (def.group_stage.keys || []).length > 0) {
+    workingRows = applyGroupStage(def.group_stage, workingRows, sheet.headers);
+  }
+  // Row-number columns are assigned last (after every filter/group stage).
+  const rowNumCols = (def.computed_columns || []).filter((c) => c?.name && c.type === 'row_number');
+  if (rowNumCols.length > 0) {
+    workingRows = workingRows.map((r, i) => {
+      const nr = { ...r };
+      rowNumCols.forEach((c) => { nr[c.name] = String(i + 1); });
+      return nr;
+    });
+  }
+
   const rows: Record<string, string>[] = [];
-  sheet.rows.forEach((r) => {
-    if (!passes(r)) return;
-    if (teacherFilter && !teacherFilter(r)) return;
+  workingRows.forEach((r) => {
     const expanded = applyDerivedColumns(def.derived_columns || [], r, sheet.headers);
     expanded.forEach((row) => {
       const out: Record<string, string> = {};
       sourceHeaders.forEach((real, idx) => { out[displayHeaders[idx]] = row[real] || ''; });
       derivedNames.forEach((dn) => { out[dn] = row[dn] || ''; });
+      computedNames.forEach((cn) => { out[cn] = row[cn] || ''; });
+      groupAggNames.forEach((gn) => { out[gn] = row[gn] || ''; });
+      if (flagColName) out[flagColName] = row[flagColName] || '';
       ruleFilters.forEach((rf) => {
         const tokens: string[] = [];
         rf.rules.forEach((rule) => {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { CustomSystemDef, FilterConfigItem, FilterRule, SignatureItem } from '@/data/customSystemsRegistry';
 import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem, listCustomSystems } from '@/data/customSystemsRegistry';
-import { OP_LABELS, type Condition, type ConditionOp, parseColumnsRange, colIndexToLetter } from '@/lib/conditionEngine';
+import { OP_LABELS, type Condition, type ConditionOp, type ComputedColumn, type ConflictCfg, type GroupStage, parseColumnsRange, colIndexToLetter } from '@/lib/conditionEngine';
 import { UI_THEMES, applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 const COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1e40af','#be123c'];
@@ -19,17 +19,66 @@ const ICONS = [
   // Office / Admin
   '📅','📆','🗓️','📌','📍','🔗','📎','🗃️','🗄️','📤','📥','✉️','📨','📧',
 ];
-const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','token_match','not_token_match','contains_any','eq_number','gt','lt','gte','lte','is_empty','is_not_empty'];
+const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','token_match','not_token_match','contains_any','in_list','not_in_list','between','eq_number','gt','lt','gte','lte','date_before','date_after','date_older_than_days','date_newer_than_days','time_overlaps','is_empty','is_not_empty'];
 const NEEDS_VALUE: Record<ConditionOp, boolean> = {
-  eq: true, neq: true, contains: true, not_contains: true, contains_any: false,
+  eq: true, neq: true, contains: true, not_contains: true,
+  contains_any: false, in_list: false, not_in_list: false, between: false,
   token_match: true, not_token_match: true,
   eq_number: true, gt: true, lt: true, gte: true, lte: true,
-  is_empty: false, is_not_empty: false, regex: false,
+  date_before: true, date_after: true, date_older_than_days: true, date_newer_than_days: true,
+  time_overlaps: true,
+  is_empty: false, is_not_empty: false, regex: true,
 };
+/** Operators whose value is a LIST (comma/newline separated) instead of a single value. */
+const MULTI_OPS: ConditionOp[] = ['contains_any', 'in_list', 'not_in_list'];
 
 /** Split a free-text multi-value input on any of: comma, Arabic comma, dash, semicolon, newline, or pipe. */
 const splitMulti = (s: string): string[] =>
   (s || '').split(/[,،\-;\n|]+/).map((v) => v.trim()).filter(Boolean);
+
+/** Shared value editor for a condition/quick-filter/rule row.
+ *  Renders the right input shape depending on the operator (list / between / single / none).
+ *  Note: 'between' stores its bounds in values[0]..values[1] (engine contract). */
+const CondValueInput = ({ c, upd, span }: {
+  c: { op: ConditionOp; value?: string | number; values?: (string | number)[] };
+  upd: (p: Record<string, unknown>) => void;
+  span: number;
+}) => {
+  const spanStyle = { gridColumn: `span ${span}` } as const;
+  if (MULTI_OPS.includes(c.op)) {
+    return (
+      <input
+        className="schedule-select w-full" style={spanStyle}
+        value={(c.values || []).join(', ')}
+        onChange={(e) => upd({ values: splitMulti(e.target.value) })}
+        placeholder="قيم مفصولة بأي من (, ، - | سطر جديد): مثل استاذ، أستاذ"
+      />
+    );
+  }
+  if (c.op === 'between') {
+    const lo = (c.values || [])[0];
+    const hi = (c.values || [])[1];
+    return (
+      <div className="grid grid-cols-2 gap-1 w-full" style={spanStyle}>
+        <input className="schedule-select" value={String(lo ?? '')} onChange={(e) => upd({ values: [e.target.value, hi ?? ''] })} placeholder="من" />
+        <input className="schedule-select" value={String(hi ?? '')} onChange={(e) => upd({ values: [lo ?? '', e.target.value] })} placeholder="إلى" />
+      </div>
+    );
+  }
+  if (NEEDS_VALUE[c.op]) {
+    const ph = c.op === 'date_before' ? 'تاريخ (مثال: 2026-12-31)'
+      : c.op === 'date_after' ? 'تاريخ (مثال: 2026-01-01)'
+      : c.op === 'date_older_than_days' ? 'عدد الأيام (أقدم من…)'
+      : c.op === 'date_newer_than_days' ? 'عدد الأيام (خلال آخر…)'
+      : c.op === 'time_overlaps' ? 'فترة (مثال: 08:30 AM - 10:00 AM)'
+      : c.op === 'regex' ? 'تعبير نمطي (مثال: ^أ)'
+      : 'القيمة المطلوب مطابقتها';
+    return (
+      <input className="schedule-select w-full" style={spanStyle} value={String(c.value ?? '')} onChange={(e) => upd({ value: e.target.value })} placeholder={ph} />
+    );
+  }
+  return <div className="text-xs text-slate-400 text-center w-full" style={spanStyle}>— لا قيمة —</div>;
+};
 
 interface Props {
   initial: CustomSystemDef | null; // null = create new
@@ -252,6 +301,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     [7, '🖨️ إعدادات الطباعة'],
     [8, '✨ ميزات متقدمة'],
     [9, '🔗 الربط والقيود'],
+    [10, '🧮 معالجة متقدمة'],
   ];
 
   const Step = ({ n, label }: { n: number; label: string }) => (
@@ -525,6 +575,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 <input className="schedule-select w-full" value={s.columns_range} onChange={(e) => patch({ columns_range: e.target.value })} placeholder="مثال: A:B,D:J,L أو F,G,I,K" />
                 <p className="text-xs text-slate-500 mt-1">يدعم نطاقات متعددة بفواصل: مثال <code>A:B,D:J,L</code>. الترتيب يحدد ترتيب الأعمدة.</p>
               </div>
+              <div>
+                <label className="block text-sm font-black mb-1">🙈 أعمدة مخفية مساعِدة (اختياري)</label>
+                <input className="schedule-select w-full font-mono" dir="ltr" value={(s as any).hidden_columns || ''} onChange={(e) => patch({ hidden_columns: e.target.value } as any)} placeholder="مثال: E أو E, M" />
+                <p className="text-xs text-slate-500 mt-1">أعمدة تُحمَّل لاستخدامها في الفلاتر والشروط والمعادلات لكنها <strong>لا تظهر</strong> في الجدول ولا في نموذج الإضافة — مفيدة للفلترة على عمود غير معروض.</p>
+              </div>
 
               {colLetters.length > 0 && (
                 <div>
@@ -645,23 +700,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             >
                               {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
                             </select>
-                            {r.op === 'contains_any' ? (
-                              <input
-                                className="schedule-select col-span-4"
-                                value={(r.values || []).join(', ')}
-                                onChange={(e) => updRule(i, ri, { values: splitMulti(e.target.value) })}
-                                placeholder="قيم مفصولة (,  ،  -  |  أو سطر جديد)"
-                              />
-                            ) : NEEDS_VALUE[r.op] ? (
-                              <input
-                                className="schedule-select col-span-4"
-                                value={String(r.value ?? '')}
-                                onChange={(e) => updRule(i, ri, { value: e.target.value })}
-                                placeholder="القيمة المطلوب مطابقتها"
-                              />
-                            ) : (
-                              <div className="col-span-4 text-[11px] text-slate-400 text-center">— لا قيمة —</div>
-                            )}
+                            <CondValueInput c={r} span={4} upd={(p) => updRule(i, ri, p)} />
                             <div className="col-span-2 flex items-center justify-end gap-1">
                               <button onClick={() => moveRule(i, ri, -1)} disabled={ri === 0} className="px-1.5 py-1 rounded border text-[10px] font-black disabled:opacity-30" title="نقل لأعلى">▲</button>
                               <button onClick={() => moveRule(i, ri, 1)} disabled={ri === (f.rules || []).length - 1} className="px-1.5 py-1 rounded border text-[10px] font-black disabled:opacity-30" title="نقل لأسفل">▼</button>
@@ -707,16 +746,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     <select className="schedule-select col-span-4" value={c.op} onChange={(e) => updCondition(i, { op: e.target.value as ConditionOp, value: '', values: [] })}>
                       {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
                     </select>
-                    {c.op === 'contains_any' ? (
-                      <input className="schedule-select col-span-5"
-                        value={(c.values || []).join(', ')}
-                        onChange={(e) => updCondition(i, { values: splitMulti(e.target.value) })}
-                        placeholder="قيم مفصولة بأي من (, ، - | سطر جديد): مثل استاذ، أستاذ" />
-                    ) : NEEDS_VALUE[c.op] ? (
-                      <input className="schedule-select col-span-5" value={String(c.value ?? '')} onChange={(e) => updCondition(i, { value: e.target.value })} placeholder="القيمة المطلوب مطابقتها في العمود" />
-                    ) : (
-                      <div className="col-span-5 text-xs text-slate-400 text-center">— لا قيمة —</div>
-                    )}
+                    <CondValueInput c={c} span={5} upd={(p) => updCondition(i, p)} />
                     <button onClick={() => delCondition(i)} className="col-span-1 text-red-600 font-black">✕</button>
                   </div>
                 ))}
@@ -1244,14 +1274,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <input type="color" className="col-span-1 h-10 w-full rounded border cursor-pointer" value={q.color || '#dc2626'} onChange={(e) => updQF(i, { color: e.target.value })} />
                       <button onClick={() => delQF(i)} className="col-span-1 text-red-600 font-black text-lg">✕</button>
                     </div>
-                    {q.op === 'contains_any' ? (
-                      <input className="schedule-select w-full" value={(q.values || []).join(', ')}
-                        onChange={(e) => updQF(i, { values: splitMulti(e.target.value) })}
-                        placeholder="قيم مفصولة (,  ،  -  |  أو سطر جديد)" />
-                    ) : NEEDS_VALUE[q.op as ConditionOp] ? (
-                      <input className="schedule-select w-full" value={String(q.value ?? '')}
-                        onChange={(e) => updQF(i, { value: e.target.value })} placeholder="القيمة المطلوب تصفية الصفوف بها (مثال: نعم / مستوفي)" />
-                    ) : null}
+                    <CondValueInput c={q as Condition & { color?: string }} span={12} upd={(p) => updQF(i, p)} />
                   </div>
                 ))}
               </div>
@@ -1629,13 +1652,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             <select className="schedule-select col-span-4" value={c.op} onChange={(e) => updRuleCond(i, ci, { op: e.target.value, value: '', values: [] })}>
                               {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
                             </select>
-                            {c.op === 'contains_any' ? (
-                              <input className="schedule-select col-span-5" value={(c.values || []).join(', ')} onChange={(e) => updRuleCond(i, ci, { values: splitMulti(e.target.value) })} placeholder="قيم مفصولة" />
-                            ) : NEEDS_VALUE[c.op as ConditionOp] ? (
-                              <input className="schedule-select col-span-5" value={String(c.value ?? '')} onChange={(e) => updRuleCond(i, ci, { value: e.target.value })} placeholder="القيمة" />
-                            ) : (
-                              <div className="col-span-5 text-xs text-slate-400 text-center">— لا قيمة —</div>
-                            )}
+                            <CondValueInput c={c} span={5} upd={(p) => updRuleCond(i, ci, p)} />
                             <button onClick={() => delRuleCond(i, ci)} className="col-span-1 text-red-500 text-sm">✕</button>
                           </div>
                         ))}
@@ -1951,6 +1968,280 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         }}
                         placeholder="مثال: B, C, F"
                       />
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {step === 10 && (() => {
+            const ccs = (s.computed_columns || []) as ComputedColumn[];
+            const setCCs = (v: ComputedColumn[]) => patch({ computed_columns: v });
+            const addCC = () => setCCs([...ccs, { name: '', type: 'duration', columns: [] }]);
+            const updCC = (i: number, p: Partial<ComputedColumn>) => setCCs(ccs.map((c, idx) => idx === i ? { ...c, ...p } : c));
+            const delCC = (i: number) => setCCs(ccs.filter((_, idx) => idx !== i));
+            const setCCCols = (i: number, raw: string) => updCC(i, { columns: splitMulti(raw).map((v) => v.toUpperCase()) });
+
+            const gs = s.group_stage;
+            const setGS = (p: Partial<GroupStage>) => patch({ group_stage: { keys: gs?.keys || [], aggs: gs?.aggs || [], having: gs?.having || [], emit: gs?.emit || 'groups', ...p } });
+            const gsAggs = gs?.aggs || [];
+            const gsHaving = gs?.having || [];
+            const HAVING_OPS: ('eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte')[] = ['eq', 'neq', 'gt', 'lt', 'gte', 'lte'];
+
+            const cd = s.conflict_detector;
+            const setCD = (p: Partial<ConflictCfg>) => patch({ conflict_detector: {
+              group_by: cd?.group_by || [], range_column: cd?.range_column || '',
+              from_column: cd?.from_column || '', to_column: cd?.to_column || '',
+              also_match: cd?.also_match || [],
+              flag: cd?.flag || 'يوجد تعارض ⚠️',
+              flag_column: cd?.flag_column || '⚠️ تعارض',
+              only_conflicts: cd?.only_conflicts !== false,
+              ...p,
+            } });
+
+            const CC_TYPES: [ComputedColumn['type'], string][] = [
+              ['duration', '⏱️ مدة زمنية (ساعات)'],
+              ['expr', '🧮 معادلة حسابية'],
+              ['sum', 'Σ جمع أعمدة'],
+              ['concat', '🔗 دمج نصوص'],
+              ['count_tokens', '# عدد العناصر في خلية'],
+              ['date_diff_days', '📅 فرق الأيام بين تاريخين'],
+              ['year_from_date', '📆 سنة من تاريخ'],
+              ['month_from_date', '🗓️ رقم الشهر من تاريخ'],
+              ['default_if_empty', '🩹 قيمة بديلة عند الفراغ'],
+              ['row_number', '# ترقيم تلقائي'],
+            ];
+
+            return (
+              <div className="space-y-5">
+                <div className="bg-violet-50 border-2 border-violet-200 rounded-lg p-3">
+                  <strong className="text-sm block mb-1">🧮 المعالجة المتقدمة للبيانات</strong>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    ثلاث مراحل تعمل بالترتيب بعد الشروط والفلاتر: <strong>1) كاشف التعارضات</strong> يوسم الصفوف المتضاربة،
+                    ثم <strong>2) الأعمدة المحسوبة</strong> تضيف أعمدة بصيغ ومعادلات، ثم <strong>3) مرحلة التجميع</strong> تجمع الصفوف وتحسب إحصاءاتها.
+                    بها يمكن بناء أنظمة مثل «تدريسيون بلا نظري»، «تعارض القاعات»، و«إجمالي الساعات لكل مدرّس» دون كود.
+                  </p>
+                </div>
+
+                {/* ===== الأعمدة المحسوبة ===== */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong className="text-sm">🧮 الأعمدة المحسوبة (صيغ ومعادلات)</strong>
+                      <p className="text-[11px] text-slate-500 mt-0.5">أعمدة جديدة تُحسب لكل صف: مدة المحاضرة، مجموع ساعات، معادلات حسابية، فرق التواريخ…</p>
+                    </div>
+                    <button className="schedule-btn schedule-btn-primary" onClick={addCC} style={{ minHeight: 32, padding: '4px 10px' }}>➕ عمود</button>
+                  </div>
+                  {ccs.length === 0 && <p className="text-xs text-slate-500 text-center py-3 bg-white rounded border border-dashed">لا توجد أعمدة محسوبة.</p>}
+                  {ccs.map((cc, i) => (
+                    <div key={i} className="bg-white p-2 rounded-lg border space-y-2">
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <input className="schedule-select col-span-4" value={cc.name} onChange={(e) => updCC(i, { name: e.target.value })} placeholder="اسم العمود الظاهر (مثال: المدة بالساعات)" />
+                        <select className="schedule-select col-span-6" value={cc.type} onChange={(e) => updCC(i, { type: e.target.value as ComputedColumn['type'], columns: [], expr: '', separator: undefined, round: undefined })}>
+                          {CC_TYPES.map(([t, lbl]) => <option key={t} value={t}>{lbl}</option>)}
+                        </select>
+                        <button onClick={() => delCC(i)} className="col-span-2 text-red-600 font-black">✕ حذف</button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {cc.type === 'duration' && (
+                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="عمود فترة واحد (J) أو عمودان: بداية، نهاية (J, K)" />
+                        )}
+                        {cc.type === 'expr' && (
+                          <input className="schedule-select flex-1 font-mono" dir="ltr" value={cc.expr || ''} onChange={(e) => updCC(i, { expr: e.target.value })} placeholder="{D} + {E} * 2  — استخدم {حرف العمود}" />
+                        )}
+                        {(cc.type === 'sum' || cc.type === 'concat') && (
+                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="الأعمدة مفصولة بفواصل — مثال: D, E, F" />
+                        )}
+                        {cc.type === 'concat' && (
+                          <input className="schedule-select w-24 text-center" value={cc.separator ?? ''} onChange={(e) => updCC(i, { separator: e.target.value })} placeholder="الفاصل" />
+                        )}
+                        {cc.type === 'count_tokens' && (
+                          <input className="schedule-select w-32 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="العمود (مثل: E)" />
+                        )}
+                        {cc.type === 'date_diff_days' && (
+                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="من، إلى (مثل: H, I) — «إلى» اختياري = اليوم" />
+                        )}
+                        {(cc.type === 'year_from_date' || cc.type === 'month_from_date') && (
+                          <input className="schedule-select w-32 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="عمود التاريخ (H)" />
+                        )}
+                        {cc.type === 'default_if_empty' && (
+                          <>
+                            <input className="schedule-select w-32 font-mono text-center" dir="ltr"
+                              value={(cc.columns || []).join(', ')}
+                              onChange={(e) => setCCCols(i, e.target.value)}
+                              placeholder="العمود (E)" />
+                            <input className="schedule-select flex-1"
+                              value={cc.fallback ?? ''}
+                              onChange={(e) => updCC(i, { fallback: e.target.value })}
+                              placeholder="القيمة البديلة عند فراغ الخلية (مثال: غير محدد)" />
+                          </>
+                        )}
+                        {(cc.type === 'sum' || cc.type === 'expr' || cc.type === 'duration') && (
+                          <input className="schedule-select w-24 text-center" type="number" step="0.01"
+                            value={cc.round ?? ''}
+                            onChange={(e) => updCC(i, { round: e.target.value === '' ? undefined : Number(e.target.value) })}
+                            placeholder="تقريب" />
+                        )}
+                        {cc.type === 'row_number' && <span className="text-[11px] text-slate-500">يُرقّم الصفوف النهائية (بعد كل المراحل) بدءاً من 1.</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ===== مرحلة التجميع ===== */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input type="checkbox" checked={!!gs} onChange={(e) => patch({ group_stage: e.target.checked ? { keys: [], aggs: [], having: [], emit: 'groups' } : undefined })} />
+                    <span>
+                      📊 تفعيل مرحلة التجميع (Group By)
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        تجمع الصفوف حسب عمود/أعمدة وتحسب إحصاءات لكل مجموعة (عدد، مجموع، قيم فريدة…)، مع إمكانية إبقاء المجموعات المطابقة لشروط فقط.
+                        مثال: تجميع حسب «اسم التدريسي» + عدّ المواد النظرية = 0 ⟵ نظام «تدريسيون بلا نظري».
+                      </span>
+                    </span>
+                  </label>
+                  {gs && (
+                    <div className="space-y-3 pt-1">
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <label className="col-span-3 text-xs font-black">أعمدة التجميع</label>
+                        <input className="schedule-select col-span-5 font-mono text-center" dir="ltr"
+                          value={(gs.keys || []).join(', ')}
+                          onChange={(e) => setGS({ keys: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                          placeholder="مثال: F  أو  F, B" />
+                        <label className="col-span-2 text-xs font-black">ما الذي يُعرض؟</label>
+                        <select className="schedule-select col-span-2" value={gs.emit || 'groups'} onChange={(e) => setGS({ emit: e.target.value as 'groups' | 'rows' })}>
+                          <option value="groups">سطر لكل مجموعة</option>
+                          <option value="rows">كل الصفوف + التجميعات</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <strong className="text-xs">الإحصاءات المحسوبة لكل مجموعة</strong>
+                          <button className="schedule-btn" style={{ minHeight: 28, padding: '2px 8px', fontSize: 11 }}
+                            onClick={() => setGS({ aggs: [...gsAggs, { name: '', op: 'count' }] })}>➕ إحصاء</button>
+                        </div>
+                        {gsAggs.map((a, i) => (
+                          <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-1.5 rounded border">
+                            <input className="schedule-select col-span-4" value={a.name} onChange={(e) => setGS({ aggs: gsAggs.map((x, xi) => xi === i ? { ...x, name: e.target.value } : x) })} placeholder="اسم العمود (مثال: عدد المواد)" />
+                            <select className="schedule-select col-span-4" value={a.op} onChange={(e) => setGS({ aggs: gsAggs.map((x, xi) => xi === i ? { ...x, op: e.target.value as any } : x) })}>
+                              <option value="count"># عدد الصفوف</option>
+                              <option value="count_unique">#∪ قيم فريدة لعمود</option>
+                              <option value="sum">Σ مجموع عمود</option>
+                              <option value="avg">x̄ متوسط عمود</option>
+                              <option value="min">↓ أصغر قيمة</option>
+                              <option value="max">↑ أكبر قيمة</option>
+                            </select>
+                            {a.op !== 'count' ? (
+                              <input className="schedule-select col-span-3 text-center font-mono" value={a.column || ''} onChange={(e) => setGS({ aggs: gsAggs.map((x, xi) => xi === i ? { ...x, column: e.target.value.toUpperCase() } : x) })} placeholder="عمود (E)" />
+                            ) : <span className="col-span-3 text-center text-[10px] text-slate-400">—</span>}
+                            <button onClick={() => setGS({ aggs: gsAggs.filter((_, xi) => xi !== i) })} className="col-span-1 text-red-600 font-black">✕</button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <strong className="text-xs">شروط على المجموعات (Having) — أبقِ فقط المجموعات المطابقة</strong>
+                          <button className="schedule-btn" style={{ minHeight: 28, padding: '2px 8px', fontSize: 11 }}
+                            onClick={() => setGS({ having: [...gsHaving, { agg: gsAggs[0]?.name || '', op: 'eq', value: 0 }] })}>➕ شرط</button>
+                        </div>
+                        {gsHaving.map((h, i) => (
+                          <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-1.5 rounded border">
+                            <select className="schedule-select col-span-5" value={h.agg} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, agg: e.target.value } : x) })}>
+                              <option value="">— اختر عمود الإحصاء —</option>
+                              {gsAggs.map((a) => <option key={a.name} value={a.name}>{a.name || '(بدون اسم)'}</option>)}
+                            </select>
+                            <select className="schedule-select col-span-3" value={h.op} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, op: e.target.value as typeof h.op } : x) })}>
+                              {HAVING_OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
+                            </select>
+                            <input className="schedule-select col-span-3" type="number" value={String(h.value ?? '')} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, value: Number(e.target.value) } : x) })} placeholder="القيمة" />
+                            <button onClick={() => setGS({ having: gsHaving.filter((_, xi) => xi !== i) })} className="col-span-1 text-red-600 font-black">✕</button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <label className="col-span-3 text-xs font-black">ترتيب النتائج حسب</label>
+                        <input className="schedule-select col-span-5" value={gs.sort_by || ''} onChange={(e) => setGS({ sort_by: e.target.value })} placeholder="اسم عمود (إحصاء أو أصلي)" />
+                        <select className="schedule-select col-span-4" value={gs.sort_dir || 'asc'} onChange={(e) => setGS({ sort_dir: e.target.value as 'asc' | 'desc' })}>
+                          <option value="asc">تصاعدي</option>
+                          <option value="desc">تنازلي</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ===== كاشف التعارضات ===== */}
+                <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input type="checkbox" checked={!!cd} onChange={(e) => patch({ conflict_detector: e.target.checked ? { group_by: [], range_column: '', flag: 'يوجد تعارض ⚠️', flag_column: '⚠️ تعارض', only_conflicts: true } : undefined })} />
+                    <span>
+                      ⚠️ تفعيل كاشف التعارضات الزمنية
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        يقارن الفترات الزمنية بين الصفوف داخل كل مجموعة (مثل نفس القاعة في نفس اليوم) ويوسم المتضاربة.
+                        مثال نظام «تعارض القاعات»: التجميع = عمود القاعة + عمود اليوم، وعمود الفترة = عمود الوقت.
+                      </span>
+                    </span>
+                  </label>
+                  {cd && (
+                    <div className="space-y-2 pt-1">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-black mb-1">أعمدة التجميع (نفس القاعة/اليوم…)</label>
+                          <input className="schedule-select w-full font-mono text-center" dir="ltr"
+                            value={(cd.group_by || []).join(', ')}
+                            onChange={(e) => setCD({ group_by: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                            placeholder="مثال: G, N" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">عمود الفترة الزمنية «08:30 AM - 10:00 AM»</label>
+                          <input className="schedule-select w-full font-mono text-center" dir="ltr" value={cd.range_column || ''} onChange={(e) => setCD({ range_column: e.target.value.toUpperCase() })} placeholder="مثال: J" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">أو عمودا البداية والنهاية (بديل عن عمود الفترة)</label>
+                          <div className="grid grid-cols-2 gap-1">
+                            <input className="schedule-select font-mono text-center" dir="ltr" value={cd.from_column || ''} onChange={(e) => setCD({ from_column: e.target.value.toUpperCase() })} placeholder="من (J)" />
+                            <input className="schedule-select font-mono text-center" dir="ltr" value={cd.to_column || ''} onChange={(e) => setCD({ to_column: e.target.value.toUpperCase() })} placeholder="إلى (K)" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">أعمدة يجب تطابقها أيضاً (اختياري — مثل الفصل)</label>
+                          <input className="schedule-select w-full font-mono text-center" dir="ltr"
+                            value={(cd.also_match || []).join(', ')}
+                            onChange={(e) => setCD({ also_match: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                            placeholder="مثال: S" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">اسم عمود النتيجة</label>
+                          <input className="schedule-select w-full" value={cd.flag_column || ''} onChange={(e) => setCD({ flag_column: e.target.value })} placeholder="⚠️ تعارض" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">نص التعارض</label>
+                          <input className="schedule-select w-full" value={cd.flag || ''} onChange={(e) => setCD({ flag: e.target.value })} placeholder="يوجد تعارض ⚠️" />
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+                        <input type="checkbox" checked={cd.only_conflicts !== false} onChange={(e) => setCD({ only_conflicts: e.target.checked })} />
+                        إظهار الصفوف المتعارضة فقط (أوقفه لعرض كل الصفوف مع وسم المتعارض منها)
+                      </label>
                     </div>
                   )}
                 </div>

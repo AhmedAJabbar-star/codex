@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Condition, ConditionOp, DerivedColumn } from '@/lib/conditionEngine';
+import type { Condition, ConditionOp, ComputedColumn, ConflictCfg, DerivedColumn, GroupStage } from '@/lib/conditionEngine';
 
 export interface SignatureItem { label: string; name?: string }
 
@@ -109,11 +109,19 @@ export interface CustomSystemDef {
   sheet_url?: string;
   sheet_gid: string;
   columns_range: string;
+  /** Excel letters (space/comma separated) of extra columns loaded for filtering/logic but HIDDEN from the table and CRUD form. */
+  hidden_columns?: string;
   filter_columns: string;
   filters_config?: FilterConfigItem[];
   conditions: Condition[];
   conditions_logic?: 'AND' | 'OR';
   derived_columns: DerivedColumn[];
+  /** 🧮 Computed columns (formulas) evaluated per row after conditions. */
+  computed_columns?: ComputedColumn[];
+  /** 📊 Group/aggregate stage applied after row filtering (e.g. teachers without theory). */
+  group_stage?: GroupStage;
+  /** ⚠️ Pairwise time-conflict detector (room/teacher double booking). */
+  conflict_detector?: ConflictCfg;
   header_labels?: Record<string, string>;
   signatures?: SignatureItem[];
   /** Print/preview settings — when set, used as fixed defaults; toolbar hidden by default. */
@@ -299,6 +307,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   sheet_url: '',
   sheet_gid: '',
   columns_range: 'F:N',
+  hidden_columns: '',
   filter_columns: '',
   filters_config: [],
   conditions: [],
