@@ -19,25 +19,28 @@ const ICONS = [
   // Office / Admin
   '📅','📆','🗓️','📌','📍','🔗','📎','🗃️','🗄️','📤','📥','✉️','📨','📧',
 ];
-const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','token_match','not_token_match','contains_any','in_list','between','eq_number','gt','lt','gte','lte','date_before','date_after','time_overlaps','is_empty','is_not_empty'];
+const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','token_match','not_token_match','contains_any','in_list','not_in_list','between','eq_number','gt','lt','gte','lte','date_before','date_after','date_older_than_days','date_newer_than_days','time_overlaps','is_empty','is_not_empty'];
 const NEEDS_VALUE: Record<ConditionOp, boolean> = {
-  eq: true, neq: true, contains: true, not_contains: true, contains_any: false, in_list: false,
+  eq: true, neq: true, contains: true, not_contains: true,
+  contains_any: false, in_list: false, not_in_list: false, between: false,
   token_match: true, not_token_match: true,
   eq_number: true, gt: true, lt: true, gte: true, lte: true,
-  between: true, date_before: true, date_after: true, time_overlaps: true,
-  is_empty: false, is_not_empty: false, regex: false,
+  date_before: true, date_after: true, date_older_than_days: true, date_newer_than_days: true,
+  time_overlaps: true,
+  is_empty: false, is_not_empty: false, regex: true,
 };
 /** Operators whose value is a LIST (comma/newline separated) instead of a single value. */
-const MULTI_OPS: ConditionOp[] = ['contains_any', 'in_list'];
+const MULTI_OPS: ConditionOp[] = ['contains_any', 'in_list', 'not_in_list'];
 
 /** Split a free-text multi-value input on any of: comma, Arabic comma, dash, semicolon, newline, or pipe. */
 const splitMulti = (s: string): string[] =>
   (s || '').split(/[,،\-;\n|]+/).map((v) => v.trim()).filter(Boolean);
 
 /** Shared value editor for a condition/quick-filter/rule row.
- *  Renders the right input shape depending on the operator (list / between / single / none). */
+ *  Renders the right input shape depending on the operator (list / between / single / none).
+ *  Note: 'between' stores its bounds in values[0]..values[1] (engine contract). */
 const CondValueInput = ({ c, upd, span }: {
-  c: { op: ConditionOp; value?: string | number; value2?: string | number; values?: (string | number)[] };
+  c: { op: ConditionOp; value?: string | number; values?: (string | number)[] };
   upd: (p: Record<string, unknown>) => void;
   span: number;
 }) => {
@@ -53,17 +56,22 @@ const CondValueInput = ({ c, upd, span }: {
     );
   }
   if (c.op === 'between') {
+    const lo = (c.values || [])[0];
+    const hi = (c.values || [])[1];
     return (
       <div className="grid grid-cols-2 gap-1 w-full" style={spanStyle}>
-        <input className="schedule-select" value={String(c.value ?? '')} onChange={(e) => upd({ value: e.target.value })} placeholder="من" />
-        <input className="schedule-select" value={String(c.value2 ?? '')} onChange={(e) => upd({ value2: e.target.value })} placeholder="إلى" />
+        <input className="schedule-select" value={String(lo ?? '')} onChange={(e) => upd({ values: [e.target.value, hi ?? ''] })} placeholder="من" />
+        <input className="schedule-select" value={String(hi ?? '')} onChange={(e) => upd({ values: [lo ?? '', e.target.value] })} placeholder="إلى" />
       </div>
     );
   }
   if (NEEDS_VALUE[c.op]) {
     const ph = c.op === 'date_before' ? 'تاريخ (مثال: 2026-12-31)'
       : c.op === 'date_after' ? 'تاريخ (مثال: 2026-01-01)'
+      : c.op === 'date_older_than_days' ? 'عدد الأيام (أقدم من…)'
+      : c.op === 'date_newer_than_days' ? 'عدد الأيام (خلال آخر…)'
       : c.op === 'time_overlaps' ? 'فترة (مثال: 08:30 AM - 10:00 AM)'
+      : c.op === 'regex' ? 'تعبير نمطي (مثال: ^أ)'
       : 'القيمة المطلوب مطابقتها';
     return (
       <input className="schedule-select w-full" style={spanStyle} value={String(c.value ?? '')} onChange={(e) => upd({ value: e.target.value })} placeholder={ph} />
