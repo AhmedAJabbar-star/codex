@@ -105,6 +105,18 @@ Deno.serve(async (req) => {
     if (!parsedBody.success) return json({ error: parsedBody.error.flatten().fieldErrors }, 400);
     const body = parsedBody.data;
 
+    // إجراء تشخيصي: جلب موديلات Google المتاحة فعلياً للمفتاح المحفوظ (تدعم generateContent).
+    if (body?.action === "list_models") {
+      if (!GOOGLE_API_KEY) return json({ error: "مفتاح GOOGLE_API_KEY غير مُهيأ في الخادم" }, 400);
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${GOOGLE_API_KEY}`);
+      const d = await r.json().catch(() => null);
+      if (!r.ok) return json({ error: `Google ListModels ${r.status}: ${JSON.stringify(d).slice(0, 400)}` }, 400);
+      const models = (d?.models || [])
+        .filter((m: any) => (m?.supportedGenerationMethods || []).includes("generateContent"))
+        .map((m: any) => String(m?.name || "").replace(/^models\//, ""));
+      return json({ models });
+    }
+
     // مزوّد الذكاء الاصطناعي: lovable (بوابة المشروع — تُخصم من الكريدت) أو google (مفتاح المستخدم الخاص).
     const provider = String(body?.provider || "lovable").toLowerCase() === "google" ? "google" : "lovable";
     if (provider === "google" && !GOOGLE_API_KEY) {
