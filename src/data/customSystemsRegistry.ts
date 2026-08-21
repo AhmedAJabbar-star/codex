@@ -181,6 +181,8 @@ export interface CustomSystemDef {
   ocr_text_targets?: Record<string, string>;
   /** تعليمات مخصصة لاستخراج النص. */
   ocr_text_prompt?: string;
+  /** 🤖 موديل الذكاء الاصطناعي المستخدم في الاستخراج (OCR/نص الملفات). فارغ = الافتراضي الأدق. */
+  ocr_model?: string;
   /** 🎨 Highlight rows with a background color when conditions match. First matching rule wins. */
   row_rules?: RowRule[];
   /** 📊 Aggregation footer — SUM/AVG/COUNT/MIN/MAX/COUNT_UNIQUE per column on visible rows. */
@@ -341,6 +343,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   ocr_text_enabled: false,
   ocr_text_targets: {},
   ocr_text_prompt: '',
+  ocr_model: '',
   row_rules: [],
   aggregations: [],
   global_search: false,
