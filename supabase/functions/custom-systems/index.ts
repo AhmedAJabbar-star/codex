@@ -141,7 +141,7 @@ async function ensureSheet() {
     });
     return;
   }
-  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:AZ1`);
+  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:ZZ1`);
   const currentRow: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "")) : [];
   if (currentRow.length === 0) {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
