@@ -1982,27 +1982,27 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
             const setGS = (p: Partial<GroupStage>) => patch({ group_stage: { keys: gs?.keys || [], aggs: gs?.aggs || [], having: gs?.having || [], emit: gs?.emit || 'groups', ...p } });
             const gsAggs = gs?.aggs || [];
             const gsHaving = gs?.having || [];
-            const HAVING_OPS: ConditionOp[] = ['eq_number', 'neq', 'gt', 'lt', 'gte', 'lte'];
+            const HAVING_OPS: ('eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte')[] = ['eq', 'neq', 'gt', 'lt', 'gte', 'lte'];
 
             const cd = s.conflict_detector;
             const setCD = (p: Partial<ConflictCfg>) => patch({ conflict_detector: {
-              group_by: cd?.group_by || [], time_column: cd?.time_column || '',
-              day_column: cd?.day_column || '', date_column: cd?.date_column || '',
+              group_by: cd?.group_by || [], range_column: cd?.range_column || '',
+              from_column: cd?.from_column || '', to_column: cd?.to_column || '',
+              also_match: cd?.also_match || [],
+              flag: cd?.flag || 'يوجد تعارض ⚠️',
               flag_column: cd?.flag_column || '⚠️ تعارض',
-              flag_value: cd?.flag_value || 'يوجد تعارض ⚠️', flag_unique_value: cd?.flag_unique_value || 'فريد ✔️',
+              only_conflicts: cd?.only_conflicts !== false,
               ...p,
             } });
 
             const CC_TYPES: [ComputedColumn['type'], string][] = [
-              ['duration', '⏱️ مدة زمنية'],
+              ['duration', '⏱️ مدة زمنية (ساعات)'],
               ['expr', '🧮 معادلة حسابية'],
               ['sum', 'Σ جمع أعمدة'],
-              ['concat', '🔗 دمج أعمدة'],
+              ['concat', '🔗 دمج نصوص'],
+              ['count_tokens', '# عدد العناصر في خلية'],
               ['date_diff_days', '📅 فرق الأيام بين تاريخين'],
-              ['weekday', '🗓️ اليوم من تاريخ'],
-              ['to_number', '🔢 تحويل إلى رقم'],
-              ['title_case', '🔠 ضبط حالة الأحرف'],
-              ['between_cols', '↔️ قيمة بين عمودين'],
+              ['year_from_date', '📆 سنة من تاريخ'],
               ['row_number', '# ترقيم تلقائي'],
             ];
 
