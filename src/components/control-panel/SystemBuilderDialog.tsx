@@ -2173,7 +2173,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 {/* ===== كاشف التعارضات ===== */}
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
                   <label className="flex items-start gap-2 text-sm font-bold cursor-pointer">
-                    <input type="checkbox" checked={!!cd} onChange={(e) => patch({ conflict_detector: e.target.checked ? { group_by: [], time_column: '', flag_column: '⚠️ تعارض', flag_value: 'يوجد تعارض ⚠️', flag_unique_value: 'فريد ✔️' } : undefined })} />
+                    <input type="checkbox" checked={!!cd} onChange={(e) => patch({ conflict_detector: e.target.checked ? { group_by: [], range_column: '', flag: 'يوجد تعارض ⚠️', flag_column: '⚠️ تعارض', only_conflicts: true } : undefined })} />
                     <span>
                       ⚠️ تفعيل كاشف التعارضات الزمنية
                       <span className="block text-[11px] font-normal text-slate-600 mt-1">
@@ -2183,40 +2183,46 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     </span>
                   </label>
                   {cd && (
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <label className="block text-xs font-black mb-1">أعمدة التجميع (نفس القاعة/اليوم…)</label>
-                        <input className="schedule-select w-full font-mono text-center" dir="ltr"
-                          value={(cd.group_by || []).join(', ')}
-                          onChange={(e) => setCD({ group_by: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
-                          placeholder="مثال: G, N" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black mb-1">عمود الفترة الزمنية</label>
-                        <input className="schedule-select w-full font-mono text-center" dir="ltr" value={cd.time_column || ''} onChange={(e) => setCD({ time_column: e.target.value.toUpperCase() })} placeholder="مثال: J" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black mb-1">عمود اليوم (اختياري)</label>
-                        <input className="schedule-select w-full font-mono text-center" dir="ltr" value={cd.day_column || ''} onChange={(e) => setCD({ day_column: e.target.value.toUpperCase() })} placeholder="مثال: I" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black mb-1">عمود التاريخ (اختياري)</label>
-                        <input className="schedule-select w-full font-mono text-center" dir="ltr" value={cd.date_column || ''} onChange={(e) => setCD({ date_column: e.target.value.toUpperCase() })} placeholder="مثال: H" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black mb-1">اسم عمود النتيجة</label>
-                        <input className="schedule-select w-full" value={cd.flag_column || ''} onChange={(e) => setCD({ flag_column: e.target.value })} placeholder="⚠️ تعارض" />
-                      </div>
+                    <div className="space-y-2 pt-1">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-xs font-black mb-1">نص التعارض</label>
-                          <input className="schedule-select w-full" value={cd.flag_value || ''} onChange={(e) => setCD({ flag_value: e.target.value })} placeholder="يوجد تعارض ⚠️" />
+                          <label className="block text-xs font-black mb-1">أعمدة التجميع (نفس القاعة/اليوم…)</label>
+                          <input className="schedule-select w-full font-mono text-center" dir="ltr"
+                            value={(cd.group_by || []).join(', ')}
+                            onChange={(e) => setCD({ group_by: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                            placeholder="مثال: G, N" />
                         </div>
                         <div>
-                          <label className="block text-xs font-black mb-1">نص عدم التعارض</label>
-                          <input className="schedule-select w-full" value={cd.flag_unique_value || ''} onChange={(e) => setCD({ flag_unique_value: e.target.value })} placeholder="فريد ✔️" />
+                          <label className="block text-xs font-black mb-1">عمود الفترة الزمنية «08:30 AM - 10:00 AM»</label>
+                          <input className="schedule-select w-full font-mono text-center" dir="ltr" value={cd.range_column || ''} onChange={(e) => setCD({ range_column: e.target.value.toUpperCase() })} placeholder="مثال: J" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">أو عمودا البداية والنهاية (بديل عن عمود الفترة)</label>
+                          <div className="grid grid-cols-2 gap-1">
+                            <input className="schedule-select font-mono text-center" dir="ltr" value={cd.from_column || ''} onChange={(e) => setCD({ from_column: e.target.value.toUpperCase() })} placeholder="من (J)" />
+                            <input className="schedule-select font-mono text-center" dir="ltr" value={cd.to_column || ''} onChange={(e) => setCD({ to_column: e.target.value.toUpperCase() })} placeholder="إلى (K)" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">أعمدة يجب تطابقها أيضاً (اختياري — مثل الفصل)</label>
+                          <input className="schedule-select w-full font-mono text-center" dir="ltr"
+                            value={(cd.also_match || []).join(', ')}
+                            onChange={(e) => setCD({ also_match: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                            placeholder="مثال: S" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">اسم عمود النتيجة</label>
+                          <input className="schedule-select w-full" value={cd.flag_column || ''} onChange={(e) => setCD({ flag_column: e.target.value })} placeholder="⚠️ تعارض" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black mb-1">نص التعارض</label>
+                          <input className="schedule-select w-full" value={cd.flag || ''} onChange={(e) => setCD({ flag: e.target.value })} placeholder="يوجد تعارض ⚠️" />
                         </div>
                       </div>
+                      <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+                        <input type="checkbox" checked={cd.only_conflicts !== false} onChange={(e) => setCD({ only_conflicts: e.target.checked })} />
+                        إظهار الصفوف المتعارضة فقط (أوقفه لعرض كل الصفوف مع وسم المتعارض منها)
+                      </label>
                     </div>
                   )}
                 </div>
