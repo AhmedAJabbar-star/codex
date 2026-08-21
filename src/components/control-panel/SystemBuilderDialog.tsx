@@ -1135,10 +1135,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   <strong className="text-sm">📝 استخراج نص الملفات المرفوعة وحفظه في عمود مجاور</strong>
                 </label>
                 <p className="text-xs text-slate-600 mt-2 leading-6">
-                  بعد رفع أي ملف في حقل من نوع <strong>«📎 ملف»</strong> (صورة، PDF، مستند…) يقوم النظام تلقائياً
-                  بقراءة محتواه بالذكاء الاصطناعي وحفظ النص المستخرج في <strong>أول عمود فارغ مجاور</strong> لعمود
-                  الرفع (يمكنك تحديد عمود بعينه أدناه). يمكن مراجعة النص وتعديله قبل الحفظ، ويُخزَّن في ورقة Google Sheets
-                  ضمن العمود المحدد.
+                  بعد رفع أي ملف في حقل من نوع <strong>«📎 ملف»</strong> (صورة، PDF، مستند…) يظهر للمستخدم خياران/ثلاثة لاستخراج
+                  النص بالذكاء الاصطناعي: <strong>📄 شامل</strong> (نسخ حرفي كامل)، <strong>🧾 مُلخَّص</strong> (منظم بالعناوين)،
+                  <strong>🎯 ذكي</strong> (يستخرج فقط ما يطابق «تعليمات استخراج النص» أدناه). يُحفَظ الناتج في
+                  <strong> أول عمود فارغ مجاور</strong> لعمود الرفع (أو العمود الذي تحدده أدناه)، ويمكن مراجعته وتعديله قبل الحفظ.
+                  يدعم النموذج قراءة <strong>خط اليد العربي في الهوامش ونصوص الأختام</strong> ويوسمها بوضوح داخل النص.
                 </p>
                 {s.ocr_text_enabled && (
                   <div className="mt-3 space-y-3">
@@ -1166,14 +1167,18 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       </p>
                     </div>
                     <div>
-                      <label className="block text-xs font-black mb-1">تعليمات مخصصة لاستخراج النص (اختياري)</label>
+                      <label className="block text-xs font-black mb-1">تعليمات استخراج النص = معايير الوضع «الذكي» (اختياري)</label>
                       <textarea
                         className="schedule-select w-full text-xs"
-                        rows={2}
+                        rows={3}
                         value={s.ocr_text_prompt || ''}
                         onChange={(e) => patch({ ocr_text_prompt: e.target.value })}
-                        placeholder="مثال: استخرج نص القرار الإداري فقط بدون التواقيع والأختام."
+                        placeholder="مثال: رقم الكتاب وتاريخه، الجهة المُصدِرة، الموضوع، الفقرات المطلوبة، ملاحظات الهوامش بخط اليد."
                       />
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        هذه التعليمات هي <strong>معايير وضع «🎯 ذكي»</strong> الذي يختاره المستخدم عند رفع الملف،
+                        وتُمرَّر كتوجيهات تنسيق إضافية للوضعين «شامل» و«مُلخَّص». إن تُركت فارغة فلن يعمل الوضع الذكي.
+                      </p>
                     </div>
                   </div>
                 )}
