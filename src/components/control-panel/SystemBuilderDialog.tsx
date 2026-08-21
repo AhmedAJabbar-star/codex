@@ -47,6 +47,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   const [dirty, setDirty] = useState(false);
   const [draftFound, setDraftFound] = useState<CustomSystemDef | null>(null);
   const [allSystems, setAllSystems] = useState<CustomSystemDef[]>([]);
+  // نصوص حرّة للحقول المركّبة (تُحوَّل لخريطة/مصفوفة أثناء الكتابة دون إعادة تنسيق تمنع الإدخال)
+  const [ocrTargetsText, setOcrTargetsText] = useState(() =>
+    Object.entries(initial?.ocr_text_targets || {}).map(([k, v]) => `${k}=${v}`).join(', '));
+  const [qrFieldsText, setQrFieldsText] = useState(() => (initial?.qr_fields || []).join(', '));
 
   useEffect(() => {
     listCustomSystems().then(setAllSystems).catch(() => { /* ignore */ });
@@ -238,16 +242,35 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     } finally { setBusy(false); }
   };
 
+  const STEPS: [number, string][] = [
+    [1, '🧩 الأساسيات'],
+    [2, '🗂️ المصدر والأعمدة'],
+    [3, '🔍 الفلاتر'],
+    [4, '⚖️ الشروط'],
+    [5, '🛡️ الحماية والصلاحيات'],
+    [6, '⚡ أزرار سريعة'],
+    [7, '🖨️ إعدادات الطباعة'],
+    [8, '✨ ميزات متقدمة'],
+    [9, '🔗 الربط والقيود'],
+  ];
+
   const Step = ({ n, label }: { n: number; label: string }) => (
     <button
       onClick={() => setStep(n)}
-      className="px-3 py-2 rounded-lg text-xs font-black border-2 transition-all"
+      className="w-full text-right px-3 py-2.5 rounded-xl text-xs font-black border-2 transition-all flex items-center gap-2"
       style={{
         background: step === n ? s.color : 'white',
         color: step === n ? 'white' : '#1e293b',
-        borderColor: step === n ? s.color : '#cbd5e1',
+        borderColor: step === n ? s.color : '#e2e8f0',
+        boxShadow: step === n ? `0 4px 14px ${s.color}55` : 'none',
       }}
-    >{n}. {label}</button>
+    >
+      <span
+        className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0"
+        style={{ background: step === n ? 'rgba(255,255,255,.25)' : '#f1f5f9' }}
+      >{n}</span>
+      <span className="flex-1 leading-5">{label}</span>
+    </button>
   );
 
   return (
@@ -286,19 +309,13 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
         )}
 
 
-        <div className="px-5 py-3 border-b flex flex-wrap gap-2 bg-slate-50">
-          <Step n={1} label="الأساسيات" />
-          <Step n={2} label="المصدر والأعمدة" />
-          <Step n={3} label="الفلاتر" />
-          <Step n={4} label="الشروط" />
-          <Step n={5} label="الحماية والصلاحيات" />
-          <Step n={6} label="أزرار سريعة" />
-          <Step n={7} label="إعدادات الطباعة" />
-          <Step n={8} label="ميزات متقدمة" />
-          <Step n={9} label="الربط والقيود" />
-        </div>
+        <div className="flex-1 flex min-h-0">
+          {/* شريط تبويبات جانبي */}
+          <aside className="w-44 sm:w-56 shrink-0 border-l bg-slate-50/80 overflow-y-auto p-2 flex flex-col gap-1.5">
+            {STEPS.map(([n, label]) => <Step key={n} n={n} label={label} />)}
+          </aside>
 
-        <div className="px-5 py-4 overflow-auto flex-1">
+          <div className="px-5 py-4 overflow-auto flex-1">
           {step === 1 && (
             <div className="space-y-4">
               <div>
@@ -1100,10 +1117,12 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <input
                         className="schedule-select w-full text-xs"
                         dir="ltr"
-                        value={Object.entries(s.ocr_text_targets || {}).map(([k, v]) => `${k}=${v}`).join(', ')}
+                        value={ocrTargetsText}
                         onChange={(e) => {
+                          const raw = e.target.value;
+                          setOcrTargetsText(raw);
                           const map: Record<string, string> = {};
-                          e.target.value.toUpperCase().split(/[,\s]+/).forEach((pair) => {
+                          raw.toUpperCase().split(/[,\s]+/).forEach((pair) => {
                             const m = pair.trim().match(/^([A-Z]{1,3})=([A-Z]{1,3})$/);
                             if (m) map[m[1]] = m[2];
                           });
@@ -1112,6 +1131,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         placeholder="H=I, K=L   (عمود الملف = عمود حفظ النص)"
                       />
                       <p className="text-[11px] text-slate-500 mt-1">
+                        اكتب الأزواج بصيغة <bdi dir="ltr">عمود الملف = عمود النص</bdi> مفصولة بفاصلة.
                         اتركه فارغاً ليُستخدم أول عمود فارغ بعد عمود الرفع تلقائياً.
                       </p>
                     </div>
@@ -1922,8 +1942,13 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <label className="block text-xs font-black mb-1">الأعمدة التي يمكن تعبئتها بالمسح (اتركه فارغاً = كل الأعمدة)</label>
                       <input
                         className="schedule-select w-full"
-                        value={(s.qr_fields || []).join(', ')}
-                        onChange={(e) => patch({ qr_fields: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                        dir="ltr"
+                        value={qrFieldsText}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setQrFieldsText(raw);
+                          patch({ qr_fields: splitMulti(raw).map((v) => v.toUpperCase()) });
+                        }}
                         placeholder="مثال: B, C, F"
                       />
                     </div>
@@ -1932,9 +1957,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
               </div>
             );
           })()}
+          </div>
         </div>
-
-
 
         <footer className="px-5 py-3 border-t flex items-center justify-between gap-2 bg-slate-50">
           {initial?.id ? (
