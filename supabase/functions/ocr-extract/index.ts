@@ -22,6 +22,10 @@ interface FieldSpec {
   type?: string;
 }
 
+// الموديلات المسموح اختيارها من منشئ الأنظمة (قائمة بيضاء لمنع إساءة الاستخدام والكلفة).
+const ALLOWED_MODELS = ["google/gemini-3.1-pro-preview", "google/gemini-3.7-flash"] as const;
+const DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
+
 const BodySchema = z.object({
   mode: z.enum(['text', 'summary', 'smart']).optional(),
   file_data_url: z.string().max(40_000_000).optional(),
@@ -30,6 +34,7 @@ const BodySchema = z.object({
   image_data_url: z.string().max(40_000_000).optional(),
   fields: z.array(z.object({ letter: z.string().min(1).max(3), header: z.string().min(1).max(255), type: z.string().max(40).optional() })).max(100).optional(),
   prompt: z.string().max(4000).optional(),
+  model: z.string().max(120).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -40,6 +45,16 @@ Deno.serve(async (req) => {
     const parsedBody = BodySchema.safeParse(await req.json().catch(() => ({})));
     if (!parsedBody.success) return json({ error: parsedBody.error.flatten().fieldErrors }, 400);
     const body = parsedBody.data;
+
+    // اختيار الموديل من منشئ الأنظمة — فارغ = الافتراضي الأدق؛ القيمة يجب أن تكون ضمن القائمة البيضاء.
+    const requestedModel = String(body?.model || "").trim();
+    let aiModel: string = DEFAULT_MODEL;
+    if (requestedModel) {
+      if (!(ALLOWED_MODELS as readonly string[]).includes(requestedModel)) {
+        return json({ error: `موديل غير مدعوم: ${requestedModel} — الموديلات المسموحة: ${ALLOWED_MODELS.join(", ")}` }, 400);
+      }
+      aiModel = requestedModel;
+    }
 
     // ---- File modes: "text" (شامل) / "summary" (مُلخَّص) / "smart" (ذكي وفق المعايير).
     const fileMode = String(body?.mode || "");
