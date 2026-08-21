@@ -3,11 +3,8 @@
 // Output: { values: { [letter]: string } }
 // Uses Lovable AI Gateway (gemini-2.5-flash) — no user API key required.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { z } from 'npm:zod@3.23.8';
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), {
     status,
@@ -22,12 +19,24 @@ interface FieldSpec {
   type?: string;
 }
 
+const BodySchema = z.object({
+  mode: z.enum(['text']).optional(),
+  file_data_url: z.string().max(40_000_000).optional(),
+  mime_type: z.string().max(150).optional(),
+  file_name: z.string().max(255).optional(),
+  image_data_url: z.string().max(40_000_000).optional(),
+  fields: z.array(z.object({ letter: z.string().min(1).max(3), header: z.string().min(1).max(255), type: z.string().max(40).optional() })).max(100).optional(),
+  prompt: z.string().max(4000).optional(),
+});
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY غير مُهيأ في الخادم" }, 500);
 
-    const body = await req.json().catch(() => ({}));
+    const parsedBody = BodySchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsedBody.success) return json({ error: parsedBody.error.flatten().fieldErrors }, 400);
+    const body = parsedBody.data;
 
     // ---- Mode "text": full text extraction from any uploaded file (image / PDF / doc).
     if (String(body?.mode || "") === "text") {
@@ -39,8 +48,8 @@ Deno.serve(async (req) => {
         return json({ error: "الملف مطلوب بصيغة data:...;base64,..." }, 400);
       }
       const instruction =
-        (extraPrompt ||
-          "استخرج كامل النص الظاهر في الملف المرفق كما هو، مع الحفاظ على الترتيب والأسطر. لا تضف أي شرح أو تعليق. إن لم يوجد نص أعِد نصاً فارغاً.");
+        "مهمة نسخ حرفي فقط: انسخ كل النص المقروء في الملف من البداية إلى النهاية بنفس اللغة والترتيب والأسطر، بما في ذلك العناوين والجداول والحواشي والأرقام. ممنوع التلخيص أو إعادة الصياغة أو التصحيح أو الاستنتاج أو حذف النص المتكرر. لا تضف شرحاً. " +
+        (extraPrompt ? `تعليمات تنسيق إضافية لا تلغي النسخ الكامل: ${extraPrompt}` : "");
       const part = mime.startsWith("image/")
         ? { type: "image_url", image_url: { url: fileUrl } }
         : { type: "file", file: { filename: fileName, file_data: fileUrl } };
@@ -50,6 +59,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           max_tokens: 32768,
+          temperature: 0,
           messages: [
             {
               role: "system",
@@ -68,7 +78,8 @@ Deno.serve(async (req) => {
       }
       const d = await res.json();
       const text = String(d?.choices?.[0]?.message?.content || "").trim();
-      return json({ text });
+      const finishReason = String(d?.choices?.[0]?.finish_reason || "");
+      return json({ text, finish_reason: finishReason });
     }
 
     const image: string = String(body?.image_data_url || "").trim();
@@ -88,9 +99,9 @@ Deno.serve(async (req) => {
       .join("\n");
 
     const defaultPrompt =
-      "أنت مساعد استخراج بيانات دقيق. حلّل الصورة المرفقة (وثيقة/جدول/بطاقة) واستخرج القيم المطلوبة. أعِد النتيجة كـ JSON فقط، بدون أي شرح، بمفاتيح هي أحرف الأعمدة أدناه. لأي حقل غير موجود أو غير واضح، استخدم القيمة \"\". اكتب القيم كما تظهر في الصورة (احتفظ باللغة الأصلية). الأرقام بصيغة عربية شرقية اجعلها أرقاماً لاتينية. مهم جداً: استخرج كل قيمة كاملةً مهما طالت — إن كانت القيمة تمتد لعدة أسطر أو فقرات فالتقطها كلها ولا تكتفِ بسطر أو سطرين.";
+      "مهمة نسخ حقول حرفية وليست تحليلاً: انقل القيمة المكتوبة المقابلة لكل حقل كما تظهر تماماً وكاملة. ممنوع التخمين أو التلخيص أو إعادة الصياغة أو إنشاء قيمة غير موجودة. الحقل غير الموجود أو غير المقروء قيمته سلسلة فارغة. احتفظ باللغة الأصلية والأسطر والتكرار.";
 
-    const systemPrompt = (userPrompt || defaultPrompt) +
+    const systemPrompt = defaultPrompt + (userPrompt ? `\nتعليمات تحديد موضع الحقول: ${userPrompt}` : '') +
       "\n\nالحقول المطلوب استخراجها (استخدم الحرف كمفتاح JSON):\n" + fieldList +
       "\n\nمثال الشكل المطلوب للإجابة:\n{\n  " +
       fields.slice(0, 3).map((f) => `"${f.letter}": "..."`).join(",\n  ") +
@@ -117,6 +128,7 @@ Deno.serve(async (req) => {
         model: "google/gemini-2.5-flash",
         messages,
         max_tokens: 32768,
+        temperature: 0,
         response_format: { type: "json_object" },
       }),
     });
