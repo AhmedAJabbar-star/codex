@@ -39,10 +39,14 @@ export interface ComputedColumn {
     | 'count_tokens'   // number of tokens (lines / ، , ; |) in one column
     | 'date_diff_days' // days from date column A to date column B (or to today when B omitted)
     | 'year_from_date' // extract the year of a date column
+    | 'month_from_date' // extract the month number (1-12) of a date column
+    | 'default_if_empty' // value of columns[0], or `fallback` text when the cell is empty
     | 'row_number';    // 1..n sequence in the final output
   columns?: string[];
   separator?: string;
   expr?: string;
+  /** Fallback text used by `default_if_empty` when the source cell is empty. */
+  fallback?: string;
   /** Decimal places for numeric results (default: trim trailing zeros). */
   round?: number;
 }
@@ -219,7 +223,8 @@ export function parseCellDate(raw: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** Resolve a condition date value: ISO date, "today", "today+N", "today-N". */
+/** Resolve a condition date value: ISO date, "today", "today+N", "today-N",
+ *  or "academic_year_start" (Sept 1 of the current academic year, with optional ±N days). */
 function resolveCondDate(value: string | number | undefined): Date | null {
   const s = String(value ?? '').trim();
   if (!s) return null;
@@ -228,6 +233,15 @@ function resolveCondDate(value: string | number | undefined): Date | null {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     if (rel[2]) d.setDate(d.getDate() + (rel[1] === '-' ? -1 : 1) * parseInt(rel[2], 10));
+    return d;
+  }
+  const acad = s.match(/^academic_year_start(?:\s*([+-])\s*(\d+))?$/i);
+  if (acad) {
+    const now = new Date();
+    // Academic year starts Sept 1: Jan–Sep → Sept 1 of previous year; Oct–Dec → Sept 1 of current year.
+    const y = now.getMonth() <= 8 ? now.getFullYear() - 1 : now.getFullYear();
+    const d = new Date(y, 8, 1);
+    if (acad[2]) d.setDate(d.getDate() + (acad[1] === '-' ? -1 : 1) * parseInt(acad[2], 10));
     return d;
   }
   return parseCellDate(s);
@@ -438,6 +452,14 @@ export function computeColumnValue(
     case 'year_from_date': {
       const d = parseCellDate(cellOf(cols[0]));
       return d ? String(d.getFullYear()) : '';
+    }
+    case 'month_from_date': {
+      const d = parseCellDate(cellOf(cols[0]));
+      return d ? String(d.getMonth() + 1) : '';
+    }
+    case 'default_if_empty': {
+      const t = cellOf(cols[0]).trim();
+      return t || String(cc.fallback ?? '');
     }
     case 'row_number': {
       return typeof rowIndex === 'number' ? String(rowIndex + 1) : '';

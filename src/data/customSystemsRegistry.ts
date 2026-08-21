@@ -109,6 +109,8 @@ export interface CustomSystemDef {
   sheet_url?: string;
   sheet_gid: string;
   columns_range: string;
+  /** Excel letters (space/comma separated) of extra columns loaded for filtering/logic but HIDDEN from the table and CRUD form. */
+  hidden_columns?: string;
   filter_columns: string;
   filters_config?: FilterConfigItem[];
   conditions: Condition[];
@@ -305,6 +307,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   sheet_url: '',
   sheet_gid: '',
   columns_range: 'F:N',
+  hidden_columns: '',
   filter_columns: '',
   filters_config: [],
   conditions: [],
