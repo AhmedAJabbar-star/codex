@@ -48,6 +48,8 @@ const HEADERS = [
   "ocr_enabled", "ocr_prompt", "ocr_fields_json",
   // v15 additions (extract text of uploaded files into a neighbouring column):
   "ocr_text_enabled", "ocr_text_targets_json", "ocr_text_prompt",
+  // v19 additions (AI model selection for OCR):
+  "ocr_model",
   // v10 additions (advanced power features):
   "row_rules_json", "aggregations_json", "global_search",
   // v11 additions (Google Drive uploads):
@@ -255,6 +257,7 @@ function rowToSystem(r: Record<string, string>) {
     ocr_text_enabled: String(r.ocr_text_enabled || "").toLowerCase() === "true",
     ocr_text_targets: parseJson(r.ocr_text_targets_json || "{}", {}),
     ocr_text_prompt: clean(r.ocr_text_prompt),
+    ocr_model: clean(r.ocr_model),
     row_rules: parseJson(r.row_rules_json || "[]", []),
     aggregations: parseJson(r.aggregations_json || "[]", []),
     global_search: String(r.global_search || "").toLowerCase() === "true",
@@ -339,6 +342,7 @@ async function systemToRow(s: any): Promise<string[]> {
     ocr_text_enabled: String(!!s.ocr_text_enabled),
     ocr_text_targets_json: JSON.stringify(s.ocr_text_targets || {}),
     ocr_text_prompt: String(s.ocr_text_prompt || ""),
+    ocr_model: String(s.ocr_model || ""),
     row_rules_json: JSON.stringify(s.row_rules || []),
     aggregations_json: JSON.stringify(s.aggregations || []),
     global_search: String(!!s.global_search),
