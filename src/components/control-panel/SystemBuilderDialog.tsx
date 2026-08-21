@@ -1138,7 +1138,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     onChange={(e) => patch({ ocr_model: e.target.value })}
                   >
                     <option value="">⚖️ تلقائي (الافتراضي) — gemini-3.1-pro · الأدق للمستندات الرسمية وخط اليد</option>
-                    <option value="google/gemini-3.7-flash">⚡ gemini-3.7-flash — سريع وكلفة منخفضة · مناسب للمستندات المطبوعة الواضحة</option>
+                    <option value="google/gemini-2.5-flash">🆓 gemini-2.5-flash — الأقل كلفة (شبه مجاني) · مناسب للمستندات المطبوعة الواضحة</option>
+                    <option value="google/gemini-3.7-flash">⚡ gemini-3.7-flash — سريع وكلفة منخفضة · توازن بين الدقة والسرعة</option>
                     <option value="google/gemini-3.1-pro-preview">💎 gemini-3.1-pro — أعلى دقة · كلفة أعلى</option>
                   </select>
                   <p className="text-[11px] text-slate-500 mt-1">

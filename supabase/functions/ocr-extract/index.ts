@@ -23,7 +23,7 @@ interface FieldSpec {
 }
 
 // الموديلات المسموح اختيارها من منشئ الأنظمة (قائمة بيضاء لمنع إساءة الاستخدام والكلفة).
-const ALLOWED_MODELS = ["google/gemini-3.1-pro-preview", "google/gemini-3.7-flash"] as const;
+const ALLOWED_MODELS = ["google/gemini-3.1-pro-preview", "google/gemini-3.7-flash", "google/gemini-2.5-flash"] as const;
 const DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
 
 const BodySchema = z.object({
