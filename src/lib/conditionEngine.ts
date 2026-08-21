@@ -677,5 +677,7 @@ export const COMPUTED_TYPE_LABELS: Record<ComputedColumn['type'], string> = {
   count_tokens: 'عدد العناصر',
   date_diff_days: 'فرق الأيام',
   year_from_date: 'سنة التاريخ',
+  month_from_date: 'رقم الشهر',
+  default_if_empty: 'قيمة بديلة عند الفراغ',
   row_number: 'رقم تسلسلي',
 };
