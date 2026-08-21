@@ -30,16 +30,26 @@ export function buildConfigFromDef(
   const colIdxs = parseColumnsRange(def.columns_range);
   const labelMap = def.header_labels || {};
 
+  // Hidden helper columns: loaded for filters/logic/projection but excluded from the table and CRUD form.
+  const hiddenIdxs = String((def as any).hidden_columns || '')
+    .split(/[,\s]+/).filter(Boolean)
+    .map(colLetterToIndex)
+    .filter((i) => i >= 0 && !colIdxs.includes(i));
+  const projIdxs = [...colIdxs, ...hiddenIdxs];
+
   // Source headers (real names in sheet) and display labels (renamed)
   const sourceHeaders: string[] = [];
   const displayHeaders: string[] = [];
-  colIdxs.forEach((i) => {
+  const hiddenDisp = new Set<string>();
+  projIdxs.forEach((i) => {
     const real = sheet.headers[i];
     if (!real) return;
     sourceHeaders.push(real);
     const letter = colIndexToLetter(i);
     const override = (labelMap[letter] || labelMap[letter.toLowerCase()] || '').trim();
-    displayHeaders.push(override || real);
+    const disp = override || real;
+    displayHeaders.push(disp);
+    if (hiddenIdxs.includes(i)) hiddenDisp.add(disp);
   });
 
   // Per-column link buttons: map display header -> button label
@@ -61,7 +71,8 @@ export function buildConfigFromDef(
   const groupAggNames = ((def.group_stage?.aggs) || []).map((a) => a.name).filter(Boolean);
   const flagColName = def.conflict_detector ? (def.conflict_detector.flag_column || '⚠️ تعارض') : '';
   const allHeaders = Array.from(new Set([
-    ...displayHeaders, ...derivedNames, ...computedNames, ...groupAggNames,
+    ...displayHeaders.filter((h) => !hiddenDisp.has(h)),
+    ...derivedNames, ...computedNames, ...groupAggNames,
     ...(flagColName ? [flagColName] : []),
   ]));
 
