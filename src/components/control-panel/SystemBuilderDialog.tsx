@@ -1123,6 +1123,30 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 </p>
               </div>
 
+              {/* 🤖 اختيار موديل الذكاء الاصطناعي للاستخراج */}
+              {(s.ocr_text_enabled || s.ocr_enabled) && (
+                <div className="mt-4 rounded-xl border-2 border-amber-200 bg-amber-50/40 p-4" dir="rtl">
+                  <strong className="text-sm">🤖 موديل الذكاء الاصطناعي المستخدم في الاستخراج</strong>
+                  <p className="text-xs text-slate-600 mt-2 leading-6">
+                    يُطبَّق هذا الاختيار على <strong>استخراج نص الملفات المرفوعة</strong> و<strong>الاستخراج من الصور</strong> معاً.
+                    الكلفة تُحتسَب من رصيد الذكاء الاصطناعي في مساحة عمل المشروع — موديلات <bdi dir="ltr">flash</bdi> أسرع
+                    وكلفتها أقل بكثير، بينما موديلات <bdi dir="ltr">pro</bdi> أدق مع المستندات المعقدة وخط اليد والأختام.
+                  </p>
+                  <select
+                    className="schedule-select w-full text-xs mt-3"
+                    value={s.ocr_model || ''}
+                    onChange={(e) => patch({ ocr_model: e.target.value })}
+                  >
+                    <option value="">⚖️ تلقائي (الافتراضي) — gemini-3.1-pro · الأدق للمستندات الرسمية وخط اليد</option>
+                    <option value="google/gemini-3.7-flash">⚡ gemini-3.7-flash — سريع وكلفة منخفضة · مناسب للمستندات المطبوعة الواضحة</option>
+                    <option value="google/gemini-3.1-pro-preview">💎 gemini-3.1-pro — أعلى دقة · كلفة أعلى</option>
+                  </select>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    💡 إن ظهرت أخطاء استخراج أو نصوص ناقصة مع موديل flash، بدّل إلى pro من هنا دون أي تعديل برمجي.
+                  </p>
+                </div>
+              )}
+
               {/* 📝 استخراج نص الملفات المرفوعة */}
               <div className="mt-4 rounded-xl border-2 border-teal-200 bg-teal-50/40 p-4" dir="rtl">
                 <label className="flex items-center gap-2 cursor-pointer">
