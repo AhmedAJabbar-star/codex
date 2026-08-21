@@ -70,6 +70,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   crudEditingRef.current = crudEditing;
   const [crudBusy, setCrudBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState('');
   const ocrFileRef = useRef<HTMLInputElement | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const qc = useQueryClient();
@@ -691,6 +692,12 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         if (auditLetters.includes(c.letter)) return; // يملؤها الخادم
         values[c.letter] = crudEditing.values[c.letter] || '';
       });
+      // OCR text targets may intentionally live just outside columns_range (for example C → D).
+      // Include them in the sheet write even when they are hidden from the visible form/table.
+      Object.values((crudCtx.def as any).ocr_text_targets || {}).forEach((rawLetter) => {
+        const letter = String(rawLetter || '').trim().toUpperCase();
+        if (letter && !auditLetters.includes(letter)) values[letter] = crudEditing.values[letter] || '';
+      });
       const actor = crudCtx.teacherName || crudCtx.identity?.name || '';
       if (crudEditing.mode === 'add') {
         await sheetWrite({ op: 'append', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, values, password, actor });
@@ -830,7 +837,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const idx = cols.findIndex((c) => c.letter === fileLetter);
     const configured: string = (def.ocr_text_targets || {})[fileLetter] || '';
     let targetLetter = '';
-    if (configured && cols.some((c) => c.letter === configured.toUpperCase())) {
+    if (configured) {
       targetLetter = configured.toUpperCase();
     } else {
       // أول عمود مجاور (بعد عمود الرفع) قابل للكتابة وفارغ
@@ -847,6 +854,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     if (!targetLetter) { toast.warning('لا يوجد عمود فارغ مجاور لحفظ النص المستخرج'); return; }
 
     setOcrBusy(true);
+    setOcrStatus(`استخراج النص إلى العمود ${targetLetter}…`);
     const chunks: string[] = [];
     try {
       for (let i = 0; i < files.length; i++) {
@@ -870,6 +878,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         if (error) throw new Error(error.message || 'فشل استدعاء الخدمة');
         if ((data as any)?.error) throw new Error((data as any).error);
         const text = String((data as any)?.text || '').trim();
+        const finishReason = String((data as any)?.finish_reason || '');
+        if (finishReason === 'length') throw new Error(`النص في الملف ${f.name} أطول من حد الاستخراج؛ قسّم الملف إلى أجزاء أصغر`);
         if (text) chunks.push(files.length > 1 ? `【${f.name}】\n${text}` : text);
       }
       if (chunks.length === 0) { toast.warning('لم يُعثر على نص في الملفات المرفوعة', { id: 'ocrtxt' }); return; }
@@ -884,6 +894,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       toast.error((e as Error).message || 'فشل استخراج النص', { id: 'ocrtxt' });
     } finally {
       setOcrBusy(false);
+      setOcrStatus('');
     }
   }, [crudCtx, auditLetters]);
 
@@ -1340,7 +1351,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                                   set([...existing, ...uploaded].join(' | '));
                                   toast.success(`تم رفع ${uploaded.length} ملف ✅`, { id: 'drv' });
                                   if ((crudCtx.def as any).ocr_text_enabled) {
-                                    void extractUploadedText(files, c.letter);
+                                    await extractUploadedText(files, c.letter);
                                   }
                                 }
                                 e.target.value = '';
@@ -1349,6 +1360,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                             <p className="text-[10px] text-slate-500">
                               يمكنك رفع عدة ملفات دفعة واحدة (25MB لكل ملف). تُخزَّن الروابط في الخلية مفصولة بـ " | ".
                             </p>
+                            {ocrStatus && <p className="text-xs font-black text-cyan-700" role="status">⏳ {ocrStatus}</p>}
                           </div>
                         ) : (
                           <textarea className={base} rows={2} value={v} onChange={(e) => set(e.target.value)} />

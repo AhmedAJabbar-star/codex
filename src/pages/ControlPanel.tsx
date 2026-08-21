@@ -15,6 +15,7 @@ import { UI_THEMES, useUiTheme } from '@/lib/uiTheme';
 import { useDarkMode } from '@/lib/darkMode';
 import { use3DEnabled } from '@/lib/threeD';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
+import { Users, Palette, ShieldCheck, Boxes, Blocks, LayoutGrid } from 'lucide-react';
 
 const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖','📝','📌','🔔','🗓️','🕒','👨‍🏫','👥','🏫','🧮','🔍','✅','⚠️','🚦','💡','🧾','📑','🗒️','📐','🧱','🔧'];
 const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1d4ed8','#9333ea','#0d9488','#be185d','#ea580c','#65a30d'];
@@ -35,6 +36,7 @@ const ControlPanel = () => {
   const [uiTheme, setUi] = useUiTheme();
   const [isDark, setIsDark] = useDarkMode();
   const [is3D, setIs3D] = use3DEnabled();
+  const [activeSection, setActiveSection] = useState<'users' | 'appearance' | 'security' | 'groups' | 'builder' | 'systems'>('users');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -134,7 +136,7 @@ const ControlPanel = () => {
 
   return (
     <div className="schedule-body" dir="rtl">
-      <div className="relative z-[1] w-full max-w-5xl mx-auto my-6 px-4">
+      <div className="relative z-[1] w-full max-w-7xl mx-auto my-6 px-4">
         <div className="schedule-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
             <h1 className="text-2xl font-black">لوحة التحكم</h1>
@@ -152,9 +154,28 @@ const ControlPanel = () => {
           </div>
           <p className="text-sm font-semibold text-[var(--schedule-muted)] mb-6">إظهار/إخفاء الأنظمة، التحكم بكلمات المرور، وتجميع الأنظمة في مجموعات.</p>
 
-          <UsersAdminSection />
+          <div className="grid lg:grid-cols-[230px_minmax(0,1fr)] gap-5 items-start">
+            <nav className="lg:sticky lg:top-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2 rounded-lg border bg-[var(--schedule-card)] p-2" aria-label="أقسام لوحة التحكم">
+              {([
+                ['users', 'المستخدمون والصلاحيات', Users],
+                ['appearance', 'الثيمات والمظهر', Palette],
+                ['security', 'الأمان وكلمات المرور', ShieldCheck],
+                ['groups', 'مجموعات الأنظمة', Boxes],
+                ['builder', 'منشئ الأنظمة', Blocks],
+                ['systems', 'إدارة الأنظمة', LayoutGrid],
+              ] as const).map(([id, label, Icon]) => (
+                <button key={id} type="button" onClick={() => setActiveSection(id)}
+                  className={`schedule-btn justify-start gap-2 text-right ${activeSection === id ? 'schedule-btn-primary' : ''}`}>
+                  <Icon className="h-4 w-4 shrink-0" /> <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+            <main className="min-w-0">
+
+          {activeSection === 'users' && <UsersAdminSection />}
 
           {/* UI Theme picker */}
+          {activeSection === 'appearance' && (
           <div className="border-2 border-indigo-300 rounded-xl p-4 bg-indigo-50/40 mb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
               <strong>🎨 نمط تصميم الواجهة (10 ثيمات احترافية بمستوى جامعي رسمي)</strong>
@@ -212,11 +233,13 @@ const ControlPanel = () => {
               })}
             </div>
           </div>
+          )}
 
 
 
 
           {/* Control panel password */}
+          {activeSection === 'security' && <>
           <div className="border-2 border-amber-400 rounded-xl p-4 bg-amber-50/60 mb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
               <strong>🔐 كلمة مرور لوحة التحكم</strong>
@@ -246,9 +269,11 @@ const ControlPanel = () => {
               onChange={(e) => update(MANAGER_PASSWORD_ID, { password: e.target.value, visible: true, protected: false })}
             />
           </div>
+          </>}
 
 
           {/* Groups manager */}
+          {activeSection === 'groups' && (
           <div className="border-2 border-purple-300 rounded-xl p-4 bg-purple-50/40 mb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <strong>📦 مجموعات الأنظمة</strong>
@@ -331,8 +356,10 @@ const ControlPanel = () => {
               ))}
             </div>
           </div>
+          )}
 
           {/* Custom Systems Builder */}
+          {activeSection === 'builder' && (
           <div className="border-2 border-cyan-300 rounded-xl p-4 bg-cyan-50/40 mb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <strong>🧩 منشئ الأنظمة (بدون كود)</strong>
@@ -385,8 +412,10 @@ const ControlPanel = () => {
 
             )}
           </div>
+          )}
 
           {/* Per-system visibility/passwords */}
+          {activeSection === 'systems' && <>
           <div className="space-y-4">
             {systems.map((s) => {
               const r = rules[s.id] as any;
@@ -500,6 +529,9 @@ const ControlPanel = () => {
             <button className="schedule-btn schedule-btn-primary" onClick={save} disabled={saving}>
               {saving ? '⏳ جاري الحفظ...' : '💾 حفظ الإعدادات'}
             </button>
+          </div>
+          </>}
+            </main>
           </div>
         </div>
       </div>
