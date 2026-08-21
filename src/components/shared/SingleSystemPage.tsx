@@ -698,6 +698,11 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         const letter = String(rawLetter || '').trim().toUpperCase();
         if (letter && !auditLetters.includes(letter)) values[letter] = crudEditing.values[letter] || '';
       });
+      // Preserve OCR-populated sheet columns that are intentionally outside the display range.
+      Object.entries(crudEditing.values).forEach(([rawLetter, rawValue]) => {
+        const letter = rawLetter.trim().toUpperCase();
+        if (/^[A-Z]{1,3}$/.test(letter) && !auditLetters.includes(letter)) values[letter] = String(rawValue || '');
+      });
       const actor = crudCtx.teacherName || crudCtx.identity?.name || '';
       if (crudEditing.mode === 'add') {
         await sheetWrite({ op: 'append', gid: crudCtx.def.sheet_gid, sheet_url: crudCtx.externalUrl, values, password, actor });
@@ -832,7 +837,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const extractUploadedText = useCallback(async (files: File[], fileLetter: string) => {
     if (!crudCtx) return;
     const def = crudCtx.def as any;
-    if (!def.ocr_text_enabled) return;
+    // Existing systems that enabled OCR before the separate text-extraction switch was added
+    // still receive deterministic full-text extraction for uploaded files.
+    if (!def.ocr_text_enabled && !def.ocr_enabled) return;
     const cols = crudCtx.cols;
     const idx = cols.findIndex((c) => c.letter === fileLetter);
     const configured: string = (def.ocr_text_targets || {})[fileLetter] || '';
@@ -849,6 +856,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         if ((cur[c.letter] || '').trim()) continue;
         targetLetter = c.letter;
         break;
+      }
+      // The intended adjacent destination can be outside columns_range (e.g. displayed A:C, text in D).
+      if (!targetLetter) {
+        const chars = fileLetter.toUpperCase().split('');
+        let carry = 1;
+        for (let i = chars.length - 1; i >= 0 && carry; i--) {
+          const n = chars[i].charCodeAt(0) - 65 + carry;
+          chars[i] = String.fromCharCode(65 + (n % 26));
+          carry = n >= 26 ? 1 : 0;
+        }
+        targetLetter = `${carry ? 'A' : ''}${chars.join('')}`;
       }
     }
     if (!targetLetter) { toast.warning('لا يوجد عمود فارغ مجاور لحفظ النص المستخرج'); return; }
@@ -1350,7 +1368,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                                   const existing = splitUrls(v);
                                   set([...existing, ...uploaded].join(' | '));
                                   toast.success(`تم رفع ${uploaded.length} ملف ✅`, { id: 'drv' });
-                                  if ((crudCtx.def as any).ocr_text_enabled) {
+                                  if ((crudCtx.def as any).ocr_text_enabled || (crudCtx.def as any).ocr_enabled) {
                                     await extractUploadedText(files, c.letter);
                                   }
                                 }
