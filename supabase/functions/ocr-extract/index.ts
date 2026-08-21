@@ -93,6 +93,7 @@ const BodySchema = z.object({
   prompt: z.string().max(4000).optional(),
   model: z.string().max(120).optional(),
   provider: z.enum(['lovable', 'google']).optional(),
+  action: z.enum(['list_models']).optional(),
 });
 
 Deno.serve(async (req) => {
