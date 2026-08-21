@@ -1372,9 +1372,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 <div className="mt-4 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-slate-500">🔐 يتطلب الحفظ كلمة مرور المدير</span>
                   <div className="flex gap-2">
-                    <button className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm font-bold hover:bg-slate-50" onClick={() => setCrudEditing(null)} disabled={crudBusy}>إلغاء</button>
-                    <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm disabled:opacity-50" style={{ background: '#0891b2' }} onClick={crudSubmit} disabled={crudBusy}>
-                      {crudBusy ? '⏳ جاري الحفظ...' : '💾 حفظ'}
+                    <button className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm font-bold hover:bg-slate-50" onClick={() => setCrudEditing(null)} disabled={crudBusy || ocrBusy}>إلغاء</button>
+                    <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm disabled:opacity-50" style={{ background: '#0891b2' }} onClick={crudSubmit} disabled={crudBusy || ocrBusy}>
+                      {ocrBusy ? '⏳ انتظر اكتمال استخراج النص...' : crudBusy ? '⏳ جاري الحفظ...' : '💾 حفظ'}
                     </button>
                   </div>
                 </div>

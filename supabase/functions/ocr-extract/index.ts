@@ -21,10 +21,10 @@ interface FieldSpec {
 
 const BodySchema = z.object({
   mode: z.enum(['text']).optional(),
-  file_data_url: z.string().max(30_000_000).optional(),
+  file_data_url: z.string().max(40_000_000).optional(),
   mime_type: z.string().max(150).optional(),
   file_name: z.string().max(255).optional(),
-  image_data_url: z.string().max(30_000_000).optional(),
+  image_data_url: z.string().max(40_000_000).optional(),
   fields: z.array(z.object({ letter: z.string().min(1).max(3), header: z.string().min(1).max(255), type: z.string().max(40).optional() })).max(100).optional(),
   prompt: z.string().max(4000).optional(),
 });
