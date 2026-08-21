@@ -183,6 +183,8 @@ export interface CustomSystemDef {
   ocr_text_prompt?: string;
   /** 🤖 موديل الذكاء الاصطناعي المستخدم في الاستخراج (OCR/نص الملفات). فارغ = الافتراضي الأدق. */
   ocr_model?: string;
+  /** 🌐 مزوّد الذكاء الاصطناعي للاستخراج: '' أو 'lovable' = بوابة المشروع (تُخصم من الكريدت)، 'google' = مفتاح Google AI Studio الخاص بمالك المشروع (بلا كريدت). */
+  ocr_provider?: 'lovable' | 'google' | '';
   /** 🎨 Highlight rows with a background color when conditions match. First matching rule wins. */
   row_rules?: RowRule[];
   /** 📊 Aggregation footer — SUM/AVG/COUNT/MIN/MAX/COUNT_UNIQUE per column on visible rows. */
@@ -344,6 +346,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   ocr_text_targets: {},
   ocr_text_prompt: '',
   ocr_model: '',
+  ocr_provider: '',
   row_rules: [],
   aggregations: [],
   global_search: false,

@@ -15,6 +15,7 @@ const json = (b: unknown, status = 200) =>
   });
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") || "";
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY") || "";
 
 interface FieldSpec {
   letter: string;
@@ -26,6 +27,62 @@ interface FieldSpec {
 const ALLOWED_MODELS = ["google/gemini-3.1-pro-preview", "google/gemini-3.7-flash", "google/gemini-2.5-flash"] as const;
 const DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
 
+// موديلات Google AI Studio المسموحة عند اختيار المزوّد الخارجي (مفتاح المستخدم الخاص — بلا كريدت Lovable).
+const GOOGLE_ALLOWED_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"] as const;
+const GOOGLE_DEFAULT_MODEL = "gemini-2.5-flash";
+
+class ProviderError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+// استدعاء Google Gemini API مباشرة بمفتاح المستخدم — لا يمر عبر بوابة Lovable ولا يستهلك كريدت المشروع.
+async function callGoogle(opts: {
+  model: string;
+  systemPrompt: string;
+  instruction: string;
+  dataUrl: string;
+  jsonMode?: boolean;
+}): Promise<{ text: string; finishReason: string }> {
+  const m = opts.dataUrl.match(/^data:([^;]+);base64,([\s\S]*)$/);
+  if (!m) throw new ProviderError("صيغة الملف غير صالحة — مطلوب data:...;base64,...", 400);
+  const body: Record<string, unknown> = {
+    system_instruction: { parts: [{ text: opts.systemPrompt }] },
+    contents: [
+      { role: "user", parts: [{ text: opts.instruction }, { inlineData: { mimeType: m[1], data: m[2] } }] },
+    ],
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: 32768,
+      ...(opts.jsonMode ? { responseMimeType: "application/json" } : {}),
+    },
+  };
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent?key=${GOOGLE_API_KEY}`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+  );
+  if (res.status === 429) {
+    throw new ProviderError("تم تجاوز الحصة المجانية لمفتاح Google AI Studio — حاول لاحقاً أو اختر موديلاً أخف من منشئ الأنظمة", 429);
+  }
+  if (res.status === 400 || res.status === 403) {
+    const t = await res.text();
+    throw new ProviderError(`مفتاح Google API غير صالح أو الموديل غير متاح له (${res.status}): ${t.slice(0, 200)}`, 400);
+  }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new ProviderError(`فشل الاستخراج عبر Google: ${res.status} ${t.slice(0, 300)}`, 500);
+  }
+  const d = await res.json();
+  const cand = d?.candidates?.[0];
+  const parts: unknown[] = cand?.content?.parts || [];
+  const text = parts.map((p) => String((p as { text?: string })?.text || "")).join("").trim();
+  const finishRaw = String(cand?.finishReason || "");
+  return { text, finishReason: finishRaw === "MAX_TOKENS" ? "length" : finishRaw.toLowerCase() };
+}
+
 const BodySchema = z.object({
   mode: z.enum(['text', 'summary', 'smart']).optional(),
   file_data_url: z.string().max(40_000_000).optional(),
@@ -35,6 +92,7 @@ const BodySchema = z.object({
   fields: z.array(z.object({ letter: z.string().min(1).max(3), header: z.string().min(1).max(255), type: z.string().max(40).optional() })).max(100).optional(),
   prompt: z.string().max(4000).optional(),
   model: z.string().max(120).optional(),
+  provider: z.enum(['lovable', 'google']).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -46,14 +104,32 @@ Deno.serve(async (req) => {
     if (!parsedBody.success) return json({ error: parsedBody.error.flatten().fieldErrors }, 400);
     const body = parsedBody.data;
 
+    // مزوّد الذكاء الاصطناعي: lovable (بوابة المشروع — تُخصم من الكريدت) أو google (مفتاح المستخدم الخاص).
+    const provider = String(body?.provider || "lovable").toLowerCase() === "google" ? "google" : "lovable";
+    if (provider === "google" && !GOOGLE_API_KEY) {
+      return json({ error: "مفتاح GOOGLE_API_KEY غير مُهيأ في الخادم — أضفه من أسرار المشروع أو بدّل المزوّد إلى بوابة Lovable AI" }, 400);
+    }
+
     // اختيار الموديل من منشئ الأنظمة — فارغ = الافتراضي الأدق؛ القيمة يجب أن تكون ضمن القائمة البيضاء.
-    const requestedModel = String(body?.model || "").trim();
-    let aiModel: string = DEFAULT_MODEL;
-    if (requestedModel) {
-      if (!(ALLOWED_MODELS as readonly string[]).includes(requestedModel)) {
-        return json({ error: `موديل غير مدعوم: ${requestedModel} — الموديلات المسموحة: ${ALLOWED_MODELS.join(", ")}` }, 400);
+    const requestedRaw = String(body?.model || "").trim();
+    const requestedModel = requestedRaw.replace(/^google\//, "");
+    let aiModel: string;
+    if (provider === "google") {
+      aiModel = GOOGLE_DEFAULT_MODEL;
+      if (requestedModel) {
+        if (!(GOOGLE_ALLOWED_MODELS as readonly string[]).includes(requestedModel)) {
+          return json({ error: `موديل غير مدعوم لمزوّد Google: ${requestedModel} — المسموح: ${GOOGLE_ALLOWED_MODELS.join(", ")}` }, 400);
+        }
+        aiModel = requestedModel;
       }
-      aiModel = requestedModel;
+    } else {
+      aiModel = DEFAULT_MODEL;
+      if (requestedRaw) {
+        if (!(ALLOWED_MODELS as readonly string[]).includes(requestedRaw)) {
+          return json({ error: `موديل غير مدعوم: ${requestedRaw} — الموديلات المسموحة: ${ALLOWED_MODELS.join(", ")}` }, 400);
+        }
+        aiModel = requestedRaw;
+      }
     }
 
     // ---- File modes: "text" (شامل) / "summary" (مُلخَّص) / "smart" (ذكي وفق المعايير).
@@ -99,6 +175,17 @@ Deno.serve(async (req) => {
         systemPrompt =
           "أنت أداة استخراج ذكية عالية الدقة من المستندات الرسمية. مهمتك استخراج ما تطلبه معايير المستخدم فقط، بنص حرفي منسوخ من الملف. القواعد: انسخ القيم حرفياً دون إعادة صياغة؛ ممنوع اختراع أو استنتاج معلومة غير موجودة — إن لم تجد معلومة مطلوبة اكتب «غير موجود»؛ نصوص خط اليد والأختام تُقرأ بعناية وتُدرج عند صلتها بالمعايير؛ أعد الناتج منظماً بعنوان واضح لكل معيار، دون أي شرح إضافي." + HANDWRITING_RULES;
         instruction = `استخرج من هذا الملف ما يطابق المعايير التالية فقط، ونظّم الناتج بعنوان واضح لكل معيار:\n${extraPrompt}`;
+      }
+
+      // مسار المزوّد الخارجي: Google AI Studio مباشرة بمفتاح المستخدم (بلا كريدت Lovable).
+      if (provider === "google") {
+        try {
+          const r = await callGoogle({ model: aiModel, systemPrompt, instruction, dataUrl: fileUrl });
+          return json({ text: r.text, finish_reason: r.finishReason });
+        } catch (e) {
+          const err = e as ProviderError;
+          return json({ error: err.message }, err.status || 500);
+        }
       }
 
       const part = mime.startsWith("image/")
@@ -164,6 +251,41 @@ Deno.serve(async (req) => {
         ],
       },
     ];
+
+    // مسار المزوّد الخارجي: Google AI Studio مباشرة بمفتاح المستخدم (بلا كريدت Lovable).
+    if (provider === "google") {
+      try {
+        const r = await callGoogle({
+          model: aiModel,
+          systemPrompt: "أعِد فقط كائن JSON صالحاً، بدون أي نص أو أسوار كود.",
+          instruction: systemPrompt,
+          dataUrl: image,
+          jsonMode: true,
+        });
+        const cleanedG = r.text
+          .replace(/^```json\s*/i, "")
+          .replace(/^```\s*/i, "")
+          .replace(/```\s*$/i, "")
+          .trim();
+        let parsedG: Record<string, unknown> = {};
+        try {
+          parsedG = JSON.parse(cleanedG);
+        } catch {
+          const m2 = cleanedG.match(/\{[\s\S]*\}/);
+          if (m2) { try { parsedG = JSON.parse(m2[0]); } catch { /* ignore */ } }
+        }
+        const valuesG: Record<string, string> = {};
+        fields.forEach((f) => {
+          const k = f.letter;
+          const v = (parsedG as any)[k] ?? (parsedG as any)[k.toLowerCase()] ?? "";
+          valuesG[k] = v == null ? "" : String(v).trim();
+        });
+        return json({ values: valuesG, raw: cleanedG });
+      } catch (e) {
+        const err = e as ProviderError;
+        return json({ error: err.message }, err.status || 500);
+      }
+    }
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
