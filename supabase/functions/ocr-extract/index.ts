@@ -28,6 +28,44 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY غير مُهيأ في الخادم" }, 500);
 
     const body = await req.json().catch(() => ({}));
+
+    // ---- Mode "text": full text extraction from any uploaded file (image / PDF / doc).
+    if (String(body?.mode || "") === "text") {
+      const fileUrl: string = String(body?.file_data_url || "").trim();
+      const mime: string = String(body?.mime_type || "").toLowerCase();
+      const fileName: string = String(body?.file_name || "ملف");
+      const extraPrompt: string = String(body?.prompt || "").trim();
+      if (!fileUrl.startsWith("data:")) {
+        return json({ error: "الملف مطلوب بصيغة data:...;base64,..." }, 400);
+      }
+      const instruction =
+        (extraPrompt ||
+          "استخرج كامل النص الظاهر في الملف المرفق كما هو، مع الحفاظ على الترتيب والأسطر. لا تضف أي شرح أو تعليق. إن لم يوجد نص أعِد نصاً فارغاً.");
+      const part = mime.startsWith("image/")
+        ? { type: "image_url", image_url: { url: fileUrl } }
+        : { type: "file", file: { filename: fileName, file_data: fileUrl } };
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: "أنت أداة OCR دقيقة. أعِد النص المستخرج فقط." },
+            { role: "user", content: [{ type: "text", text: instruction }, part] },
+          ],
+        }),
+      });
+      if (res.status === 429) return json({ error: "تم تجاوز الحد المسموح — حاول لاحقاً" }, 429);
+      if (res.status === 402) return json({ error: "رصيد Lovable AI غير كافٍ" }, 402);
+      if (!res.ok) {
+        const t = await res.text();
+        return json({ error: `فشل استخراج النص: ${res.status} ${t.slice(0, 300)}` }, 500);
+      }
+      const d = await res.json();
+      const text = String(d?.choices?.[0]?.message?.content || "").trim();
+      return json({ text });
+    }
+
     const image: string = String(body?.image_data_url || "").trim();
     const fields: FieldSpec[] = Array.isArray(body?.fields) ? body.fields : [];
     const userPrompt: string = String(body?.prompt || "").trim();
