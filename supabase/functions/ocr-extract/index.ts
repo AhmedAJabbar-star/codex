@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
         body: JSON.stringify({
-          model: "google/gemini-3.1-pro-preview",
+          model: aiModel,
           max_tokens: 32768,
           temperature: 0,
           messages: [
@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
         "Lovable-API-Key": LOVABLE_API_KEY,
       },
       body: JSON.stringify({
-        model: "google/gemini-3.1-pro-preview",
+        model: aiModel,
         messages,
         max_tokens: 32768,
         temperature: 0,
