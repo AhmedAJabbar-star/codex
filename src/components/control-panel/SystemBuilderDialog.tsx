@@ -1076,6 +1076,59 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 </p>
               </div>
 
+              {/* 📝 استخراج نص الملفات المرفوعة */}
+              <div className="mt-4 rounded-xl border-2 border-teal-200 bg-teal-50/40 p-4" dir="rtl">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5"
+                    checked={!!s.ocr_text_enabled}
+                    onChange={(e) => patch({ ocr_text_enabled: e.target.checked })}
+                  />
+                  <strong className="text-sm">📝 استخراج نص الملفات المرفوعة وحفظه في عمود مجاور</strong>
+                </label>
+                <p className="text-xs text-slate-600 mt-2 leading-6">
+                  بعد رفع أي ملف في حقل من نوع <strong>«📎 ملف»</strong> (صورة، PDF، مستند…) يقوم النظام تلقائياً
+                  بقراءة محتواه بالذكاء الاصطناعي وحفظ النص المستخرج في <strong>أول عمود فارغ مجاور</strong> لعمود
+                  الرفع (يمكنك تحديد عمود بعينه أدناه). يمكن مراجعة النص وتعديله قبل الحفظ، ويُخزَّن في ورقة Google Sheets
+                  ضمن العمود المحدد.
+                </p>
+                {s.ocr_text_enabled && (
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <label className="block text-xs font-black mb-1">تحديد عمود حفظ النص لكل عمود ملفات (اختياري)</label>
+                      <input
+                        className="schedule-select w-full text-xs"
+                        dir="ltr"
+                        value={Object.entries(s.ocr_text_targets || {}).map(([k, v]) => `${k}=${v}`).join(', ')}
+                        onChange={(e) => {
+                          const map: Record<string, string> = {};
+                          e.target.value.toUpperCase().split(/[,\s]+/).forEach((pair) => {
+                            const m = pair.trim().match(/^([A-Z]{1,3})=([A-Z]{1,3})$/);
+                            if (m) map[m[1]] = m[2];
+                          });
+                          patch({ ocr_text_targets: map });
+                        }}
+                        placeholder="H=I, K=L   (عمود الملف = عمود حفظ النص)"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        اتركه فارغاً ليُستخدم أول عمود فارغ بعد عمود الرفع تلقائياً.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black mb-1">تعليمات مخصصة لاستخراج النص (اختياري)</label>
+                      <textarea
+                        className="schedule-select w-full text-xs"
+                        rows={2}
+                        value={s.ocr_text_prompt || ''}
+                        onChange={(e) => patch({ ocr_text_prompt: e.target.value })}
+                        placeholder="مثال: استخرج نص القرار الإداري فقط بدون التواقيع والأختام."
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* 📸 OCR — استخراج البيانات بالذكاء الاصطناعي */}
               <div className="mt-4 rounded-xl border-2 border-purple-200 bg-purple-50/40 p-4" dir="rtl">
                 <label className="flex items-center gap-2 cursor-pointer">

@@ -167,6 +167,12 @@ export interface CustomSystemDef {
   ocr_prompt?: string;
   /** Excel letters the OCR should populate. Empty = all editable columns. */
   ocr_fields?: string[];
+  /** 📝 استخراج نص الملفات المرفوعة (صورة/PDF/…) وحفظه في عمود مجاور. */
+  ocr_text_enabled?: boolean;
+  /** خريطة: حرف عمود الملف ← حرف عمود حفظ النص. الافتراضي: العمود التالي مباشرة. */
+  ocr_text_targets?: Record<string, string>;
+  /** تعليمات مخصصة لاستخراج النص. */
+  ocr_text_prompt?: string;
   /** 🎨 Highlight rows with a background color when conditions match. First matching rule wins. */
   row_rules?: RowRule[];
   /** 📊 Aggregation footer — SUM/AVG/COUNT/MIN/MAX/COUNT_UNIQUE per column on visible rows. */
@@ -323,6 +329,9 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   ocr_enabled: false,
   ocr_prompt: '',
   ocr_fields: [],
+  ocr_text_enabled: false,
+  ocr_text_targets: {},
+  ocr_text_prompt: '',
   row_rules: [],
   aggregations: [],
   global_search: false,
