@@ -1123,24 +1123,59 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                 </p>
               </div>
 
-              {/* 🤖 اختيار موديل الذكاء الاصطناعي للاستخراج */}
+              {/* 🤖 اختيار مزوّد وموديل الذكاء الاصطناعي للاستخراج */}
               {(s.ocr_text_enabled || s.ocr_enabled) && (
                 <div className="mt-4 rounded-xl border-2 border-amber-200 bg-amber-50/40 p-4" dir="rtl">
-                  <strong className="text-sm">🤖 موديل الذكاء الاصطناعي المستخدم في الاستخراج</strong>
+                  <strong className="text-sm">🤖 مزوّد وموديل الذكاء الاصطناعي المستخدم في الاستخراج</strong>
                   <p className="text-xs text-slate-600 mt-2 leading-6">
                     يُطبَّق هذا الاختيار على <strong>استخراج نص الملفات المرفوعة</strong> و<strong>الاستخراج من الصور</strong> معاً.
-                    الكلفة تُحتسَب من رصيد الذكاء الاصطناعي في مساحة عمل المشروع — موديلات <bdi dir="ltr">flash</bdi> أسرع
-                    وكلفتها أقل بكثير، بينما موديلات <bdi dir="ltr">pro</bdi> أدق مع المستندات المعقدة وخط اليد والأختام.
                   </p>
+
+                  <label className="block text-xs font-black mt-3 mb-1">مزوّد الذكاء الاصطناعي</label>
                   <select
-                    className="schedule-select w-full text-xs mt-3"
+                    className="schedule-select w-full text-xs"
+                    value={s.ocr_provider === 'google' ? 'google' : 'lovable'}
+                    onChange={(e) => {
+                      const p = e.target.value === 'google' ? ('google' as const) : ('' as const);
+                      // عند تبديل المزوّد نصفّر الموديل إن كان يتبع المزوّد الآخر لتفادي رفض الطلبات.
+                      const cur = String(s.ocr_model || '');
+                      const curIsGoogleDirect = cur !== '' && !cur.startsWith('google/');
+                      const nextModel = p === 'google' ? (curIsGoogleDirect ? cur : '') : (curIsGoogleDirect ? '' : cur);
+                      patch({ ocr_provider: p, ocr_model: nextModel });
+                    }}
+                  >
+                    <option value="lovable">☁️ بوابة Lovable AI — الافتراضي · تُخصم الكلفة من كريدت المشروع</option>
+                    <option value="google">🔑 Google AI Studio (مفتاح Google الخاص بالمشروع) — بلا أي خصم من كريدت Lovable</option>
+                  </select>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-5">
+                    {s.ocr_provider === 'google'
+                      ? '💡 الاستهلاك يُحتسب على حساب Google AI Studio المرتبط بالمفتاح المحفوظ في أسرار المشروع — موديلات flash لها حصة مجانية يومية، ولن يُخصم أي كريدت من هذا المشروع.'
+                      : '💡 الكلفة تُحتسب من رصيد الذكاء الاصطناعي في مساحة عمل المشروع — موديلات flash أسرع وكلفتها أقل بكثير، بينما موديلات pro أدق مع المستندات المعقدة وخط اليد والأختام.'}
+                  </p>
+
+                  <label className="block text-xs font-black mt-3 mb-1">الموديل</label>
+                  <select
+                    className="schedule-select w-full text-xs"
                     value={s.ocr_model || ''}
                     onChange={(e) => patch({ ocr_model: e.target.value })}
                   >
-                    <option value="">⚖️ تلقائي (الافتراضي) — gemini-3.1-pro · الأدق للمستندات الرسمية وخط اليد</option>
-                    <option value="google/gemini-2.5-flash">🆓 gemini-2.5-flash — الأقل كلفة (شبه مجاني) · مناسب للمستندات المطبوعة الواضحة</option>
-                    <option value="google/gemini-3.7-flash">⚡ gemini-3.7-flash — سريع وكلفة منخفضة · توازن بين الدقة والسرعة</option>
-                    <option value="google/gemini-3.1-pro-preview">💎 gemini-3.1-pro — أعلى دقة · كلفة أعلى</option>
+                    {s.ocr_provider === 'google' ? (
+                      <>
+                        <option value="">⚖️ تلقائي (الافتراضي) — gemini-3.6-flash · ضمن الحصة المجانية اليومية</option>
+                        <option value="gemini-3.6-flash">🆓 gemini-3.6-flash — حصة مجانية يومية · مناسب للمستندات الواضحة</option>
+                        <option value="gemini-3.5-flash">⚡ gemini-3.5-flash — سريع ومستقر</option>
+                        <option value="gemini-3.5-flash-lite">🪶 gemini-3.5-flash-lite — الأسرع · أوسع حصة مجانية</option>
+                        <option value="gemini-3.7-flash">🚀 gemini-3.7-flash — أحدث جيل flash</option>
+                        <option value="gemini-3.1-pro-preview">💎 gemini-3.1-pro — أعلى دقة · قد يتطلب تفعيل الفوترة في حساب Google</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="">⚖️ تلقائي (الافتراضي) — gemini-3.1-pro · الأدق للمستندات الرسمية وخط اليد</option>
+                        <option value="google/gemini-2.5-flash">🆓 gemini-2.5-flash — الأقل كلفة (شبه مجاني) · مناسب للمستندات المطبوعة الواضحة</option>
+                        <option value="google/gemini-3.7-flash">⚡ gemini-3.7-flash — سريع وكلفة منخفضة · توازن بين الدقة والسرعة</option>
+                        <option value="google/gemini-3.1-pro-preview">💎 gemini-3.1-pro — أعلى دقة · كلفة أعلى</option>
+                      </>
+                    )}
                   </select>
                   <p className="text-[11px] text-slate-500 mt-1">
                     💡 إن ظهرت أخطاء استخراج أو نصوص ناقصة مع موديل flash، بدّل إلى pro من هنا دون أي تعديل برمجي.

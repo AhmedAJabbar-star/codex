@@ -810,7 +810,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     setOcrBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke('ocr-extract', {
-        body: { image_data_url: dataUrl, fields, prompt: ocr.ocr_prompt || '', model: ocr.ocr_model || '' },
+        body: { image_data_url: dataUrl, fields, prompt: ocr.ocr_prompt || '', model: ocr.ocr_model || '', provider: ocr.ocr_provider || '' },
       });
       if (error) throw new Error(error.message || 'فشل استدعاء الخدمة');
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -900,6 +900,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             file_name: f.name,
             prompt: def.ocr_text_prompt || '',
             model: def.ocr_model || '',
+            provider: def.ocr_provider || '',
           },
         });
         if (error) throw new Error(error.message || 'فشل استدعاء الخدمة');
