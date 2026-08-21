@@ -819,6 +819,74 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     }
   }, [crudCtx, crudEditing]);
 
+  // 📝 استخراج نص الملفات المرفوعة (صورة / PDF / أي ملف) وحفظه في أول عمود فارغ مجاور
+  const extractUploadedText = useCallback(async (files: File[], fileLetter: string) => {
+    if (!crudCtx) return;
+    const def = crudCtx.def as any;
+    if (!def.ocr_text_enabled) return;
+    const cols = crudCtx.cols;
+    const idx = cols.findIndex((c) => c.letter === fileLetter);
+    const configured: string = (def.ocr_text_targets || {})[fileLetter] || '';
+    let targetLetter = '';
+    if (configured && cols.some((c) => c.letter === configured.toUpperCase())) {
+      targetLetter = configured.toUpperCase();
+    } else {
+      // أول عمود مجاور (بعد عمود الرفع) قابل للكتابة وفارغ
+      const cur = (crudEditingRef.current?.values) || {};
+      for (let i = idx + 1; i < cols.length; i++) {
+        const c = cols[i];
+        if (c.type === 'readonly' || c.type === 'file') continue;
+        if (auditLetters.includes(c.letter)) continue;
+        if ((cur[c.letter] || '').trim()) continue;
+        targetLetter = c.letter;
+        break;
+      }
+    }
+    if (!targetLetter) { toast.warning('لا يوجد عمود فارغ مجاور لحفظ النص المستخرج'); return; }
+
+    setOcrBusy(true);
+    const chunks: string[] = [];
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        toast.loading(`📝 استخراج النص (${i + 1}/${files.length}): ${f.name}`, { id: 'ocrtxt' });
+        const dataUrl = await new Promise<string>((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(String(r.result || ''));
+          r.onerror = () => rej(new Error('تعذر قراءة الملف'));
+          r.readAsDataURL(f);
+        });
+        const { data, error } = await supabase.functions.invoke('ocr-extract', {
+          body: {
+            mode: 'text',
+            file_data_url: dataUrl,
+            mime_type: f.type || 'application/octet-stream',
+            file_name: f.name,
+            prompt: def.ocr_text_prompt || '',
+          },
+        });
+        if (error) throw new Error(error.message || 'فشل استدعاء الخدمة');
+        if ((data as any)?.error) throw new Error((data as any).error);
+        const text = String((data as any)?.text || '').trim();
+        if (text) chunks.push(files.length > 1 ? `【${f.name}】\n${text}` : text);
+      }
+      if (chunks.length === 0) { toast.warning('لم يُعثر على نص في الملفات المرفوعة', { id: 'ocrtxt' }); return; }
+      setCrudEditing((prev) => {
+        if (!prev) return prev;
+        const old = (prev.values[targetLetter] || '').trim();
+        const merged = old ? `${old}\n\n${chunks.join('\n\n')}` : chunks.join('\n\n');
+        return { ...prev, values: { ...prev.values, [targetLetter]: merged } };
+      });
+      toast.success(`✅ تم حفظ النص المستخرج في العمود ${targetLetter}`, { id: 'ocrtxt' });
+    } catch (e) {
+      toast.error((e as Error).message || 'فشل استخراج النص', { id: 'ocrtxt' });
+    } finally {
+      setOcrBusy(false);
+    }
+  }, [crudCtx, auditLetters]);
+
+
+
 
 
   return (
