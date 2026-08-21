@@ -66,6 +66,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   // البحث المؤجَّل: يبقي الكتابة سلسة مهما كثرت السجلات
   const deferredSearch = useDeferredValue(crudSearch);
   const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
+  const crudEditingRef = useRef(crudEditing);
+  crudEditingRef.current = crudEditing;
   const [crudBusy, setCrudBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
   const ocrFileRef = useRef<HTMLInputElement | null>(null);
@@ -1337,6 +1339,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                                   const existing = splitUrls(v);
                                   set([...existing, ...uploaded].join(' | '));
                                   toast.success(`تم رفع ${uploaded.length} ملف ✅`, { id: 'drv' });
+                                  if ((crudCtx.def as any).ocr_text_enabled) {
+                                    void extractUploadedText(files, c.letter);
+                                  }
                                 }
                                 e.target.value = '';
                               }}
