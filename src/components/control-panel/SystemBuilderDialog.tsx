@@ -2003,6 +2003,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
               ['count_tokens', '# عدد العناصر في خلية'],
               ['date_diff_days', '📅 فرق الأيام بين تاريخين'],
               ['year_from_date', '📆 سنة من تاريخ'],
+              ['month_from_date', '🗓️ رقم الشهر من تاريخ'],
+              ['default_if_empty', '🩹 قيمة بديلة عند الفراغ'],
               ['row_number', '# ترقيم تلقائي'],
             ];
 
@@ -2067,11 +2069,23 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             onChange={(e) => setCCCols(i, e.target.value)}
                             placeholder="من، إلى (مثل: H, I) — «إلى» اختياري = اليوم" />
                         )}
-                        {cc.type === 'year_from_date' && (
+                        {(cc.type === 'year_from_date' || cc.type === 'month_from_date') && (
                           <input className="schedule-select w-32 font-mono text-center" dir="ltr"
                             value={(cc.columns || []).join(', ')}
                             onChange={(e) => setCCCols(i, e.target.value)}
                             placeholder="عمود التاريخ (H)" />
+                        )}
+                        {cc.type === 'default_if_empty' && (
+                          <>
+                            <input className="schedule-select w-32 font-mono text-center" dir="ltr"
+                              value={(cc.columns || []).join(', ')}
+                              onChange={(e) => setCCCols(i, e.target.value)}
+                              placeholder="العمود (E)" />
+                            <input className="schedule-select flex-1"
+                              value={cc.fallback ?? ''}
+                              onChange={(e) => updCC(i, { fallback: e.target.value })}
+                              placeholder="القيمة البديلة عند فراغ الخلية (مثال: غير محدد)" />
+                          </>
                         )}
                         {(cc.type === 'sum' || cc.type === 'expr' || cc.type === 'duration') && (
                           <input className="schedule-select w-24 text-center" type="number" step="0.01"
