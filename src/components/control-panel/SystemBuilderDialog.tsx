@@ -1161,10 +1161,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   >
                     {s.ocr_provider === 'google' ? (
                       <>
-                        <option value="">⚖️ تلقائي (الافتراضي) — gemini-2.5-flash · ضمن الحصة المجانية اليومية</option>
-                        <option value="gemini-2.5-flash">🆓 gemini-2.5-flash — حصة مجانية يومية · مناسب للمستندات الواضحة</option>
-                        <option value="gemini-2.5-flash-lite">⚡ gemini-2.5-flash-lite — الأسرع · أوسع حصة مجانية</option>
-                        <option value="gemini-2.5-pro">💎 gemini-2.5-pro — أعلى دقة · قد يتطلب تفعيل الفوترة في حساب Google</option>
+                        <option value="">⚖️ تلقائي (الافتراضي) — gemini-3.6-flash · ضمن الحصة المجانية اليومية</option>
+                        <option value="gemini-3.6-flash">🆓 gemini-3.6-flash — حصة مجانية يومية · مناسب للمستندات الواضحة</option>
+                        <option value="gemini-3.6-flash-lite">⚡ gemini-3.6-flash-lite — الأسرع · أوسع حصة مجانية</option>
+                        <option value="gemini-3.1-pro">💎 gemini-3.1-pro — أعلى دقة · قد يتطلب تفعيل الفوترة في حساب Google</option>
                       </>
                     ) : (
                       <>

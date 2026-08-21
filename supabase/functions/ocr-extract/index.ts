@@ -28,8 +28,8 @@ const ALLOWED_MODELS = ["google/gemini-3.1-pro-preview", "google/gemini-3.7-flas
 const DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
 
 // موديلات Google AI Studio المسموحة عند اختيار المزوّد الخارجي (مفتاح المستخدم الخاص — بلا كريدت Lovable).
-const GOOGLE_ALLOWED_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"] as const;
-const GOOGLE_DEFAULT_MODEL = "gemini-2.5-flash";
+const GOOGLE_ALLOWED_MODELS = ["gemini-3.6-flash", "gemini-3.6-flash-lite", "gemini-3.1-pro"] as const;
+const GOOGLE_DEFAULT_MODEL = "gemini-3.6-flash";
 
 class ProviderError extends Error {
   status: number;
