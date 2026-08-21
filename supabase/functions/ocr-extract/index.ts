@@ -1,7 +1,10 @@
 // OCR / vision extraction for the no-code system builder.
 // Input:  { image_data_url, fields: [{letter, header, type?}], prompt? }
 // Output: { values: { [letter]: string } }
-// Uses Lovable AI Gateway (gemini-2.5-flash) — no user API key required.
+// mode 'text'    → نسخ حرفي شامل لكامل الملف (شامل)
+// mode 'summary' → مُلخَّص منظم وفيّ للمستند (مُلخَّص)
+// mode 'smart'   → استخراج وفق معايير المستخدم فقط (ذكي)
+// Uses Lovable AI Gateway (gemini-3.1-pro-preview) — no user API key required.
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3.23.8';
@@ -20,7 +23,7 @@ interface FieldSpec {
 }
 
 const BodySchema = z.object({
-  mode: z.enum(['text']).optional(),
+  mode: z.enum(['text', 'summary', 'smart']).optional(),
   file_data_url: z.string().max(40_000_000).optional(),
   mime_type: z.string().max(150).optional(),
   file_name: z.string().max(255).optional(),
