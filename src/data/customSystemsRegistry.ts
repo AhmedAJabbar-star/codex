@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Condition, ConditionOp, DerivedColumn } from '@/lib/conditionEngine';
+import type { Condition, ConditionOp, ComputedColumn, ConflictCfg, DerivedColumn, GroupStage } from '@/lib/conditionEngine';
 
 export interface SignatureItem { label: string; name?: string }
 
@@ -114,6 +114,12 @@ export interface CustomSystemDef {
   conditions: Condition[];
   conditions_logic?: 'AND' | 'OR';
   derived_columns: DerivedColumn[];
+  /** 🧮 Computed columns (formulas) evaluated per row after conditions. */
+  computed_columns?: ComputedColumn[];
+  /** 📊 Group/aggregate stage applied after row filtering (e.g. teachers without theory). */
+  group_stage?: GroupStage;
+  /** ⚠️ Pairwise time-conflict detector (room/teacher double booking). */
+  conflict_detector?: ConflictCfg;
   header_labels?: Record<string, string>;
   signatures?: SignatureItem[];
   /** Print/preview settings — when set, used as fixed defaults; toolbar hidden by default. */
