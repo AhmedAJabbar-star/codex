@@ -1973,11 +1973,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
           {step === 10 && (() => {
             const ccs = (s.computed_columns || []) as ComputedColumn[];
             const setCCs = (v: ComputedColumn[]) => patch({ computed_columns: v });
-            const addCC = () => setCCs([...ccs, { name: '', type: 'duration', params: {} }]);
+            const addCC = () => setCCs([...ccs, { name: '', type: 'duration', columns: [] }]);
             const updCC = (i: number, p: Partial<ComputedColumn>) => setCCs(ccs.map((c, idx) => idx === i ? { ...c, ...p } : c));
             const delCC = (i: number) => setCCs(ccs.filter((_, idx) => idx !== i));
-            const setCCP = (i: number, key: string, val: string) => updCC(i, { params: { ...(ccs[i].params || {}), [key]: val } });
-            const ccParams = (i: number) => (ccs[i].params || {}) as Record<string, string>;
+            const setCCCols = (i: number, raw: string) => updCC(i, { columns: splitMulti(raw).map((v) => v.toUpperCase()) });
 
             const gs = s.group_stage;
             const setGS = (p: Partial<GroupStage>) => patch({ group_stage: { keys: gs?.keys || [], aggs: gs?.aggs || [], having: gs?.having || [], emit: gs?.emit || 'groups', ...p } });
@@ -2028,59 +2027,62 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     <button className="schedule-btn schedule-btn-primary" onClick={addCC} style={{ minHeight: 32, padding: '4px 10px' }}>➕ عمود</button>
                   </div>
                   {ccs.length === 0 && <p className="text-xs text-slate-500 text-center py-3 bg-white rounded border border-dashed">لا توجد أعمدة محسوبة.</p>}
-                  {ccs.map((cc, i) => {
-                    const p = ccParams(i);
-                    const PIn = ({ k, ph, w }: { k: string; ph: string; w?: string }) => (
-                      <input className={`schedule-select text-center font-mono ${w || ''}`} value={p[k] || ''} onChange={(e) => setCCP(i, k, e.target.value)} placeholder={ph} />
-                    );
-                    return (
-                      <div key={i} className="bg-white p-2 rounded-lg border space-y-2">
-                        <div className="grid grid-cols-12 gap-2 items-center">
-                          <input className="schedule-select col-span-4" value={cc.name} onChange={(e) => updCC(i, { name: e.target.value })} placeholder="اسم العمود الظاهر (مثال: المدة بالساعات)" />
-                          <select className="schedule-select col-span-6" value={cc.type} onChange={(e) => updCC(i, { type: e.target.value as ComputedColumn['type'], params: {} })}>
-                            {CC_TYPES.map(([t, lbl]) => <option key={t} value={t}>{lbl}</option>)}
-                          </select>
-                          <button onClick={() => delCC(i)} className="col-span-2 text-red-600 font-black">✕ حذف</button>
-                        </div>
-                        <div className="flex flex-wrap gap-2 items-center">
-                          {cc.type === 'duration' && (<>
-                            <PIn k="range_col" ph="عمود الفترة (مثل: J)" w="w-36" />
-                            <span className="text-[10px] text-slate-400">أو</span>
-                            <PIn k="start_col" ph="عمود البداية" w="w-28" />
-                            <PIn k="end_col" ph="عمود النهاية" w="w-28" />
-                            <select className="schedule-select w-28" value={p.unit || 'minutes'} onChange={(e) => setCCP(i, 'unit', e.target.value)}>
-                              <option value="minutes">بالدقائق</option>
-                              <option value="hours">بالساعات</option>
-                            </select>
-                            <PIn k="round" ph="تقريب (مثل 0.25)" w="w-28" />
-                          </>)}
-                          {cc.type === 'expr' && (<>
-                            <input className="schedule-select flex-1 font-mono" dir="ltr" value={p.expr || ''} onChange={(e) => setCCP(i, 'expr', e.target.value)} placeholder="{D} + {E} * 2  — استخدم {حرف العمود}" />
-                            <PIn k="round" ph="تقريب" w="w-20" />
-                          </>)}
-                          {(cc.type === 'sum' || cc.type === 'concat') && (<>
-                            <input className="schedule-select flex-1 font-mono" dir="ltr" value={p.columns || ''} onChange={(e) => setCCP(i, 'columns', e.target.value.toUpperCase())} placeholder="الأعمدة مفصولة بفواصل — مثال: D, E, F" />
-                            {cc.type === 'concat' && <PIn k="separator" ph="الفاصل (مثل: - )" w="w-24" />}
-                            {cc.type === 'sum' && <PIn k="round" ph="تقريب" w="w-20" />}
-                          </>)}
-                          {cc.type === 'date_diff_days' && (<>
-                            <PIn k="from_col" ph="عمود من (مثل: H)" w="w-32" />
-                            <PIn k="to_col" ph="عمود إلى (فارغ = اليوم)" w="w-40" />
-                            <PIn k="round" ph="تقريب" w="w-20" />
-                          </>)}
-                          {cc.type === 'weekday' && <PIn k="column" ph="عمود التاريخ (مثل: H)" w="w-40" />}
-                          {cc.type === 'to_number' && <PIn k="column" ph="العمود (مثل: E)" w="w-32" />}
-                          {cc.type === 'title_case' && <PIn k="column" ph="العمود (مثل: C)" w="w-32" />}
-                          {cc.type === 'between_cols' && (<>
-                            <PIn k="start_col" ph="عمود البداية" w="w-28" />
-                            <PIn k="end_col" ph="عمود النهاية" w="w-28" />
-                            <PIn k="value" ph="القيمة (فارغ = الوقت الحالي)" w="w-44" />
-                          </>)}
-                          {cc.type === 'row_number' && <span className="text-[11px] text-slate-500">يُرقّم الصفوف النهائية (بعد كل المراحل) بدءاً من 1.</span>}
-                        </div>
+                  {ccs.map((cc, i) => (
+                    <div key={i} className="bg-white p-2 rounded-lg border space-y-2">
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <input className="schedule-select col-span-4" value={cc.name} onChange={(e) => updCC(i, { name: e.target.value })} placeholder="اسم العمود الظاهر (مثال: المدة بالساعات)" />
+                        <select className="schedule-select col-span-6" value={cc.type} onChange={(e) => updCC(i, { type: e.target.value as ComputedColumn['type'], columns: [], expr: '', separator: undefined, round: undefined })}>
+                          {CC_TYPES.map(([t, lbl]) => <option key={t} value={t}>{lbl}</option>)}
+                        </select>
+                        <button onClick={() => delCC(i)} className="col-span-2 text-red-600 font-black">✕ حذف</button>
                       </div>
-                    );
-                  })}
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {cc.type === 'duration' && (
+                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="عمود فترة واحد (J) أو عمودان: بداية، نهاية (J, K)" />
+                        )}
+                        {cc.type === 'expr' && (
+                          <input className="schedule-select flex-1 font-mono" dir="ltr" value={cc.expr || ''} onChange={(e) => updCC(i, { expr: e.target.value })} placeholder="{D} + {E} * 2  — استخدم {حرف العمود}" />
+                        )}
+                        {(cc.type === 'sum' || cc.type === 'concat') && (
+                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="الأعمدة مفصولة بفواصل — مثال: D, E, F" />
+                        )}
+                        {cc.type === 'concat' && (
+                          <input className="schedule-select w-24 text-center" value={cc.separator ?? ''} onChange={(e) => updCC(i, { separator: e.target.value })} placeholder="الفاصل" />
+                        )}
+                        {cc.type === 'count_tokens' && (
+                          <input className="schedule-select w-32 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="العمود (مثل: E)" />
+                        )}
+                        {cc.type === 'date_diff_days' && (
+                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="من، إلى (مثل: H, I) — «إلى» اختياري = اليوم" />
+                        )}
+                        {cc.type === 'year_from_date' && (
+                          <input className="schedule-select w-32 font-mono text-center" dir="ltr"
+                            value={(cc.columns || []).join(', ')}
+                            onChange={(e) => setCCCols(i, e.target.value)}
+                            placeholder="عمود التاريخ (H)" />
+                        )}
+                        {(cc.type === 'sum' || cc.type === 'expr' || cc.type === 'duration') && (
+                          <input className="schedule-select w-24 text-center" type="number" step="0.01"
+                            value={cc.round ?? ''}
+                            onChange={(e) => updCC(i, { round: e.target.value === '' ? undefined : Number(e.target.value) })}
+                            placeholder="تقريب" />
+                        )}
+                        {cc.type === 'row_number' && <span className="text-[11px] text-slate-500">يُرقّم الصفوف النهائية (بعد كل المراحل) بدءاً من 1.</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* ===== مرحلة التجميع ===== */}
@@ -2139,18 +2141,18 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         <div className="flex items-center justify-between">
                           <strong className="text-xs">شروط على المجموعات (Having) — أبقِ فقط المجموعات المطابقة</strong>
                           <button className="schedule-btn" style={{ minHeight: 28, padding: '2px 8px', fontSize: 11 }}
-                            onClick={() => setGS({ having: [...gsHaving, { name: gsAggs[0]?.name || '', op: 'eq_number', value: 0 }] })}>➕ شرط</button>
+                            onClick={() => setGS({ having: [...gsHaving, { agg: gsAggs[0]?.name || '', op: 'eq', value: 0 }] })}>➕ شرط</button>
                         </div>
                         {gsHaving.map((h, i) => (
                           <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-1.5 rounded border">
-                            <select className="schedule-select col-span-5" value={h.name} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, name: e.target.value } : x) })}>
+                            <select className="schedule-select col-span-5" value={h.agg} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, agg: e.target.value } : x) })}>
                               <option value="">— اختر عمود الإحصاء —</option>
                               {gsAggs.map((a) => <option key={a.name} value={a.name}>{a.name || '(بدون اسم)'}</option>)}
                             </select>
-                            <select className="schedule-select col-span-3" value={h.op} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, op: e.target.value as ConditionOp } : x) })}>
+                            <select className="schedule-select col-span-3" value={h.op} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, op: e.target.value as typeof h.op } : x) })}>
                               {HAVING_OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
                             </select>
-                            <input className="schedule-select col-span-3" type="number" value={String(h.value ?? '')} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, value: e.target.value } : x) })} placeholder="القيمة" />
+                            <input className="schedule-select col-span-3" type="number" value={String(h.value ?? '')} onChange={(e) => setGS({ having: gsHaving.map((x, xi) => xi === i ? { ...x, value: Number(e.target.value) } : x) })} placeholder="القيمة" />
                             <button onClick={() => setGS({ having: gsHaving.filter((_, xi) => xi !== i) })} className="col-span-1 text-red-600 font-black">✕</button>
                           </div>
                         ))}
