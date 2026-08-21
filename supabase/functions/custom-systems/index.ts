@@ -66,6 +66,9 @@ const HEADERS = [
   "audit_updated_by_column", "audit_updated_at_column",
   "archive_enabled", "archive_sheet_url", "archive_gid",
   "qr_enabled", "qr_fields_json",
+  // v16 additions (advanced processing engine + hidden helper columns):
+  "computed_columns_json", "group_stage_json", "conflict_detector_json",
+  "hidden_columns",
 
 ];
 
@@ -266,6 +269,10 @@ function rowToSystem(r: Record<string, string>) {
     archive_gid: clean(r.archive_gid),
     qr_enabled: String(r.qr_enabled || "").toLowerCase() === "true",
     qr_fields: parseJson(r.qr_fields_json || "[]", []),
+    computed_columns: parseJson(r.computed_columns_json || "[]", []),
+    group_stage: parseJson(r.group_stage_json || "null", null),
+    conflict_detector: parseJson(r.conflict_detector_json || "null", null),
+    hidden_columns: clean(r.hidden_columns),
   };
 }
 
@@ -346,6 +353,10 @@ async function systemToRow(s: any): Promise<string[]> {
     archive_gid: String(s.archive_gid || ""),
     qr_enabled: String(!!s.qr_enabled),
     qr_fields_json: JSON.stringify(s.qr_fields || []),
+    computed_columns_json: JSON.stringify(s.computed_columns || []),
+    group_stage_json: (s.group_stage && (s.group_stage.keys || []).length > 0) ? JSON.stringify(s.group_stage) : "",
+    conflict_detector_json: (s.conflict_detector && (s.conflict_detector.group_by || []).length > 0) ? JSON.stringify(s.conflict_detector) : "",
+    hidden_columns: String(s.hidden_columns || "").toUpperCase(),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
