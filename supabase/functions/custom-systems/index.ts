@@ -46,6 +46,8 @@ const HEADERS = [
   "column_link_labels_json",
   // v9 additions (OCR):
   "ocr_enabled", "ocr_prompt", "ocr_fields_json",
+  // v15 additions (extract text of uploaded files into a neighbouring column):
+  "ocr_text_enabled", "ocr_text_targets_json", "ocr_text_prompt",
   // v10 additions (advanced power features):
   "row_rules_json", "aggregations_json", "global_search",
   // v11 additions (Google Drive uploads):
