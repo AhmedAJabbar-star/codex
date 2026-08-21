@@ -879,12 +879,13 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     if (!targetLetter) { toast.warning('لا يوجد عمود فارغ مجاور لحفظ النص المستخرج'); return; }
 
     setOcrBusy(true);
-    setOcrStatus(`استخراج النص إلى العمود ${targetLetter}…`);
+    const modeLabel = mode === 'smart' ? 'الاستخراج الذكي' : mode === 'summary' ? 'التلخيص المنظم' : 'الاستخراج الشامل';
+    setOcrStatus(`${modeLabel} إلى العمود ${targetLetter}…`);
     const chunks: string[] = [];
     try {
       for (let i = 0; i < files.length; i++) {
         const f = files[i];
-        toast.loading(`📝 استخراج النص (${i + 1}/${files.length}): ${f.name}`, { id: 'ocrtxt' });
+        toast.loading(`📝 ${modeLabel} (${i + 1}/${files.length}): ${f.name}`, { id: 'ocrtxt' });
         const dataUrl = await new Promise<string>((res, rej) => {
           const r = new FileReader();
           r.onload = () => res(String(r.result || ''));
@@ -893,7 +894,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         });
         const { data, error } = await supabase.functions.invoke('ocr-extract', {
           body: {
-            mode: 'text',
+            mode: mode === 'smart' ? 'smart' : mode === 'summary' ? 'summary' : 'text',
             file_data_url: dataUrl,
             mime_type: f.type || 'application/octet-stream',
             file_name: f.name,
@@ -922,6 +923,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       setOcrStatus('');
     }
   }, [crudCtx, auditLetters]);
+
+  // مسح منتقي وضع الاستخراج عند إغلاق نموذج الإضافة/التعديل
+  useEffect(() => { if (!crudEditing) setOcrPick(null); }, [crudEditing]);
 
 
 
@@ -1376,7 +1380,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                                   set([...existing, ...uploaded].join(' | '));
                                   toast.success(`تم رفع ${uploaded.length} ملف ✅`, { id: 'drv' });
                                   if ((crudCtx.def as any).ocr_text_enabled || (crudCtx.def as any).ocr_enabled) {
-                                    await extractUploadedText(files, c.letter);
+                                    // إظهار منتقي وضع الاستخراج (شامل / مُلخَّص / ذكي) بدلاً من التشغيل التلقائي الصامت
+                                    setOcrPick({ files, letter: c.letter });
                                   }
                                 }
                                 e.target.value = '';
@@ -1394,6 +1399,46 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     );
                   })}
                 </div>
+                {ocrPick && !ocrBusy && (
+                  <div className="mt-3 rounded-xl border-2 border-cyan-300 bg-cyan-50 p-3 space-y-2" dir="rtl">
+                    <p className="text-xs font-black text-cyan-900">
+                      📝 استخراج نص من {ocrPick.files.length === 1 ? 'الملف المرفوع' : `${ocrPick.files.length} ملفات مرفوعة`} — اختر طريقة الاستخراج:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="px-3 py-2 rounded-lg text-xs font-black text-white shadow-sm hover:opacity-90"
+                        style={{ background: '#0e7490' }}
+                        onClick={() => { const p = ocrPick; setOcrPick(null); void extractUploadedText(p.files, p.letter, 'full'); }}
+                      >
+                        📄 شامل <span className="font-normal opacity-80">(نسخ حرفي كامل للمستند)</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-2 rounded-lg text-xs font-black text-white shadow-sm hover:opacity-90"
+                        style={{ background: '#7c3aed' }}
+                        onClick={() => { const p = ocrPick; setOcrPick(null); void extractUploadedText(p.files, p.letter, 'summary'); }}
+                      >
+                        🧾 مُلخَّص <span className="font-normal opacity-80">(منظم وموجز بالعناوين)</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-2 rounded-lg text-xs font-black text-white shadow-sm hover:opacity-90"
+                        style={{ background: '#b45309' }}
+                        onClick={() => { const p = ocrPick; setOcrPick(null); void extractUploadedText(p.files, p.letter, 'smart'); }}
+                      >
+                        🎯 ذكي <span className="font-normal opacity-80">(وفق معايير منشئ الأنظمة)</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-2 rounded-lg text-xs font-bold border-2 border-slate-300 hover:bg-slate-50"
+                        onClick={() => setOcrPick(null)}
+                      >
+                        تخطي
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-4 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-slate-500">🔐 يتطلب الحفظ كلمة مرور المدير</span>
                   <div className="flex gap-2">
