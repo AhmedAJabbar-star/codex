@@ -142,7 +142,9 @@ async function ensureSheet() {
     return;
   }
   const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:ZZ1`);
-  const currentRow: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "")) : [];
+  // Dedupe defensively: earlier versions appended missing headers on every run,
+  // which duplicated trailing header cells. First occurrence wins and stays data-aligned.
+  const currentRow: string[] = dedupeHeaders((r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "")) : []);
   if (currentRow.length === 0) {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
@@ -172,11 +174,23 @@ async function rangeForRow(rowIdx0: number) {
   return `${SHEET_TITLE}!A${rowIdx0 + 2}:${lastCol}${rowIdx0 + 2}`;
 }
 
+function dedupeHeaders(row: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const h of row) {
+    const k = String(h || "").trim();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(k);
+  }
+  return out;
+}
+
 let cachedColOrder: string[] | null = null;
 async function getColOrder(): Promise<string[]> {
   if (cachedColOrder) return cachedColOrder;
   const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:ZZ1`);
-  const row: string[] = (r.values && r.values[0]) ? r.values[0].map((x: any) => String(x || "").trim()) : HEADERS;
+  const row: string[] = (r.values && r.values[0]) ? dedupeHeaders(r.values[0].map((x: any) => String(x || ""))) : HEADERS;
   cachedColOrder = row.length > 0 ? row : HEADERS;
   return cachedColOrder;
 }
