@@ -109,7 +109,7 @@ const BodySchema = z.object({
   fields: z.array(z.object({ letter: z.string().min(1).max(3), header: z.string().min(1).max(255), type: z.string().max(40).optional() })).max(100).optional(),
   prompt: z.string().max(4000).optional(),
   model: z.string().max(120).optional(),
-  provider: z.enum(['lovable', 'google']).optional(),
+  provider: z.union([z.enum(['lovable', 'google']), z.literal('')]).optional(),
   action: z.enum(['list_models']).optional(),
 });
 
