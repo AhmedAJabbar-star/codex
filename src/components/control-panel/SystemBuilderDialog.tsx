@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type InputHTMLAttributes } from 'react';
 import { toast } from 'sonner';
 import type { CustomSystemDef, FilterConfigItem, FilterRule, SignatureItem } from '@/data/customSystemsRegistry';
 import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem, listCustomSystems } from '@/data/customSystemsRegistry';
@@ -32,9 +32,44 @@ const NEEDS_VALUE: Record<ConditionOp, boolean> = {
 /** Operators whose value is a LIST (comma/newline separated) instead of a single value. */
 const MULTI_OPS: ConditionOp[] = ['contains_any', 'in_list', 'not_in_list'];
 
-/** Split a free-text multi-value input on any of: comma, Arabic comma, dash, semicolon, newline, or pipe. */
+/** Split a free-text multi-value input on any of: comma, Arabic comma, semicolon, newline, or pipe.
+ *  (الشرطة «-» مستثناة عمداً حتى لا تتكسّر التواريخ مثل 2026-01-01 داخل القوائم) */
 const splitMulti = (s: string): string[] =>
-  (s || '').split(/[,،\-;\n|]+/).map((v) => v.trim()).filter(Boolean);
+  (s || '').split(/[,،;\n|]+/).map((v) => v.trim()).filter(Boolean);
+
+/** تحويل نص أعمدة (أحرف Excel) إلى مصفوفة أحرف كبيرة. */
+const parseLettersList = (raw: string): string[] => splitMulti(raw).map((v) => v.toUpperCase()).filter(Boolean);
+/** الشكل النصي الموحّد لمصفوفة قيم. */
+const joinList = (v: (string | number)[]): string => (v || []).join(', ');
+
+/**
+ * حقل إدخال «حرّ» مرتبط بقيمة مُهيكلة (مصفوفة/خريطة).
+ * المشكلة التي يحلّها: الحقول المتحكَّمة التي تُعيد كتابة النص من القيمة المُحلَّلة
+ * بعد كل حرف تلتهم الفاصلة والمسافة فور كتابتهما وتدمج الكلمات.
+ * هنا يحتفظ الحقل بالنص الخام أثناء الكتابة ويرسل القيمة المُحلَّلة للأب فوراً،
+ * ولا يعيد المزامنة من الأب إلا إذا تغيّرت القيمة من مصدر خارجي (حذف سطر، استرجاع مسودة…).
+ */
+const FreeTextInput = <T,>({ canon, parse, serialize, onParsed, ...rest }: {
+  /** الشكل النصي الموحّد للقيمة الحالية القادمة من حالة الأب. */
+  canon: string;
+  parse: (raw: string) => T;
+  serialize: (v: T) => string;
+  onParsed: (v: T) => void;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) => {
+  const [text, setText] = useState(canon);
+  useEffect(() => {
+    // أعد المزامنة فقط إذا كان النص الحالي لا يمثّل القيمة الجديدة (تغيير خارجي).
+    setText((t) => (serialize(parse(t)) === canon ? t : canon));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canon]);
+  return (
+    <input
+      {...rest}
+      value={text}
+      onChange={(e) => { setText(e.target.value); onParsed(parse(e.target.value)); }}
+    />
+  );
+};
 
 /** Shared value editor for a condition/quick-filter/rule row.
  *  Renders the right input shape depending on the operator (list / between / single / none).
@@ -47,11 +82,13 @@ const CondValueInput = ({ c, upd, span }: {
   const spanStyle = { gridColumn: `span ${span}` } as const;
   if (MULTI_OPS.includes(c.op)) {
     return (
-      <input
+      <FreeTextInput
         className="schedule-select w-full" style={spanStyle}
-        value={(c.values || []).join(', ')}
-        onChange={(e) => upd({ values: splitMulti(e.target.value) })}
-        placeholder="قيم مفصولة بأي من (, ، - | سطر جديد): مثل استاذ، أستاذ"
+        canon={joinList(c.values || [])}
+        parse={splitMulti}
+        serialize={joinList}
+        onParsed={(vals) => upd({ values: vals })}
+        placeholder="قيم مفصولة بفاصلة (, أو ،) أو سطر جديد — مثال: أستاذ، مساعد دكتور"
       />
     );
   }
