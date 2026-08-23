@@ -1317,18 +1317,13 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <label className="block text-xs font-black mb-1">
                         حصر الاستخراج بأعمدة محددة (اختياري)
                       </label>
-                      <input
+                      <FreeTextInput
                         className="schedule-select w-full text-xs"
                         dir="ltr"
-                        value={(s.ocr_fields || []).join(', ')}
-                        onChange={(e) => {
-                          const letters = e.target.value
-                            .toUpperCase()
-                            .split(/[,\s]+/)
-                            .map((x) => x.trim())
-                            .filter((x) => /^[A-Z]{1,3}$/.test(x));
-                          patch({ ocr_fields: letters });
-                        }}
+                        canon={joinList(s.ocr_fields || [])}
+                        parse={(raw) => raw.toUpperCase().split(/[,\s]+/).map((x) => x.trim()).filter((x) => /^[A-Z]{1,3}$/.test(x))}
+                        serialize={joinList}
+                        onParsed={(letters) => patch({ ocr_fields: letters })}
                         placeholder="F, G, H, I (اتركه فارغاً ليشمل كل أعمدة الإضافة)"
                       />
                       <p className="text-[11px] text-slate-500 mt-1">
@@ -1937,17 +1932,19 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                   <p className="text-[11px] text-slate-500 mb-1">
                                     لم يتم العثور على خيارات مكتوبة يدوياً لهذا العمود (ربما مصدر الخيارات «القيم الفريدة من العمود»). اكتب السعة يدوياً بصيغة «الخيار=العدد».
                                   </p>
-                                  <input
+                                  <FreeTextInput
                                     className="schedule-select w-full text-xs"
-                                    value={Object.entries(per).map(([k, v]) => `${k}=${v}`).join(' , ')}
-                                    onChange={(e) => {
-                                      const nextPer: Record<string, number> = {};
-                                      e.target.value.split(/[,،\n]+/).forEach((pair) => {
+                                    canon={Object.entries(per).map(([k, v]) => `${k}=${v}`).join(' , ')}
+                                    parse={(raw) => {
+                                      const m: Record<string, number> = {};
+                                      raw.split(/[,،\n]+/).forEach((pair) => {
                                         const [k, v] = pair.split('=');
-                                        if (k && k.trim() && v !== undefined && !Number.isNaN(Number(v))) nextPer[k.trim()] = Number(v);
+                                        if (k && k.trim() && v !== undefined && !Number.isNaN(Number(v))) m[k.trim()] = Number(v);
                                       });
-                                      setLimit(letter, { ...cfg, per: nextPer });
+                                      return m;
                                     }}
+                                    serialize={(m) => Object.entries(m).map(([k, v]) => `${k}=${v}`).join(' , ')}
+                                    onParsed={(m) => setLimit(letter, { ...cfg, per: m })}
                                     placeholder="مثال: قاعة أ=3 , قاعة ب=5"
                                   />
                                 </>
@@ -2028,17 +2025,19 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         <input className="schedule-select col-span-6" value={l.label || ''} onChange={(e) => updLink(i, { label: e.target.value })} placeholder="نص الزر (اختياري) — مثال: التالي: استمارة الأجور" />
                         <button onClick={() => delLink(i)} className="col-span-1 text-red-600 font-black">✕</button>
                       </div>
-                      <input
+                      <FreeTextInput
                         className="schedule-select w-full text-xs"
-                        value={Object.entries(l.map || {}).map(([k, v]) => `${k}=${v}`).join(' , ')}
-                        onChange={(e) => {
+                        canon={Object.entries(l.map || {}).map(([k, v]) => `${k}=${v}`).join(' , ')}
+                        parse={(raw) => {
                           const map: Record<string, string> = {};
-                          e.target.value.split(/[,،\n]+/).forEach((pair) => {
+                          raw.split(/[,،\n]+/).forEach((pair) => {
                             const [k, v] = pair.split('=');
                             if (k && k.trim() && v && v.trim()) map[k.trim().toUpperCase()] = v.trim().toUpperCase();
                           });
-                          updLink(i, { map });
+                          return map;
                         }}
+                        serialize={(m) => Object.entries(m).map(([k, v]) => `${k}=${v}`).join(' , ')}
+                        onParsed={(map) => updLink(i, { map })}
                         placeholder="ربط الأعمدة: عمود هنا = عمود هناك — مثال: B=C , F=D"
                       />
                     </div>
@@ -2083,7 +2082,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
             const addCC = () => setCCs([...ccs, { name: '', type: 'duration', columns: [] }]);
             const updCC = (i: number, p: Partial<ComputedColumn>) => setCCs(ccs.map((c, idx) => idx === i ? { ...c, ...p } : c));
             const delCC = (i: number) => setCCs(ccs.filter((_, idx) => idx !== i));
-            const setCCCols = (i: number, raw: string) => updCC(i, { columns: splitMulti(raw).map((v) => v.toUpperCase()) });
+            
 
             const gs = s.group_stage;
             const setGS = (p: Partial<GroupStage>) => patch({ group_stage: { keys: gs?.keys || [], aggs: gs?.aggs || [], having: gs?.having || [], emit: gs?.emit || 'groups', ...p } });
@@ -2147,46 +2146,52 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       </div>
                       <div className="flex flex-wrap gap-2 items-center">
                         {cc.type === 'duration' && (
-                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
-                            value={(cc.columns || []).join(', ')}
-                            onChange={(e) => setCCCols(i, e.target.value)}
+                          <FreeTextInput className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            canon={joinList(cc.columns || [])}
+                            parse={parseLettersList} serialize={joinList}
+                            onParsed={(cols) => updCC(i, { columns: cols })}
                             placeholder="عمود فترة واحد (J) أو عمودان: بداية، نهاية (J, K)" />
                         )}
                         {cc.type === 'expr' && (
                           <input className="schedule-select flex-1 font-mono" dir="ltr" value={cc.expr || ''} onChange={(e) => updCC(i, { expr: e.target.value })} placeholder="{D} + {E} * 2  — استخدم {حرف العمود}" />
                         )}
                         {(cc.type === 'sum' || cc.type === 'concat') && (
-                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
-                            value={(cc.columns || []).join(', ')}
-                            onChange={(e) => setCCCols(i, e.target.value)}
+                          <FreeTextInput className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            canon={joinList(cc.columns || [])}
+                            parse={parseLettersList} serialize={joinList}
+                            onParsed={(cols) => updCC(i, { columns: cols })}
                             placeholder="الأعمدة مفصولة بفواصل — مثال: D, E, F" />
                         )}
                         {cc.type === 'concat' && (
                           <input className="schedule-select w-24 text-center" value={cc.separator ?? ''} onChange={(e) => updCC(i, { separator: e.target.value })} placeholder="الفاصل" />
                         )}
                         {cc.type === 'count_tokens' && (
-                          <input className="schedule-select w-32 font-mono text-center" dir="ltr"
-                            value={(cc.columns || []).join(', ')}
-                            onChange={(e) => setCCCols(i, e.target.value)}
+                          <FreeTextInput className="schedule-select w-32 font-mono text-center" dir="ltr"
+                            canon={joinList(cc.columns || [])}
+                            parse={parseLettersList} serialize={joinList}
+                            onParsed={(cols) => updCC(i, { columns: cols })}
                             placeholder="العمود (مثل: E)" />
                         )}
                         {cc.type === 'date_diff_days' && (
-                          <input className="schedule-select flex-1 font-mono text-center" dir="ltr"
-                            value={(cc.columns || []).join(', ')}
-                            onChange={(e) => setCCCols(i, e.target.value)}
+                          <FreeTextInput className="schedule-select flex-1 font-mono text-center" dir="ltr"
+                            canon={joinList(cc.columns || [])}
+                            parse={parseLettersList} serialize={joinList}
+                            onParsed={(cols) => updCC(i, { columns: cols })}
                             placeholder="من، إلى (مثل: H, I) — «إلى» اختياري = اليوم" />
                         )}
                         {(cc.type === 'year_from_date' || cc.type === 'month_from_date') && (
-                          <input className="schedule-select w-32 font-mono text-center" dir="ltr"
-                            value={(cc.columns || []).join(', ')}
-                            onChange={(e) => setCCCols(i, e.target.value)}
+                          <FreeTextInput className="schedule-select w-32 font-mono text-center" dir="ltr"
+                            canon={joinList(cc.columns || [])}
+                            parse={parseLettersList} serialize={joinList}
+                            onParsed={(cols) => updCC(i, { columns: cols })}
                             placeholder="عمود التاريخ (H)" />
                         )}
                         {cc.type === 'default_if_empty' && (
                           <>
-                            <input className="schedule-select w-32 font-mono text-center" dir="ltr"
-                              value={(cc.columns || []).join(', ')}
-                              onChange={(e) => setCCCols(i, e.target.value)}
+                            <FreeTextInput className="schedule-select w-32 font-mono text-center" dir="ltr"
+                              canon={joinList(cc.columns || [])}
+                              parse={parseLettersList} serialize={joinList}
+                              onParsed={(cols) => updCC(i, { columns: cols })}
                               placeholder="العمود (E)" />
                             <input className="schedule-select flex-1"
                               value={cc.fallback ?? ''}
@@ -2222,9 +2227,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     <div className="space-y-3 pt-1">
                       <div className="grid grid-cols-12 gap-2 items-center">
                         <label className="col-span-3 text-xs font-black">أعمدة التجميع</label>
-                        <input className="schedule-select col-span-5 font-mono text-center" dir="ltr"
-                          value={(gs.keys || []).join(', ')}
-                          onChange={(e) => setGS({ keys: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                        <FreeTextInput className="schedule-select col-span-5 font-mono text-center" dir="ltr"
+                          canon={joinList(gs.keys || [])}
+                          parse={parseLettersList} serialize={joinList}
+                          onParsed={(keys) => setGS({ keys })}
                           placeholder="مثال: F  أو  F, B" />
                         <label className="col-span-2 text-xs font-black">ما الذي يُعرض؟</label>
                         <select className="schedule-select col-span-2" value={gs.emit || 'groups'} onChange={(e) => setGS({ emit: e.target.value as 'groups' | 'rows' })}>
@@ -2308,9 +2314,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs font-black mb-1">أعمدة التجميع (نفس القاعة/اليوم…)</label>
-                          <input className="schedule-select w-full font-mono text-center" dir="ltr"
-                            value={(cd.group_by || []).join(', ')}
-                            onChange={(e) => setCD({ group_by: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                          <FreeTextInput className="schedule-select w-full font-mono text-center" dir="ltr"
+                            canon={joinList(cd.group_by || [])}
+                            parse={parseLettersList} serialize={joinList}
+                            onParsed={(cols) => setCD({ group_by: cols })}
                             placeholder="مثال: G, N" />
                         </div>
                         <div>
@@ -2326,9 +2333,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         </div>
                         <div>
                           <label className="block text-xs font-black mb-1">أعمدة يجب تطابقها أيضاً (اختياري — مثل الفصل)</label>
-                          <input className="schedule-select w-full font-mono text-center" dir="ltr"
-                            value={(cd.also_match || []).join(', ')}
-                            onChange={(e) => setCD({ also_match: splitMulti(e.target.value).map((v) => v.toUpperCase()) })}
+                          <FreeTextInput className="schedule-select w-full font-mono text-center" dir="ltr"
+                            canon={joinList(cd.also_match || [])}
+                            parse={parseLettersList} serialize={joinList}
+                            onParsed={(cols) => setCD({ also_match: cols })}
                             placeholder="مثال: S" />
                         </div>
                         <div>
