@@ -53,8 +53,8 @@ const FreeTextInput = <T,>({ canon, parse, serialize, onParsed, ...rest }: {
   /** الشكل النصي الموحّد للقيمة الحالية القادمة من حالة الأب. */
   canon: string;
   parse: (raw: string) => T;
-  serialize: (v: T) => string;
-  onParsed: (v: T) => void;
+  serialize: (v: NoInfer<T>) => string;
+  onParsed: (v: NoInfer<T>) => void;
 } & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) => {
   const [text, setText] = useState(canon);
   useEffect(() => {
