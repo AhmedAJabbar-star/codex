@@ -5,7 +5,7 @@ import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import TeacherSessionBar from '@/components/shared/TeacherSessionBar';
 import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
-import type { SheetFetchResult } from '@/data/supervisionData';
+import { fetchSheetByGid, type SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
 import { getEffectivePerms } from '@/lib/permissions';
@@ -513,9 +513,31 @@ const GenericSystem = () => {
 
   const session = getSession();
 
+  /* 📄 مصادر خيارات القوائم من أوراق Google Sheets أخرى (تُحمَّل مرة واحدة وتُخزَّن). */
+  const optionSheetCfgs = useMemo(() => {
+    const src = def?.column_select_source || {};
+    const cfgs = def?.column_select_sheet || {};
+    return Object.keys(src)
+      .filter((L) => src[L] === 'sheet' && (cfgs[L]?.gid || '').trim())
+      .map((L) => ({ letter: L.toUpperCase(), gid: String(cfgs[L]?.gid || '').trim(), url: (cfgs[L]?.url || '').trim() }));
+  }, [def?.column_select_source, def?.column_select_sheet]);
+
+  const { data: optionSheets } = useQuery({
+    queryKey: ['custom-option-sheets', id, JSON.stringify(optionSheetCfgs)],
+    enabled: optionSheetCfgs.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const out: Record<string, SheetFetchResult> = {};
+      for (const c of optionSheetCfgs) {
+        try { out[c.letter] = await fetchSheetByGid(c.gid, c.url || undefined); } catch { /* تجاهل الورقة غير المتاحة */ }
+      }
+      return out;
+    },
+  });
+
   const build = useCallback(
-    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any, systems || []),
-    [def, session?.user, systems],
+    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any, systems || [], optionSheets),
+    [def, session?.user, systems, optionSheets],
   );
 
   // Apply per-system UI theme override on mount; restore global theme on unmount / def change.
