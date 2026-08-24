@@ -8,7 +8,7 @@ export type ConditionOp =
   | 'in_list' | 'not_in_list'
   | 'eq_number' | 'gt' | 'lt' | 'gte' | 'lte' | 'between'
   | 'is_empty' | 'is_not_empty'
-  | 'date_before' | 'date_after' | 'date_older_than_days' | 'date_newer_than_days'
+  | 'date_before' | 'date_after' | 'date_equals' | 'date_older_than_days' | 'date_newer_than_days'
   | 'time_overlaps'
   | 'regex';
 
@@ -228,7 +228,7 @@ export function parseCellDate(raw: string): Date | null {
 function resolveCondDate(value: string | number | undefined): Date | null {
   const s = String(value ?? '').trim();
   if (!s) return null;
-  const rel = s.match(/^today(?:\s*([+-])\s*(\d+))?$/i);
+  const rel = s.match(/^today\s*(?:\(\s*\))?(?:\s*([+-])\s*(\d+))?$/i);
   if (rel) {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -316,6 +316,13 @@ export function evaluateCondition(
       const cell = parseCellDate(t);
       const ref = resolveCondDate(cond.value);
       return !!cell && !!ref && cell.getTime() > ref.getTime();
+    }
+    case 'date_equals': {
+      const cell = parseCellDate(t);
+      const ref = resolveCondDate(cond.value);
+      if (!cell || !ref) return false;
+      // مقارنة باليوم/الشهر/السنة فقط (تجاهل الوقت)
+      return cell.getFullYear() === ref.getFullYear() && cell.getMonth() === ref.getMonth() && cell.getDate() === ref.getDate();
     }
     case 'date_older_than_days': {
       const cell = parseCellDate(t);
@@ -661,6 +668,7 @@ export const OP_LABELS: Record<ConditionOp, string> = {
   between: 'بين قيمتين (من-إلى)',
   date_before: 'تاريخ قبل',
   date_after: 'تاريخ بعد',
+  date_equals: 'تاريخ يساوي',
   date_older_than_days: 'أقدم من (يوم)',
   date_newer_than_days: 'أحدث من (يوم)',
   time_overlaps: 'يتقاطع زمنياً مع فترة',

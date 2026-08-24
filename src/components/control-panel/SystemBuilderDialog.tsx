@@ -19,18 +19,32 @@ const ICONS = [
   // Office / Admin
   '📅','📆','🗓️','📌','📍','🔗','📎','🗃️','🗄️','📤','📥','✉️','📨','📧',
 ];
-const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','token_match','not_token_match','contains_any','in_list','not_in_list','between','eq_number','gt','lt','gte','lte','date_before','date_after','date_older_than_days','date_newer_than_days','time_overlaps','is_empty','is_not_empty'];
+const OPS: ConditionOp[] = ['eq','neq','contains','not_contains','token_match','not_token_match','contains_any','in_list','not_in_list','between','eq_number','gt','lt','gte','lte','date_before','date_after','date_equals','date_older_than_days','date_newer_than_days','time_overlaps','is_empty','is_not_empty'];
 const NEEDS_VALUE: Record<ConditionOp, boolean> = {
   eq: true, neq: true, contains: true, not_contains: true,
   contains_any: false, in_list: false, not_in_list: false, between: false,
   token_match: true, not_token_match: true,
   eq_number: true, gt: true, lt: true, gte: true, lte: true,
-  date_before: true, date_after: true, date_older_than_days: true, date_newer_than_days: true,
+  date_before: true, date_after: true, date_equals: true, date_older_than_days: true, date_newer_than_days: true,
   time_overlaps: true,
   is_empty: false, is_not_empty: false, regex: true,
 };
 /** Operators whose value is a LIST (comma/newline separated) instead of a single value. */
 const MULTI_OPS: ConditionOp[] = ['contains_any', 'in_list', 'not_in_list'];
+
+/** عمليات المقارنة التاريخية التي تقبل الرموز الديناميكية (today / today+N / academic_year_start). */
+const DATE_OPS: ConditionOp[] = ['date_before', 'date_after', 'date_equals'];
+
+/** رموز تاريخ ديناميكية جاهزة تُدرج بنقرة واحدة في حقل قيمة الشرط. */
+const DATE_TOKENS: { v: string; label: string; hint: string }[] = [
+  { v: 'today', label: '📅 اليوم', hint: 'تاريخ اليوم الحالي — يُحسب لحظة عرض البيانات' },
+  { v: 'today+1', label: 'غداً', hint: 'تاريخ الغد (today+1)' },
+  { v: 'today-1', label: 'أمس', hint: 'تاريخ الأمس (today-1)' },
+  { v: 'today+7', label: 'بعد أسبوع', hint: 'اليوم + 7 أيام (today+7)' },
+  { v: 'today-7', label: 'قبل أسبوع', hint: 'اليوم - 7 أيام (today-7)' },
+  { v: 'today-30', label: 'قبل 30 يوماً', hint: 'اليوم - 30 يوماً (today-30)' },
+  { v: 'academic_year_start', label: '🎓 بداية العام الدراسي', hint: '1 أيلول من العام الدراسي الحالي' },
+];
 
 /** Split a free-text multi-value input on any of: comma, Arabic comma, semicolon, newline, or pipe.
  *  (الشرطة «-» مستثناة عمداً حتى لا تتكسّر التواريخ مثل 2026-01-01 داخل القوائم) */
@@ -103,13 +117,29 @@ const CondValueInput = ({ c, upd, span }: {
     );
   }
   if (NEEDS_VALUE[c.op]) {
-    const ph = c.op === 'date_before' ? 'تاريخ (مثال: 2026-12-31)'
-      : c.op === 'date_after' ? 'تاريخ (مثال: 2026-01-01)'
+    const isDateOp = DATE_OPS.includes(c.op);
+    const ph = c.op === 'date_before' ? 'تاريخ (2026-12-31 أو today)'
+      : c.op === 'date_after' ? 'تاريخ (2026-01-01 أو today)'
+      : c.op === 'date_equals' ? 'تاريخ يساوي (today أو 2026-08-24)'
       : c.op === 'date_older_than_days' ? 'عدد الأيام (أقدم من…)'
       : c.op === 'date_newer_than_days' ? 'عدد الأيام (خلال آخر…)'
       : c.op === 'time_overlaps' ? 'فترة (مثال: 08:30 AM - 10:00 AM)'
       : c.op === 'regex' ? 'تعبير نمطي (مثال: ^أ)'
       : 'القيمة المطلوب مطابقتها';
+    if (isDateOp) {
+      return (
+        <div className="w-full space-y-1" style={spanStyle}>
+          <input className="schedule-select w-full" value={String(c.value ?? '')} onChange={(e) => upd({ value: e.target.value })} placeholder={ph} />
+          <div className="flex flex-wrap items-center gap-1">
+            {DATE_TOKENS.map((tk) => (
+              <button key={tk.v} type="button" title={`${tk.hint} — اضغط لإدراج «${tk.v}»`}
+                className="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 hover:bg-sky-200 border border-sky-300 transition"
+                onClick={() => upd({ value: tk.v })}>{tk.label}</button>
+            ))}
+          </div>
+        </div>
+      );
+    }
     return (
       <input className="schedule-select w-full" style={spanStyle} value={String(c.value ?? '')} onChange={(e) => upd({ value: e.target.value })} placeholder={ph} />
     );

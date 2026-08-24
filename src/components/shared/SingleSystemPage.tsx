@@ -14,6 +14,7 @@ import { fetchDepartmentHead } from '@/lib/departmentHeads';
 import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
 import { sheetWrite } from '@/data/customSystemsRegistry';
+import { DateInputDMY } from '@/components/shared/DateInputDMY';
 import ExcelImportPanel from '@/components/custom-systems/ExcelImportPanel';
 import QrScanDialog from '@/components/custom-systems/QrScanDialog';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
@@ -1101,13 +1102,25 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     };
                     return (
                       <div className="flex items-center gap-1.5" dir="rtl">
-                        <input type={inputType} className="schedule-select flex-1" placeholder="من" value={fromStr}
-                          onChange={(e) => setRange(e.target.value, toStr)}
-                          style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        {inputType === 'date' ? (
+                          <DateInputDMY className="schedule-select flex-1" placeholder="من (يوم/شهر/سنة)" value={fromStr}
+                            onChange={(iso) => setRange(iso, toStr)}
+                            style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        ) : (
+                          <input type="number" className="schedule-select flex-1" placeholder="من" value={fromStr}
+                            onChange={(e) => setRange(e.target.value, toStr)}
+                            style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        )}
                         <span className="text-xs font-black text-[var(--schedule-muted)] px-1">—</span>
-                        <input type={inputType} className="schedule-select flex-1" placeholder="إلى" value={toStr}
-                          onChange={(e) => setRange(fromStr, e.target.value)}
-                          style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        {inputType === 'date' ? (
+                          <DateInputDMY className="schedule-select flex-1" placeholder="إلى (يوم/شهر/سنة)" value={toStr}
+                            onChange={(iso) => setRange(fromStr, iso)}
+                            style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        ) : (
+                          <input type="number" className="schedule-select flex-1" placeholder="إلى" value={toStr}
+                            onChange={(e) => setRange(fromStr, e.target.value)}
+                            style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
+                        )}
                         {(fromStr || toStr) && (
                           <button className="schedule-btn" style={{ minHeight: 40, padding: '0 8px' }}
                             onClick={() => handleFilterChange(f.key, '')} title="مسح">✕</button>
@@ -1306,7 +1319,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                             </select>
                           )
                         ) : c.type === 'date' ? (
-                          <input type="date" className={base} value={v} onChange={(e) => set(e.target.value)} />
+                          <DateInputDMY className={base} value={v} onChange={(iso) => set(iso)} />
 
                         ) : c.type === 'number' ? (
                           <input type="number" className={base} value={v} onChange={(e) => set(e.target.value)} />
@@ -1684,7 +1697,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               </div>
               <div>
                 <label className="schedule-filter-label mb-1">التاريخ</label>
-                <input type="date" className="schedule-select" value={bookingForm.date} onChange={e => setBookingForm({ ...bookingForm, date: e.target.value })} />
+                <DateInputDMY className="schedule-select" value={bookingForm.date} onChange={(iso) => setBookingForm({ ...bookingForm, date: iso })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
