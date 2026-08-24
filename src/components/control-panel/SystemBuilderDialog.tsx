@@ -235,6 +235,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
   // Snapshot the global theme when the dialog opens, so we can restore it on close.
   const originalThemeRef = useRef<UiTheme>(getUiTheme());
   const [previewOn, setPreviewOn] = useState(false);
+  /** حرف عمود جديد يُضاف لقائمة أوضاع الأعمدة (للأعمدة غير المستدعاة في النطاق). */
+  const [newModeCol, setNewModeCol] = useState('');
   useEffect(() => {
     originalThemeRef.current = getUiTheme();
     return () => {
@@ -268,11 +270,23 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
 
   // Header labels (column letter -> display name)
   const labels: Record<string, string> = s.header_labels || {};
-  const colLetters = parseColumnsRange(s.columns_range).map((i) => colIndexToLetter(i));
+  const rangeLetters = parseColumnsRange(s.columns_range).map((i) => colIndexToLetter(i));
+  // 🎛️ أوضاع الأعمدة (عرض / إدخال / كلاهما)
+  const colModes: Record<string, 'both' | 'input' | 'display'> = (s.column_modes || {}) as any;
+  const colLetters = Array.from(new Set([
+    ...rangeLetters,
+    ...String((s as any).hidden_columns || '').split(/[,\s]+/).map((x) => x.trim().toUpperCase()).filter(Boolean),
+    ...Object.keys(colModes).map((x) => x.toUpperCase()),
+  ]));
   const setLabel = (letter: string, value: string) => {
     const next = { ...(s.header_labels || {}) };
     if (value.trim()) next[letter] = value; else delete next[letter];
     patch({ header_labels: next });
+  };
+  const setColMode = (letter: string, value: string) => {
+    const next = { ...(s.column_modes || {}) } as Record<string, any>;
+    if (value) next[letter] = value; else delete next[letter];
+    patch({ column_modes: next });
   };
 
   // Link button labels per column (letter -> button text e.g. "افتح الملف")
@@ -282,6 +296,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     if (value.trim()) next[letter] = value.trim(); else delete next[letter];
     patch({ column_link_labels: next });
   };
+
 
   // Filters config
   const filtersCfg: FilterConfigItem[] = s.filters_config || [];
@@ -653,30 +668,73 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
 
               {colLetters.length > 0 && (
                 <div>
-                  <label className="block text-sm font-black mb-2">تسميات الأعمدة + أزرار الروابط (اختياري)</label>
+                  <label className="block text-sm font-black mb-2">تسميات الأعمدة + أزرار الروابط + وضع العمود (اختياري)</label>
+                  <div className="grid grid-cols-12 gap-2 text-[11px] font-black text-slate-500 mb-1">
+                    <span className="col-span-1 text-center">العمود</span>
+                    <span className="col-span-4">الاسم البديل</span>
+                    <span className="col-span-4">نص زر الرابط</span>
+                    <span className="col-span-3">🎛️ الوضع</span>
+                  </div>
                   <div className="space-y-2">
                     {colLetters.map((L) => (
                       <div key={L} className="grid grid-cols-12 gap-2 items-center">
                         <span className="col-span-1 text-xs font-black text-center bg-slate-100 rounded py-2">{L}</span>
                         <input
-                          className="schedule-select col-span-6"
+                          className="schedule-select col-span-4"
                           value={labels[L] || ''}
                           onChange={(e) => setLabel(L, e.target.value)}
                           placeholder={`اسم بديل للعمود ${L} (اختياري)`}
                         />
                         <input
-                          className="schedule-select col-span-5"
+                          className="schedule-select col-span-4"
                           value={linkLabels[L] || ''}
                           onChange={(e) => setLinkLabel(L, e.target.value)}
                           placeholder="🔗 نص زر الرابط (مثل: افتح الملف)"
                           title="عند تعبئة هذا الحقل، إذا كانت الخلية تحتوي رابطاً (https://...) فستظهر كزر قابل للضغط بهذا النص بدلاً من عرض الرابط الطويل."
                         />
+                        <select
+                          className="schedule-select col-span-3"
+                          value={colModes[L] || ''}
+                          onChange={(e) => setColMode(L, e.target.value)}
+                          title="تلقائي = حسب نطاق الأعمدة. عرض وإدخال = يظهر في الجدول ويمكن إدخاله. إدخال فقط = يُدخل ولا يظهر في الجدول. عرض فقط = يظهر ولا يمكن إدخاله."
+                        >
+                          <option value="">تلقائي</option>
+                          <option value="both">عرض + إدخال</option>
+                          <option value="input">إدخال فقط (لا يُعرض)</option>
+                          <option value="display">عرض فقط (لا يُدخل)</option>
+                        </select>
                       </div>
                     ))}
                   </div>
+                  <div className="mt-3 flex items-end gap-2">
+                    <div className="flex-1">
+                      <label className="block text-[11px] font-black mb-1">➕ إضافة عمود غير مستدعى (حرف العمود)</label>
+                      <input
+                        className="schedule-select w-full font-mono"
+                        dir="ltr"
+                        value={newModeCol}
+                        onChange={(e) => setNewModeCol(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
+                        placeholder="مثال: R"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="schedule-btn schedule-btn-primary"
+                      onClick={() => {
+                        const L = newModeCol.trim().toUpperCase();
+                        if (!L) return;
+                        setColMode(L, 'input');
+                        setNewModeCol('');
+                      }}
+                    >
+                      إضافة للإدخال
+                    </button>
+                  </div>
                   <p className="text-[11px] text-slate-500 mt-2">
-                    💡 لجعل العمود يعرض زراً قابلاً للنقر (مثل «افتح الملف») بدلاً من رابط طويل، اكتب نص الزر في الحقل الأيسر.
-                    سيظهر الزر تلقائياً للخلايا التي تبدأ بـ <code>http://</code> أو <code>https://</code>.
+                    💡 لجعل العمود يعرض زراً قابلاً للنقر (مثل «افتح الملف») بدلاً من رابط طويل، اكتب نص الزر في حقل نص زر الرابط.
+                    <br />
+                    🎛️ <strong>الوضع</strong>: يتيح إدخال بيانات في عمود من دون عرضه في الجدول («إدخال فقط»)، أو عرضه من دون السماح بإدخاله («عرض فقط»).
+                    الأعمدة غير الموجودة في نطاق الأعمدة يمكن إضافتها من الحقل أعلاه ثم اختيار وضعها.
                   </p>
                 </div>
               )}
