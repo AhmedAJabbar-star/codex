@@ -645,7 +645,7 @@ Deno.serve(async (req) => {
         const text = await res.text();
         let data: any = null;
         try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-        if (!res.ok) throw new Error(`Sheets API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+        if (!res.ok) throw sheetsError(res.status, data, spreadsheetId);
         return data;
       };
 
