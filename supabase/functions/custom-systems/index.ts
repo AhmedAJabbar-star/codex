@@ -125,6 +125,19 @@ async function getAccessToken(): Promise<string> {
   cachedToken = { token: data.access_token, exp: now + (data.expires_in || 3600) };
   return cachedToken.token;
 }
+function saEmail(): string {
+  try { return String(JSON.parse(SA_JSON || "{}").client_email || "—"); } catch { return "—"; }
+}
+function sheetsError(status: number, data: any, spreadsheetId: string): Error {
+  const body = typeof data === "string" ? data : JSON.stringify(data);
+  if (status === 403 || status === 404) {
+    return new Error(
+      `لا يملك حساب الخدمة صلاحية على هذا الملف. شارك ملف Google Sheets (ID: ${spreadsheetId}) ` +
+      `مع البريد التالي بصلاحية "محرِّر" (Editor): ${saEmail()} — ثم أعد المحاولة. [Sheets API ${status}]`,
+    );
+  }
+  return new Error(`Sheets API ${status}: ${body}`);
+}
 async function gapi(path: string, init: RequestInit = {}) {
   const token = await getAccessToken();
   const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}${path}`, {
@@ -134,9 +147,10 @@ async function gapi(path: string, init: RequestInit = {}) {
   const text = await res.text();
   let data: any = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-  if (!res.ok) throw new Error(`Sheets API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+  if (!res.ok) throw sheetsError(res.status, data, SHEET_ID);
   return data;
 }
+
 
 async function ensureSheet() {
   const meta = await gapi("?fields=sheets(properties(title))");
