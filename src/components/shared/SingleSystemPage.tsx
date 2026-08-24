@@ -81,6 +81,16 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const qc = useQueryClient();
 
+  /** ⏱️ صيغة الوقت والتاريخ التلقائية: 2:20:20 ص 2021/08/24 */
+  const nowStamp = (): string => {
+    const d = new Date();
+    const h24 = d.getHours();
+    const h = h24 % 12 === 0 ? 12 : h24 % 12;
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    const mer = h24 < 12 ? 'ص' : 'م';
+    return `${h}:${p2(d.getMinutes())}:${p2(d.getSeconds())} ${mer} ${d.getFullYear()}/${p2(d.getMonth() + 1)}/${p2(d.getDate())}`;
+  };
+
   // Split a cell value into multiple URLs (separator ' | ' or newline).
   const splitUrls = (s: string): string[] =>
     (s || '')
@@ -718,7 +728,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     setCrudBusy(true);
     try {
       const values: Record<string, string> = {};
+      /** ⏱️ أعمدة الوقت والتاريخ التلقائي: تُملأ لحظة الحفظ ولا يستطيع المستخدم تعديلها. */
+      const autoNowCols = crudCtx.cols.filter((c) => c.autoNow || c.type === 'datetime');
       crudCtx.cols.forEach((c) => {
+        if (c.autoNow || c.type === 'datetime') {
+          const prev = (crudEditing.snapshot || {})[c.letter] || '';
+          values[c.letter] = crudEditing.mode === 'add' ? nowStamp() : (prev || nowStamp());
+          return;
+        }
         if (c.type === 'readonly') return;
         if (auditLetters.includes(c.letter)) return; // يملؤها الخادم
         values[c.letter] = crudEditing.values[c.letter] || '';
@@ -733,6 +750,11 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       Object.entries(crudEditing.values).forEach(([rawLetter, rawValue]) => {
         const letter = rawLetter.trim().toUpperCase();
         if (/^[A-Z]{1,3}$/.test(letter) && !auditLetters.includes(letter)) values[letter] = String(rawValue || '');
+      });
+      // إعادة تثبيت قيم الوقت والتاريخ التلقائي بعد أي نسخ للقيم الأخرى.
+      autoNowCols.forEach((c) => {
+        const prev = (crudEditing.snapshot || {})[c.letter] || '';
+        values[c.letter] = crudEditing.mode === 'add' ? nowStamp() : (prev || nowStamp());
       });
       const actor = crudCtx.teacherName || crudCtx.identity?.name || '';
       if (crudEditing.mode === 'add') {
@@ -1355,6 +1377,16 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     const set = (val: string) => setCrudEditing({ ...crudEditing, values: { ...crudEditing.values, [c.letter]: val } });
                     const lockTeacher = !!(crudCtx.teacherCol && crudCtx.teacherName && crudCtx.teacherCol === c.letter);
                     const base = "w-full px-3 py-2 rounded-lg border-2 border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400";
+                    if (c.autoNow || c.type === 'datetime') {
+                      return (
+                        <div key={c.letter}>
+                          <label className="block text-xs font-black mb-1.5 text-slate-700">
+                            {c.header} <span className="text-[10px] text-emerald-600 font-normal">(⏱️ وقت وتاريخ تلقائي — غير قابل للتعديل)</span>
+                          </label>
+                          <input className={`${base} bg-emerald-50 text-emerald-800 font-bold`} value={v || nowStamp()} disabled />
+                        </div>
+                      );
+                    }
                     if (c.type === 'readonly' || lockTeacher) {
                       return (
                         <div key={c.letter}>
@@ -1365,12 +1397,22 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     }
                     const dlId = `dl-${crudCtx.def.id}-${c.letter}`;
                     /** سعة الخيارات: نُخفي أو نعطّل الخيارات المكتملة. */
-                    const renderOptions = c.options
+                    /** 🔗 قائمة تابعة: نعرض فقط الخيارات المرتبطة بقيمة عمود الأب. */
+                    const parentValue = c.parentLetter ? (crudEditing.values[c.parentLetter] || '').trim() : '';
+                    const scopedOptions = (c.optionMap && c.parentLetter)
+                      ? (parentValue ? (c.optionMap[parentValue] || []) : [])
+                      : c.options;
+                    const renderOptions = scopedOptions
                       .map((o) => ({ o, left: remainingFor(c.letter, o) }))
                       .filter(({ o, left }) => !(left === 0 && optionHideFull(c.letter) && o !== v));
                     return (
                       <div key={c.letter}>
-                        <label className="block text-xs font-black mb-1.5 text-slate-700">{c.header}</label>
+                        <label className="block text-xs font-black mb-1.5 text-slate-700">
+                          {c.header}
+                          {c.optionMap && c.parentLetter && !parentValue && (
+                            <span className="text-[10px] text-amber-600 font-normal"> — اختر عمود «{c.parentLetter}» أولاً</span>
+                          )}
+                        </label>
                         {c.type === 'select' ? (
                           c.allowCustom ? (
                             <>
