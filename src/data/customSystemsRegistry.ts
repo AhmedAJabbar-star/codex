@@ -154,7 +154,13 @@ export interface CustomSystemDef {
   /** Fine-grained CRUD permissions (preferred over crud_enabled). */
   crud_permissions?: CrudPermissions;
   /** Per-column input type for the CRUD form. Key = Excel letter, value = type. */
-  column_types?: Record<string, 'text' | 'number' | 'date' | 'select' | 'readonly' | 'file'>;
+  column_types?: Record<string, 'text' | 'number' | 'date' | 'datetime' | 'select' | 'readonly' | 'file'>;
+  /** ⏱️ أعمدة تُملأ تلقائياً بوقت وتاريخ لحظة الإدخال (2:20:20 ص 2021/08/24) وتكون غير قابلة للتعديل. */
+  column_auto_now?: Record<string, boolean>;
+  /** 📄 مصدر خيارات القائمة من ورقة Google Sheets أخرى (حرف العمود ← إعداد الورقة). */
+  column_select_sheet?: Record<string, { gid?: string; url?: string; column?: string }>;
+  /** 🔗 قائمة منسدلة تابعة لقائمة أخرى: حرف العمود الابن ← إعداد الأب. */
+  column_select_parent?: Record<string, { parent?: string; parent_column?: string }>;
   /** Default Google Drive folder (URL or ID) used to store uploaded files for this system. */
   drive_folder_id?: string;
   /** Per-column override of the Google Drive folder (Excel letter -> folder URL/ID). */
@@ -162,7 +168,7 @@ export interface CustomSystemDef {
   /** Comma-separated select options per column letter (used when column_types[letter] === 'select' AND source = 'manual'). */
   column_options?: Record<string, string>;
   /** Source of the dropdown options: 'manual' (default, from column_options) or 'column' (unique values from the column itself). */
-  column_select_source?: Record<string, 'manual' | 'column'>;
+  column_select_source?: Record<string, 'manual' | 'column' | 'sheet'>;
   /** When true, the select also accepts values not in the list (renders as combobox/datalist). */
   column_select_allow_custom?: Record<string, boolean>;
   /** Per-column link button label (Excel letter -> button text). When set, cells with a URL
@@ -408,6 +414,9 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   crud_enabled: false,
   crud_permissions: { view: false, add: false, edit: false, delete: false },
   column_types: {},
+  column_auto_now: {},
+  column_select_sheet: {},
+  column_select_parent: {},
   drive_folder_id: '',
   column_drive_folders: {},
   column_options: {},
@@ -521,10 +530,16 @@ export async function deleteCustomSystem(id: string, password: string): Promise<
 export interface CrudColMeta {
   letter: string;
   header: string;
-  type: 'text' | 'number' | 'date' | 'select' | 'readonly' | 'file';
+  type: 'text' | 'number' | 'date' | 'datetime' | 'select' | 'readonly' | 'file';
   options: string[];
   allowCustom: boolean;
-  source: 'manual' | 'column';
+  source: 'manual' | 'column' | 'sheet';
+  /** ⏱️ يُملأ تلقائياً بوقت وتاريخ الإدخال (غير قابل للتعديل). */
+  autoNow?: boolean;
+  /** 🔗 حرف عمود «الأب» الذي تعتمد عليه خيارات هذا العمود. */
+  parentLetter?: string;
+  /** خيارات هذا العمود مفصولة حسب قيمة عمود الأب. */
+  optionMap?: Record<string, string[]>;
   /** For 'file' type: Google Drive folder URL/ID used to store the upload. */
   driveFolder?: string;
 }
