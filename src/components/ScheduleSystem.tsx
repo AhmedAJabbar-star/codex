@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SYSTEMS, TIME_OPTIONS_ARABIC, type SystemConfig, type ScheduleRow } from '@/data/scheduleData';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import universityLogo from '@/assets/university-logo.jpg';
+import { DateInputDMY } from '@/components/shared/DateInputDMY';
 
 /* ───── Time parsing helper ───── */
 function parseTimeToMinutes(timeStr: string): number | null {
@@ -1179,7 +1180,7 @@ const ScheduleSystem = () => {
               </div>
               <div>
                 <label className="schedule-filter-label mb-1">التاريخ</label>
-                <input type="date" className="schedule-select" value={bookingForm.date} onChange={e => setBookingForm({ ...bookingForm, date: e.target.value })} />
+                <DateInputDMY className="schedule-select" value={bookingForm.date} onChange={(iso) => setBookingForm({ ...bookingForm, date: iso })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
