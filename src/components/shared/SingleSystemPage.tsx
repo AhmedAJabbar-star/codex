@@ -66,8 +66,6 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   // Inline CRUD state (used only when system.crudContext is set)
   const [crudSearch, setCrudSearch] = useState('');
   const [colSearch, setColSearch] = useState<Record<string, string>>({});
-    return { ...(base || {}), background: c, backgroundImage: 'none', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 12px 22px rgba(15,23,42,.22)' };
-  };
 
   // البحث المؤجَّل: يبقي الكتابة سلسة مهما كثرت السجلات
   const deferredSearch = useDeferredValue(crudSearch);
@@ -116,6 +114,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const btnStyle = (k: string, base?: React.CSSProperties): React.CSSProperties => {
     const c = (toolbarBtns[k]?.color || '').trim();
     if (!c) return base || {};
+    return { ...(base || {}), background: c, backgroundImage: 'none', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 12px 22px rgba(15,23,42,.22)' };
+  };
+
 
   useEffect(() => {
     if (systems.length > 0 && !systems.some((sys) => sys.id === activeSystem)) {
