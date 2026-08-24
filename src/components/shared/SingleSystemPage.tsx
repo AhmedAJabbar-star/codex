@@ -1374,7 +1374,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {crudCtx.cols.filter((c) => !auditLetters.includes(c.letter)).map((c) => {
                     const v = crudEditing.values[c.letter] || '';
-                    const set = (val: string) => setCrudEditing({ ...crudEditing, values: { ...crudEditing.values, [c.letter]: val } });
+                    /** عند تغيير قيمة عمود «أب» نُفرّغ القوائم التابعة له تلقائياً. */
+                    const set = (val: string) => {
+                      const next = { ...crudEditing.values, [c.letter]: val };
+                      crudCtx.cols.forEach((child) => {
+                        if (child.parentLetter === c.letter) next[child.letter] = '';
+                      });
+                      setCrudEditing({ ...crudEditing, values: next });
+                    };
                     const lockTeacher = !!(crudCtx.teacherCol && crudCtx.teacherName && crudCtx.teacherCol === c.letter);
                     const base = "w-full px-3 py-2 rounded-lg border-2 border-slate-200 text-sm bg-white focus:outline-none focus:border-slate-400";
                     if (c.autoNow || c.type === 'datetime') {
