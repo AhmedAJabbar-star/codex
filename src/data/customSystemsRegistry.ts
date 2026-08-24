@@ -111,6 +111,11 @@ export interface CustomSystemDef {
   columns_range: string;
   /** Excel letters (space/comma separated) of extra columns loaded for filtering/logic but HIDDEN from the table and CRUD form. */
   hidden_columns?: string;
+  /**
+   * 🎛️ وضع كل عمود: '' = تلقائي (حسب نطاق الأعمدة/الأعمدة المخفية),
+   * 'both' = عرض وإدخال، 'input' = إدخال فقط (لا يظهر في الجدول)، 'display' = عرض فقط (لا يظهر في نموذج الإضافة).
+   */
+  column_modes?: Record<string, 'both' | 'input' | 'display'>;
   filter_columns: string;
   filters_config?: FilterConfigItem[];
   conditions: Condition[];
@@ -393,6 +398,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   sheet_gid: '',
   columns_range: 'F:N',
   hidden_columns: '',
+  column_modes: {},
   filter_columns: '',
   filters_config: [],
   conditions: [],

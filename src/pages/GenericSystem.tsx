@@ -29,15 +29,42 @@ export function buildConfigFromDef(
   optionSheets?: Record<string, SheetFetchResult>,
 ): SystemConfig {
 
-  const colIdxs = parseColumnsRange(def.columns_range);
+  const rangeIdxs = parseColumnsRange(def.columns_range);
   const labelMap = def.header_labels || {};
 
   // Hidden helper columns: loaded for filters/logic/projection but excluded from the table and CRUD form.
   const hiddenIdxs = String((def as any).hidden_columns || '')
     .split(/[,\s]+/).filter(Boolean)
     .map(colLetterToIndex)
-    .filter((i) => i >= 0 && !colIdxs.includes(i));
-  const projIdxs = [...colIdxs, ...hiddenIdxs];
+    .filter((i) => i >= 0 && !rangeIdxs.includes(i));
+
+  // 🎛️ وضع كل عمود (عرض / إدخال / كلاهما) — يتجاوز السلوك التلقائي عند تحديده.
+  const modeMap = (def.column_modes || {}) as Record<string, 'both' | 'input' | 'display'>;
+  const modeOf = (i: number): '' | 'both' | 'input' | 'display' => {
+    const L = colIndexToLetter(i);
+    return (modeMap[L] || modeMap[L.toLowerCase()] || '') as any;
+  };
+  const isDisplayed = (i: number) => {
+    const m = modeOf(i);
+    if (m === 'both' || m === 'display') return true;
+    if (m === 'input') return false;
+    return rangeIdxs.includes(i) && !hiddenIdxs.includes(i);
+  };
+  const isInput = (i: number) => {
+    const m = modeOf(i);
+    if (m === 'both' || m === 'input') return true;
+    if (m === 'display') return false;
+    return rangeIdxs.includes(i) && !hiddenIdxs.includes(i);
+  };
+
+  // كل الأعمدة التي تُقرأ من الورقة (عرض + إدخال + مساعِدة)
+  const extraModeIdxs = Object.keys(modeMap)
+    .map((L) => colLetterToIndex(L))
+    .filter((i) => i >= 0 && !rangeIdxs.includes(i) && !hiddenIdxs.includes(i));
+  const projIdxs = [...rangeIdxs, ...hiddenIdxs, ...extraModeIdxs];
+  // الأعمدة المعروضة في الجدول (بالترتيب الأصلي)، والأعمدة المتاحة في نموذج الإضافة/التعديل.
+  const colIdxs = projIdxs.filter(isDisplayed);
+  const formIdxs = projIdxs.filter(isInput);
 
   // Source headers (real names in sheet) and display labels (renamed)
   const sourceHeaders: string[] = [];
@@ -51,8 +78,9 @@ export function buildConfigFromDef(
     const override = (labelMap[letter] || labelMap[letter.toLowerCase()] || '').trim();
     const disp = override || real;
     displayHeaders.push(disp);
-    if (hiddenIdxs.includes(i)) hiddenDisp.add(disp);
+    if (!isDisplayed(i)) hiddenDisp.add(disp);
   });
+
 
   // Per-column link buttons: map display header -> button label
   const linkLabelsByLetter = def.column_link_labels || {};
@@ -270,9 +298,9 @@ export function buildConfigFromDef(
         );
         out[`__qf_${idx}`] = ok ? '1' : '';
       });
-      // Raw-sheet snapshot for CRUD (only the columns in columns_range).
+      // Raw-sheet snapshot for CRUD (كل الأعمدة المقروءة: معروضة أو للإدخال فقط).
       const snap: Record<string, string> = {};
-      colIdxs.forEach((i) => {
+      projIdxs.forEach((i) => {
         const letter = colIndexToLetter(i);
         const hk = sheet.headers[i];
         snap[letter] = (hk ? r[hk] : '') || '';
@@ -301,7 +329,7 @@ export function buildConfigFromDef(
       const manualOpts = def.column_options || {};
       const srcMap = def.column_select_source || {};
       const allowMap = def.column_select_allow_custom || {};
-      const cols: CrudColMeta[] = colIdxs.map((i) => {
+      const cols: CrudColMeta[] = formIdxs.map((i) => {
         const letter = colIndexToLetter(i);
         const realHeader = sheet.headers[i] || letter;
         const labelOverride = (def.header_labels || {})[letter];
@@ -409,7 +437,7 @@ export function buildConfigFromDef(
             myRecordsCount++;
             if (!myRecordSnapshot) {
               const snap: Record<string, string> = {};
-              colIdxs.forEach((ci) => {
+              formIdxs.forEach((ci) => {
                 const L = colIndexToLetter(ci);
                 const k = sheet.headers[ci];
                 snap[L] = (k ? r[k] : '') || '';

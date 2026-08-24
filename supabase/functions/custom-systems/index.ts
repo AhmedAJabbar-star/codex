@@ -76,6 +76,8 @@ const HEADERS = [
   "hidden_columns",
   // v21 additions (own Gemini API key per system, toolbar button control, joined reports):
   "ai_api_key", "toolbar_buttons_json", "joined_reports_json",
+  // v22 additions (per-column display/input mode):
+  "column_modes_json",
 
 ];
 
@@ -259,6 +261,7 @@ function rowToSystem(r: Record<string, string>) {
     quick_filters: parseJson(r.quick_filters_json || "[]", []),
     print_prefs: parseJson(r.print_prefs_json || "null", undefined) || undefined,
     column_link_labels: parseJson(r.column_link_labels_json || "{}", {}),
+    column_modes: parseJson(r.column_modes_json || "{}", {}),
     ocr_enabled: String(r.ocr_enabled || "").toLowerCase() === "true",
     ocr_prompt: clean(r.ocr_prompt),
     ocr_fields: parseJson(r.ocr_fields_json || "[]", []),
@@ -351,6 +354,7 @@ async function systemToRow(s: any): Promise<string[]> {
     quick_filters_json: JSON.stringify(s.quick_filters || []),
     print_prefs_json: (s.print_prefs && Object.keys(s.print_prefs).length > 0) ? JSON.stringify(s.print_prefs) : "",
     column_link_labels_json: JSON.stringify(s.column_link_labels || {}),
+    column_modes_json: JSON.stringify(s.column_modes || {}),
     ocr_enabled: String(!!s.ocr_enabled),
     ocr_prompt: String(s.ocr_prompt || ""),
     ocr_fields_json: JSON.stringify(s.ocr_fields || []),
