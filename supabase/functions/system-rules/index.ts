@@ -21,6 +21,9 @@ const RULES_ID = "global";
 /** Sentinel returned instead of a stored password, and understood on save. */
 const KEEP = "__KEEP_EXISTING__";
 const GROUPS_KEY = "__groups";
+const BRANDING_KEY = "__branding";
+/** Keys that hold plain settings (no password) and must pass through untouched. */
+const PASSTHROUGH_KEYS = [GROUPS_KEY, BRANDING_KEY];
 
 type Rule = Record<string, unknown> & { password?: unknown };
 type Rules = Record<string, unknown>;
@@ -37,7 +40,7 @@ async function loadRules(): Promise<Rules> {
 function maskRules(rules: Rules): Rules {
   const out: Rules = {};
   for (const [k, v] of Object.entries(rules)) {
-    if (k === GROUPS_KEY || !v || typeof v !== "object" || Array.isArray(v)) { out[k] = v; continue; }
+    if (PASSTHROUGH_KEYS.includes(k) || !v || typeof v !== "object" || Array.isArray(v)) { out[k] = v; continue; }
     const r = { ...(v as Rule) };
     const pw = typeof r.password === "string" ? r.password : "";
     r.password = pw ? KEEP : "";
@@ -50,7 +53,7 @@ function maskRules(rules: Rules): Rules {
 function unmaskRules(incoming: Rules, stored: Rules): Rules {
   const out: Rules = {};
   for (const [k, v] of Object.entries(incoming)) {
-    if (k === GROUPS_KEY || !v || typeof v !== "object" || Array.isArray(v)) { out[k] = v; continue; }
+    if (PASSTHROUGH_KEYS.includes(k) || !v || typeof v !== "object" || Array.isArray(v)) { out[k] = v; continue; }
     const r = { ...(v as Rule) };
     if (r.password === KEEP) {
       const prev = (stored[k] as Rule | undefined)?.password;

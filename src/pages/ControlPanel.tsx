@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   SYSTEMS_REGISTRY, getRules, setRules, syncRulesFromRemote,
-  getGroups, MANAGER_PASSWORD_ID, KEEP_PASSWORD,
-  type SystemAccessRule, type SystemGroup,
+  getGroups, getBranding, MANAGER_PASSWORD_ID, KEEP_PASSWORD,
+  type SystemAccessRule, type SystemGroup, type Branding,
 } from '@/lib/systemAccess';
 
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
@@ -15,7 +15,7 @@ import { UI_THEMES, useUiTheme } from '@/lib/uiTheme';
 import { useDarkMode } from '@/lib/darkMode';
 import { use3DEnabled } from '@/lib/threeD';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
-import { Users, Palette, ShieldCheck, Boxes, Blocks, LayoutGrid } from 'lucide-react';
+import { Users, Palette, ShieldCheck, Boxes, Blocks, LayoutGrid, Image as ImageIcon } from 'lucide-react';
 
 const PRESET_ICONS = ['📦','📚','🗂️','📊','🛡️','🎯','🧭','⚙️','📋','🧪','🎓','📁','🏛️','📈','🧰','🔖','📝','📌','🔔','🗓️','🕒','👨‍🏫','👥','🏫','🧮','🔍','✅','⚠️','🚦','💡','🧾','📑','🗒️','📐','🧱','🔧'];
 const PRESET_COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1d4ed8','#9333ea','#0d9488','#be185d','#ea580c','#65a30d'];
@@ -36,7 +36,8 @@ const ControlPanel = () => {
   const [uiTheme, setUi] = useUiTheme();
   const [isDark, setIsDark] = useDarkMode();
   const [is3D, setIs3D] = use3DEnabled();
-  const [activeSection, setActiveSection] = useState<'users' | 'appearance' | 'security' | 'groups' | 'builder' | 'systems'>('users');
+  const [activeSection, setActiveSection] = useState<'users' | 'appearance' | 'branding' | 'security' | 'groups' | 'builder' | 'systems'>('users');
+  const [branding, setBrandingState] = useState<Branding>(() => getBranding());
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -50,6 +51,7 @@ const ControlPanel = () => {
     void syncRulesFromRemote().then((remoteRules) => {
       setLocalRules(remoteRules);
       setGroupsState(getGroups());
+      setBrandingState(getBranding());
     });
   }, []);
 
@@ -82,7 +84,7 @@ const ControlPanel = () => {
     if (password === null) return false;
     setSaving(true);
     try {
-      await setRules(rules, password, nextGroups);
+      await setRules(rules, password, nextGroups, branding);
       setGroupsState(nextGroups);
       toast.success(successMsg);
       return true;
@@ -159,6 +161,7 @@ const ControlPanel = () => {
               {([
                 ['users', 'المستخدمون والصلاحيات', Users],
                 ['appearance', 'الثيمات والمظهر', Palette],
+                ['branding', 'هوية الواجهة (الشعار والاسم)', ImageIcon],
                 ['security', 'الأمان وكلمات المرور', ShieldCheck],
                 ['groups', 'مجموعات الأنظمة', Boxes],
                 ['builder', 'منشئ الأنظمة', Blocks],
@@ -173,6 +176,87 @@ const ControlPanel = () => {
             <main className="min-w-0">
 
           {activeSection === 'users' && <UsersAdminSection />}
+
+          {/* 🖼️ Global branding */}
+          {activeSection === 'branding' && (
+          <div className="border-2 border-sky-300 rounded-xl p-4 bg-sky-50/40 mb-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <strong>🖼️ هوية الواجهة — الشعار واسم النظام والبانر</strong>
+              <button className="schedule-btn schedule-btn-primary" disabled={saving} onClick={() => void save()} style={{ minHeight: 36, padding: '6px 14px' }}>
+                {saving ? '⏳ جاري الحفظ...' : '💾 حفظ هوية الواجهة'}
+              </button>
+            </div>
+            <p className="text-xs text-[var(--schedule-muted)] mb-3">
+              تُطبَّق هذه الإعدادات على الواجهة الرئيسية وصفحات المجموعات وصفحات الأنظمة (ما لم يُخصَّص النظام من داخل بطاقته في منشئ الأنظمة).
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="schedule-filter-label mb-1">🏷️ اسم النظام المعروض</label>
+                <input className="schedule-select w-full" type="text" value={branding.app_title}
+                  placeholder="مثال: الأنظمة الملحقة بنظام الإدارة الاكاديمية"
+                  onChange={e => setBrandingState(b => ({ ...b, app_title: e.target.value }))} />
+              </div>
+              <div>
+                <label className="schedule-filter-label mb-1">🏛️ سطر الكلية / الجامعة</label>
+                <input className="schedule-select w-full" type="text" value={branding.university_line}
+                  placeholder="مثال: كلية الهندسة المدنية - الجامعة التكنولوجية"
+                  onChange={e => setBrandingState(b => ({ ...b, university_line: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-[minmax(0,1fr)_160px] gap-3 mb-3">
+              <div>
+                <label className="schedule-filter-label mb-1">🖼️ رابط الشعار (اتركه فارغاً لاستخدام الشعار الأصلي)</label>
+                <input className="schedule-select w-full" type="text" value={branding.logo_url}
+                  placeholder="https://.../logo.png"
+                  onChange={e => setBrandingState(b => ({ ...b, logo_url: e.target.value }))} />
+              </div>
+              <div>
+                <label className="schedule-filter-label mb-1">📐 حجم الشعار (بكسل)</label>
+                <input className="schedule-select w-full" type="number" min={64} max={220} value={branding.logo_size}
+                  onChange={e => setBrandingState(b => ({ ...b, logo_size: Math.max(64, Math.min(220, Number(e.target.value) || 112)) }))} />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              {([
+                ['show_banner', '📢 إظهار البانر بالكامل'],
+                ['show_logo', '🖼️ إظهار الشعار'],
+                ['show_title', '🏷️ إظهار اسم النظام'],
+                ['show_university_line', '🏛️ إظهار سطر الكلية'],
+              ] as const).map(([key, label]) => (
+                <button key={key} type="button"
+                  onClick={() => setBrandingState(b => ({ ...b, [key]: !b[key] }))}
+                  className="rounded-lg px-3 py-2 text-xs font-black border-2 transition-all"
+                  style={{
+                    background: branding[key] ? 'linear-gradient(135deg,#0f4c81,#1e3a5f)' : '#e2e8f0',
+                    color: branding[key] ? '#fff' : '#0f172a',
+                    borderColor: branding[key] ? '#0b2545' : '#94a3b8',
+                  }}>
+                  {branding[key] ? '✓ ' : '✗ '}{label}
+                </button>
+              ))}
+            </div>
+
+            <div className="rounded-xl border-2 border-dashed p-4 bg-white text-center">
+              <div className="text-[11px] font-black text-[var(--schedule-muted)] mb-2">معاينة</div>
+              {branding.show_banner ? (
+                <div className="flex flex-col items-center gap-2">
+                  {branding.show_logo && (
+                    <img src={branding.logo_url.trim() || '/icon-192.png'} alt="معاينة الشعار"
+                      className="object-contain rounded-2xl shadow"
+                      style={{ width: branding.logo_size, height: branding.logo_size }} />
+                  )}
+                  {branding.show_university_line && <p className="font-extrabold text-[13px] text-[var(--schedule-accent-blue)] m-0">{branding.university_line}</p>}
+                  {branding.show_title && <h2 className="m-0 text-xl font-black">{branding.app_title}</h2>}
+                </div>
+              ) : (
+                <div className="text-sm font-bold text-[var(--schedule-muted)]">البانر مخفي — ستبدأ الصفحة بالبطاقات مباشرة</div>
+              )}
+            </div>
+          </div>
+          )}
 
           {/* UI Theme picker */}
           {activeSection === 'appearance' && (
