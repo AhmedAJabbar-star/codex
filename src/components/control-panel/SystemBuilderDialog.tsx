@@ -1097,6 +1097,9 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             const opts = (s.column_options || {})[L] || '';
                             const src = (s.column_select_source || {})[L] || 'manual';
                             const allowCustom = !!(s.column_select_allow_custom || {})[L];
+                            const autoNow = ct === 'datetime' || !!(s.column_auto_now || {})[L];
+                            const shCfg = (s.column_select_sheet || {})[L] || {};
+                            const parCfg = (s.column_select_parent || {})[L] || {};
                             return (
                               <div key={L} className="bg-white p-2.5 rounded-lg border space-y-2">
                                 <div className="grid grid-cols-12 gap-2 items-center">
@@ -1110,11 +1113,28 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                     <option value="text">✏️ نص</option>
                                     <option value="number">🔢 رقم</option>
                                     <option value="date">📅 تاريخ</option>
+                                    <option value="datetime">⏱️ وقت وتاريخ تلقائي</option>
                                     <option value="select">📋 قائمة منسدلة</option>
                                     <option value="file">📎 ملف (رفع إلى Google Drive)</option>
                                     <option value="readonly">🔒 قراءة فقط</option>
                                   </select>
                                 </div>
+                                {(ct === 'text' || ct === 'date' || ct === 'datetime' || ct === 'readonly') && (
+                                  <label className="flex items-start gap-2 pt-1 border-t border-dashed text-[11px] font-bold cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      className="mt-0.5"
+                                      checked={autoNow}
+                                      onChange={(e) => patch({ column_auto_now: { ...(s.column_auto_now || {}), [L]: e.target.checked } })}
+                                    />
+                                    <span>
+                                      ⏱️ تعبئة تلقائية بوقت وتاريخ لحظة الإدخال
+                                      <span className="block text-[10px] text-slate-500 font-normal">
+                                        بالصيغة <code className="bg-slate-100 px-1 rounded" dir="ltr">2:20:20 ص 2021/08/24</code> — يصبح الحقل غير قابل للكتابة أو التعديل، ويُسجَّل تلقائياً عند الحفظ.
+                                      </span>
+                                    </span>
+                                  </label>
+                                )}
                                 {ct === 'file' && (
                                   <div className="pt-1 border-t border-dashed">
                                     <label className="block text-[11px] font-black text-slate-700 mb-1">
@@ -1144,6 +1164,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                           onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'column' } })} />
                                         القيم الفريدة من نفس العمود
                                       </label>
+                                      <label className="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name={`src-${L}`} checked={src === 'sheet'}
+                                          onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'sheet' } })} />
+                                        من ورقة Google Sheets أخرى
+                                      </label>
                                       <label className="flex items-center gap-1.5 cursor-pointer mr-auto bg-amber-50 px-2 py-1 rounded border border-amber-200">
                                         <input type="checkbox" checked={allowCustom}
                                           onChange={(e) => patch({ column_select_allow_custom: { ...(s.column_select_allow_custom || {}), [L]: e.target.checked } })} />
@@ -1159,6 +1184,45 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                       <p className="text-[11px] text-slate-500 bg-slate-50 p-1.5 rounded">
                                         💡 ستُجمع الخيارات تلقائياً من القيم الفريدة الموجودة في عمود <strong>{L}</strong> داخل ورقة Google Sheets.
                                       </p>
+                                    )}
+                                    {src === 'sheet' && (
+                                      <div className="space-y-1.5 bg-sky-50 border border-sky-200 rounded p-2">
+                                        <p className="text-[11px] text-slate-600">
+                                          📄 حدّد ورقة العمل (GID) وحرف العمود الذي يحتوي قائمة الخيارات. اترك الرابط فارغاً لاستخدام نفس ملف النظام.
+                                        </p>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
+                                          <input className="schedule-select text-xs" value={shCfg.gid || ''}
+                                            onChange={(e) => patch({ column_select_sheet: { ...(s.column_select_sheet || {}), [L]: { ...shCfg, gid: e.target.value.trim() } } })}
+                                            placeholder="GID ورقة العمل — مثال: 1234567890" />
+                                          <input className="schedule-select text-xs" value={shCfg.column || ''}
+                                            onChange={(e) => patch({ column_select_sheet: { ...(s.column_select_sheet || {}), [L]: { ...shCfg, column: e.target.value.toUpperCase().trim() } } })}
+                                            placeholder="حرف عمود الخيارات — مثال: B" />
+                                          <input className="schedule-select text-xs" value={shCfg.url || ''}
+                                            onChange={(e) => patch({ column_select_sheet: { ...(s.column_select_sheet || {}), [L]: { ...shCfg, url: e.target.value.trim() } } })}
+                                            placeholder="رابط ملف Google Sheets (اختياري)" />
+                                        </div>
+                                      </div>
+                                    )}
+                                    {src !== 'manual' && (
+                                      <div className="space-y-1.5 bg-violet-50 border border-violet-200 rounded p-2">
+                                        <p className="text-[11px] font-black text-violet-800">🔗 قائمة منسدلة تابعة لقائمة أخرى (اختياري)</p>
+                                        <p className="text-[11px] text-slate-600">
+                                          عند اختيار عمود «الأب» في النموذج، تُعرض في هذا العمود فقط الخيارات المقابلة له في ورقة المصدر
+                                          (مثال: اختيار «القسم» يحدّد قائمة «المادة»).
+                                        </p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                                          <select className="schedule-select text-xs" value={parCfg.parent || ''}
+                                            onChange={(e) => patch({ column_select_parent: { ...(s.column_select_parent || {}), [L]: { ...parCfg, parent: e.target.value } } })}>
+                                            <option value="">— بلا اعتماد (قائمة مستقلة) —</option>
+                                            {colLetters.filter((x) => x !== L).map((x) => (
+                                              <option key={x} value={x}>عمود {x} — {labels[x] || ''}</option>
+                                            ))}
+                                          </select>
+                                          <input className="schedule-select text-xs" value={parCfg.parent_column || ''}
+                                            onChange={(e) => patch({ column_select_parent: { ...(s.column_select_parent || {}), [L]: { ...parCfg, parent_column: e.target.value.toUpperCase().trim() } } })}
+                                            placeholder="حرف عمود الأب في ورقة المصدر (فارغ = نفس الحرف)" />
+                                        </div>
+                                      </div>
                                     )}
                                   </div>
                                 )}
