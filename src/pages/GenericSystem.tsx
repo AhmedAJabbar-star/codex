@@ -5,7 +5,7 @@ import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import TeacherSessionBar from '@/components/shared/TeacherSessionBar';
 import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
-import type { SheetFetchResult } from '@/data/supervisionData';
+import { fetchSheetByGid, type SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
 import { getEffectivePerms } from '@/lib/permissions';
@@ -25,6 +25,8 @@ export function buildConfigFromDef(
   sheet: SheetFetchResult,
   user?: { role?: string; permissions?: any } | null,
   allSystems?: CustomSystemDef[],
+  /** ورقات خارجية لمصادر خيارات القوائم (حرف العمود ← الورقة المحمّلة). */
+  optionSheets?: Record<string, SheetFetchResult>,
 ): SystemConfig {
 
   const colIdxs = parseColumnsRange(def.columns_range);
@@ -142,6 +144,12 @@ export function buildConfigFromDef(
     if (!L) return;
     const k = filterKeyByLetter[L];
     if (k && !requiredFilterKeys.includes(k)) requiredFilterKeys.push(k);
+  });
+
+  // 🔎 فلاتر جاهزة للأعمدة المحسوبة/المدمجة المُعلَّمة بـ filterable.
+  (def.computed_columns || []).forEach((cc: any) => {
+    if (!cc?.name || !cc.filterable) return;
+    builtFilters.push({ label: String(cc.name), key: String(cc.name), control: 'combo' as any } as any);
   });
 
   (def.derived_columns || []).forEach((d) => {
@@ -298,20 +306,61 @@ export function buildConfigFromDef(
         const realHeader = sheet.headers[i] || letter;
         const labelOverride = (def.header_labels || {})[letter];
         const type = ((types[letter] as any) || 'text') as CrudColMeta['type'];
-        const source = ((srcMap[letter] || 'manual') as 'manual' | 'column');
+        const source = ((srcMap[letter] || 'manual') as 'manual' | 'column' | 'sheet');
+        const autoNow = type === 'datetime' || !!(def.column_auto_now || {})[letter];
+        const parentCfg = (def.column_select_parent || {})[letter];
+        const parentLetter = (parentCfg?.parent || '').toUpperCase() || undefined;
         let options: string[] = [];
+        let optionMap: Record<string, string[]> | undefined;
         if (type === 'select') {
-          if (source === 'column') {
+          /** الجدول الذي تُقرأ منه الخيارات: ورقة خارجية أو ورقة النظام نفسها. */
+          const extSheet = source === 'sheet' ? optionSheets?.[letter] : undefined;
+          const srcSheet = extSheet || sheet;
+          const cfg = (def.column_select_sheet || {})[letter];
+          const valueLetter = source === 'sheet' ? String(cfg?.column || letter).toUpperCase() : letter;
+          const valueIdx = colLetterToIndex(valueLetter);
+          const valueHeader = source === 'sheet'
+            ? (srcSheet.headers[valueIdx] || '')
+            : realHeader;
+
+          const collect = (rowFilter?: (r: Record<string, string>) => boolean) => {
             const set = new Set<string>();
-            sheet.rows.forEach((r) => {
-              const raw = (r[realHeader] || '').trim();
-              if (!raw) return;
+            srcSheet.rows.forEach((r) => {
+              if (rowFilter && !rowFilter(r)) return;
+              const raw = (valueHeader ? r[valueHeader] : '') || '';
               raw.split(/\r?\n/).forEach((v) => { const t = v.trim(); if (t) set.add(t); });
             });
-            options = Array.from(set).sort((a, b) => a.localeCompare(b, 'ar'));
-          } else {
+            return Array.from(set).sort((a, b) => a.localeCompare(b, 'ar'));
+          };
+
+          if (source === 'manual') {
             options = (manualOpts[letter] || '')
               .split(/[,،\n]+/).map((s) => s.trim()).filter(Boolean);
+          } else {
+            options = collect();
+          }
+
+          // 🔗 قائمة تابعة لقائمة أخرى: نبني خريطة (قيمة الأب ← الخيارات المتاحة).
+          if (parentLetter && source !== 'manual') {
+            const pLetter = String(parentCfg?.parent_column || parentLetter).toUpperCase();
+            const pIdx = colLetterToIndex(pLetter);
+            const pHeader = srcSheet.headers[pIdx] || '';
+            if (pHeader && valueHeader) {
+              const map: Record<string, Set<string>> = {};
+              srcSheet.rows.forEach((r) => {
+                const pv = (r[pHeader] || '').trim();
+                if (!pv) return;
+                const raw = (r[valueHeader] || '');
+                raw.split(/\r?\n/).forEach((v) => {
+                  const t = v.trim();
+                  if (!t) return;
+                  (map[pv] = map[pv] || new Set<string>()).add(t);
+                });
+              });
+              optionMap = Object.fromEntries(
+                Object.entries(map).map(([k, set]) => [k, Array.from(set).sort((a, b) => a.localeCompare(b, 'ar'))]),
+              );
+            }
           }
         }
         const perColFolder = (def.column_drive_folders || {})[letter];
@@ -324,6 +373,9 @@ export function buildConfigFromDef(
           allowCustom: !!allowMap[letter],
           source,
           driveFolder,
+          autoNow,
+          parentLetter,
+          optionMap,
         };
       });
       const teacherName = (user as any)?.full_name || identity.name || '';
@@ -467,9 +519,31 @@ const GenericSystem = () => {
 
   const session = getSession();
 
+  /* 📄 مصادر خيارات القوائم من أوراق Google Sheets أخرى (تُحمَّل مرة واحدة وتُخزَّن). */
+  const optionSheetCfgs = useMemo(() => {
+    const src = def?.column_select_source || {};
+    const cfgs = def?.column_select_sheet || {};
+    return Object.keys(src)
+      .filter((L) => src[L] === 'sheet' && (cfgs[L]?.gid || '').trim())
+      .map((L) => ({ letter: L.toUpperCase(), gid: String(cfgs[L]?.gid || '').trim(), url: (cfgs[L]?.url || '').trim() }));
+  }, [def?.column_select_source, def?.column_select_sheet]);
+
+  const { data: optionSheets } = useQuery({
+    queryKey: ['custom-option-sheets', id, JSON.stringify(optionSheetCfgs)],
+    enabled: optionSheetCfgs.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const out: Record<string, SheetFetchResult> = {};
+      for (const c of optionSheetCfgs) {
+        try { out[c.letter] = await fetchSheetByGid(c.gid, c.url || undefined); } catch { /* تجاهل الورقة غير المتاحة */ }
+      }
+      return out;
+    },
+  });
+
   const build = useCallback(
-    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any, systems || []),
-    [def, session?.user, systems],
+    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any, systems || [], optionSheets),
+    [def, session?.user, systems, optionSheets],
   );
 
   // Apply per-system UI theme override on mount; restore global theme on unmount / def change.
