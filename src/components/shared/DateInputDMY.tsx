@@ -82,9 +82,7 @@ export const DateInputDMY = ({ value, onChange, placeholder, className, style, .
     const el = pickerRef.current;
     if (!el) return;
     el.value = anyToIso(value) || '';
-    if (typeof (el as any).showPicker === 'function') { try { (el as any).showPicker(); return; } catch { /* fallback */ } }
-    el.focus();
-    el.click();
+    try { (el as any).showPicker?.(); } catch { /* المتصفح لا يدعم showPicker */ }
   };
 
   return (
@@ -102,21 +100,23 @@ export const DateInputDMY = ({ value, onChange, placeholder, className, style, .
         onChange={(e) => handle(e.target.value)}
         onBlur={blur}
       />
-      <button
-        type="button"
-        onClick={openPicker}
+      {/* زر التقويم: أيقونة مرئية + حقل تاريخ أصلي شفاف فوقها ليعمل النقر في كل المتصفحات */}
+      <span
         title="اختيار التاريخ من التقويم"
-        className="absolute top-1/2 -translate-y-1/2 grid place-items-center rounded-lg text-base"
-        style={{ insetInlineStart: 4, width: 30, height: 30, background: 'rgba(37,99,235,.10)', border: '1px solid rgba(37,99,235,.25)' }}
-      >📅</button>
+        className="absolute top-1/2 -translate-y-1/2 grid place-items-center rounded-lg text-base pointer-events-none"
+        style={{ insetInlineStart: 4, width: 30, height: 30, background: 'rgba(37,99,235,.10)', border: '1px solid rgba(37,99,235,.25)', zIndex: 2 }}
+      >📅</span>
       <input
         ref={pickerRef}
         type="date"
-        tabIndex={-1}
-        aria-hidden="true"
+        aria-label="اختيار التاريخ من التقويم"
+        className="absolute top-1/2 -translate-y-1/2 cursor-pointer"
+        style={{ insetInlineStart: 4, width: 30, height: 30, opacity: 0, zIndex: 3, padding: 0, border: 0, background: 'transparent' }}
+        onMouseDown={(e) => { e.preventDefault(); openPicker(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); } }}
         onChange={(e) => { if (e.target.value) { onChange(e.target.value); setText(isoToDisplay(e.target.value)); } }}
-        style={{ position: 'absolute', insetInlineStart: 6, bottom: 0, width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 0, padding: 0 }}
       />
     </div>
   );
 };
+
