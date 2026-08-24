@@ -38,6 +38,8 @@ export interface SystemConfig {
     mode?: 'overlap' | 'containment';
   };
   customSignatures?: { label: string; name?: string }[];
+  /** 🖼️ إعدادات بانر/واجهة الصفحة (من منشئ الأنظمة أو هوية الواجهة العامة). */
+  bannerPrefs?: import('./customSystemsRegistry').SystemUiPrefs;
   /** Per-system print/preview settings — overrides toolbar defaults and hides it unless show_toolbar is true. */
   printPrefs?: import('./customSystemsRegistry').PrintPrefs;
   /** Toggle-style buttons rendered above the table (e.g. «غير مستوفي»). */

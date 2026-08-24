@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import universityLogo from '@/assets/university-logo.jpg';
+import { useBranding } from '@/lib/useBranding';
 import { getGroups, getRules, SYSTEMS_REGISTRY, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 
 // Visual metadata fallback for systems (icon/color/description)
@@ -28,6 +29,7 @@ const SYSTEM_VISUALS: Record<string, { icon: string; color: string; description:
 const SystemGroupPage = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const branding = useBranding();
   const [group, setGroup] = useState<SystemGroup | null>(null);
   const [, setRulesVersion] = useState(0);
 
@@ -86,15 +88,19 @@ const SystemGroupPage = () => {
               <div className="absolute top-0 right-0">
                 <button onClick={() => navigate('/')} className="schedule-btn" style={{ minHeight: 38, padding: '8px 16px', borderRadius: 999 }}>🏠 الرئيسية</button>
               </div>
-              <img
-                src={universityLogo}
-                alt="شعار الجامعة"
-                className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-2xl shadow-lg"
-                style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.15))' }}
-              />
-              <p className="font-extrabold text-[15px] text-[var(--schedule-accent-blue)] tracking-wide opacity-95">
-                كلية الهندسة المدنية - الجامعة التكنولوجية
-              </p>
+              {branding.show_logo && (
+                <img
+                  src={(branding.logo_url || '').trim() || universityLogo}
+                  alt="شعار الجهة"
+                  className="object-contain rounded-2xl shadow-lg"
+                  style={{ width: Math.round((branding.logo_size || 112) * 0.86), height: Math.round((branding.logo_size || 112) * 0.86), filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.15))' }}
+                />
+              )}
+              {branding.show_university_line && !!branding.university_line && (
+                <p className="font-extrabold text-[15px] text-[var(--schedule-accent-blue)] tracking-wide opacity-95">
+                  {branding.university_line}
+                </p>
+              )}
               <div className="flex items-center gap-3">
                 <span className="text-4xl">{group.icon}</span>
                 <h1 className="m-0 text-[clamp(1.6rem,2.6vw,2.4rem)] font-black leading-tight text-[var(--schedule-text)]" style={{ letterSpacing: '-.02em' }}>

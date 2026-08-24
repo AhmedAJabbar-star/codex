@@ -22,6 +22,7 @@ import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAut
 import { supabase } from '@/integrations/supabase/client';
 import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
+import { useBranding } from '@/lib/useBranding';
 
 
 interface Props {
@@ -110,6 +111,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const isPreviewable = (url: string): boolean =>
     /drive\.google\.com/i.test(url) || /\.pdf($|\?)/i.test(url) || /\.(png|jpe?g|gif|webp|svg)($|\?)/i.test(url);
 
+
+  const branding = useBranding();
 
   const systems = useMemo(() => {
     if (systemsOverride && systemsOverride.length > 0) return systemsOverride;
@@ -985,6 +988,23 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
 
 
+  // 🖼️ إعدادات البانر: هوية الواجهة العامة + تخصيص كل نظام من المنشئ
+  const banner = useMemo(() => {
+    const p = system.bannerPrefs || {};
+    return {
+      showBanner: p.show_banner !== false && branding.show_banner !== false,
+      showLogo: p.show_logo !== false && branding.show_logo !== false,
+      showTitle: p.show_title !== false && branding.show_title !== false,
+      showUniversityLine: p.show_university_line !== false && branding.show_university_line !== false,
+      showHint: p.show_hint !== false,
+      showActions: p.show_actions !== false,
+      logo: (p.logo_url || branding.logo_url || '').trim() || universityLogo,
+      logoSize: Number(p.logo_size) > 0 ? Number(p.logo_size) : Math.round((branding.logo_size || 112) * 0.86),
+      title: (p.title_override || '').trim() || system.appTitle,
+      universityLine: (p.university_line || '').trim() || system.universityLine,
+    };
+  }, [system.bannerPrefs, system.appTitle, system.universityLine, branding]);
+
   return (
     <div className={`schedule-body ${isDark ? 'dark' : ''}`} dir="rtl">
       <div className="relative z-[1] w-full mx-auto my-4 px-3 sm:px-5 pb-7">
@@ -1004,27 +1024,37 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   </button>
                 </div>
               )}
-              <img
-                src={universityLogo}
-                alt="شعار الجامعة التكنولوجية"
-                className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-2xl shadow-lg"
-                style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.15))' }}
-              />
-              <p className="font-extrabold text-[15px] text-[var(--schedule-accent-blue)] tracking-wide opacity-95">
-                {system.universityLine}
-              </p>
-              <h1 className="m-0 text-[clamp(1.7rem,2.8vw,2.5rem)] font-black leading-tight text-[var(--schedule-text)]" style={{ letterSpacing: '-.02em' }}>
-                {system.appTitle}
-              </h1>
-              <div className="mt-1 flex flex-wrap gap-2.5 justify-center items-center">
-                <span className="schedule-badge">جاهز</span>
-                <button onClick={() => setIsDark(!isDark)} className="schedule-btn" style={{ minHeight: 38, padding: '8px 14px', borderRadius: 999 }}>
-                  🌓 تبديل النمط
-                </button>
-              </div>
-              <div className="schedule-hint">
-                <strong>💡 ملاحظة:</strong> {system.hint}
-              </div>
+              {banner.showBanner && banner.showLogo && (
+                <img
+                  src={banner.logo}
+                  alt="شعار الجهة"
+                  className="object-contain rounded-2xl shadow-lg"
+                  style={{ width: banner.logoSize, height: banner.logoSize, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.15))' }}
+                />
+              )}
+              {banner.showBanner && banner.showUniversityLine && !!banner.universityLine && (
+                <p className="font-extrabold text-[15px] text-[var(--schedule-accent-blue)] tracking-wide opacity-95">
+                  {banner.universityLine}
+                </p>
+              )}
+              {banner.showBanner && banner.showTitle && (
+                <h1 className="m-0 text-[clamp(1.7rem,2.8vw,2.5rem)] font-black leading-tight text-[var(--schedule-text)]" style={{ letterSpacing: '-.02em' }}>
+                  {banner.title}
+                </h1>
+              )}
+              {banner.showActions && (
+                <div className="mt-1 flex flex-wrap gap-2.5 justify-center items-center">
+                  <span className="schedule-badge">جاهز</span>
+                  <button onClick={() => setIsDark(!isDark)} className="schedule-btn" style={{ minHeight: 38, padding: '8px 14px', borderRadius: 999 }}>
+                    🌓 تبديل النمط
+                  </button>
+                </div>
+              )}
+              {banner.showHint && !!system.hint && (
+                <div className="schedule-hint">
+                  <strong>💡 ملاحظة:</strong> {system.hint}
+                </div>
+              )}
             </div>
           </header>
 

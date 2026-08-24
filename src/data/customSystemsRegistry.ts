@@ -260,6 +260,9 @@ export interface CustomSystemDef {
   /** 🧩 تقارير مدمجة من نظامين (join على عمود مشترك) مع تحكم كامل بالتصميم. */
   joined_reports?: JoinedReportCfg[];
 
+  /** 🖼️ التحكم بواجهة صفحة هذا النظام (البانر/الشعار/العنوان/الملاحظة). */
+  ui_prefs?: SystemUiPrefs;
+
   /** 📷 QR scanner for filling form fields. */
   qr_enabled?: boolean;
   /** Excel letters that can be filled by scanning. Empty = all editable columns. */
@@ -267,6 +270,27 @@ export interface CustomSystemDef {
 }
 
 export type IdentityCriterion = 'name' | 'department' | 'college';
+
+/** 🖼️ إعدادات واجهة صفحة النظام (تُضبط من داخل بطاقة النظام في المنشئ). */
+export interface SystemUiPrefs {
+  /** إظهار البانر أعلى الصفحة (شعار + سطر الكلية + العنوان). الافتراضي: نعم. */
+  show_banner?: boolean;
+  show_logo?: boolean;
+  show_title?: boolean;
+  show_university_line?: boolean;
+  /** إظهار سطر الملاحظة (💡) أسفل العنوان. */
+  show_hint?: boolean;
+  /** إظهار شريط أزرار الرئيسية/التحديث/تبديل النمط. */
+  show_actions?: boolean;
+  /** شعار خاص بهذا النظام (رابط صورة). فارغ = شعار الواجهة العام. */
+  logo_url?: string;
+  /** حجم الشعار بالبكسل (48 - 260). فارغ/0 = الحجم الافتراضي. */
+  logo_size?: number;
+  /** عنوان بديل يظهر أعلى الصفحة. فارغ = اسم النظام. */
+  title_override?: string;
+  /** سطر كلية/جامعة بديل. فارغ = سطر الواجهة العام. */
+  university_line?: string;
+}
 
 /** مفاتيح أزرار شريط الأدوات القابلة للتحكم من المنشئ. */
 export type ToolbarButtonKey = 'print' | 'pdfFull' | 'pdfQuick' | 'excel' | 'add' | 'import' | 'qr';
@@ -399,6 +423,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   columns_range: 'F:N',
   hidden_columns: '',
   column_modes: {},
+  ui_prefs: {},
   filter_columns: '',
   filters_config: [],
   conditions: [],

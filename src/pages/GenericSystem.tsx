@@ -8,6 +8,7 @@ import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta
 import { fetchSheetByGid, type SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
+import { getBranding } from '@/lib/systemAccess';
 import { getEffectivePerms } from '@/lib/permissions';
 import { applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
 import {
@@ -509,9 +510,10 @@ export function buildConfigFromDef(
   return {
     id: `custom_${def.id}`,
     title: def.title,
-    appTitle: def.title,
-    universityLine: 'كلية الهندسة المدنية - الجامعة التكنولوجية',
+    appTitle: def.ui_prefs?.title_override?.trim() || def.title,
+    universityLine: def.ui_prefs?.university_line?.trim() || getBranding().university_line,
     hint: def.hint || def.description || '',
+    bannerPrefs: def.ui_prefs || undefined,
     icon: def.icon || '📋',
     headers: allHeaders,
     filters: builtFilters,

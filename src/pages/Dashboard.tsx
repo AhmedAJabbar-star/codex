@@ -7,6 +7,7 @@ import RefreshButton from '@/components/shared/RefreshButton';
 import universityLogo from '@/assets/university-logo.jpg';
 import { useEffect, useMemo, useState } from 'react';
 import { useDarkMode } from '@/lib/darkMode';
+import { useBranding } from '@/lib/useBranding';
 import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
 import { listCustomSystems, CUSTOM_SYSTEMS_UPDATED_EVENT } from '@/data/customSystemsRegistry';
 import { evaluateCondition, applyDerivedColumns } from '@/lib/conditionEngine';
@@ -255,6 +256,7 @@ const systemCards = [
 
 const Dashboard = () => {
   const [isDark, setIsDark] = useDarkMode();
+  const branding = useBranding();
   const [rules, setRules] = useState(() => getRules());
   const [groups, setGroups] = useState<SystemGroup[]>(() => getGroups());
   const queryClient = useQueryClient();
@@ -521,18 +523,24 @@ const Dashboard = () => {
           {/* Header */}
           <header className="schedule-header">
             <div className="flex flex-col items-center gap-3 text-center">
-              <img
-                src={universityLogo}
-                alt="شعار الجامعة التكنولوجية"
-                className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-2xl shadow-lg"
-                style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.15))' }}
-              />
-              <p className="font-extrabold text-[15px] text-[var(--schedule-accent-blue)] tracking-wide opacity-95">
-                كلية الهندسة المدنية - الجامعة التكنولوجية
-              </p>
-              <h1 className="m-0 text-[clamp(1.8rem,3vw,2.8rem)] font-black leading-tight text-[var(--schedule-text)]" style={{ letterSpacing: '-.02em' }}>
-                الأنظمة الملحقة بنظام الإدارة الاكاديمية
-              </h1>
+              {branding.show_banner && branding.show_logo && (
+                <img
+                  src={(branding.logo_url || '').trim() || universityLogo}
+                  alt="شعار الجهة"
+                  className="object-contain rounded-2xl shadow-lg"
+                  style={{ width: branding.logo_size, height: branding.logo_size, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.15))' }}
+                />
+              )}
+              {branding.show_banner && branding.show_university_line && !!branding.university_line && (
+                <p className="font-extrabold text-[15px] text-[var(--schedule-accent-blue)] tracking-wide opacity-95">
+                  {branding.university_line}
+                </p>
+              )}
+              {branding.show_banner && branding.show_title && (
+                <h1 className="m-0 text-[clamp(1.8rem,3vw,2.8rem)] font-black leading-tight text-[var(--schedule-text)]" style={{ letterSpacing: '-.02em' }}>
+                  {branding.app_title}
+                </h1>
+              )}
               <div className="flex flex-wrap gap-3 items-center justify-center">
                 <span className="schedule-badge">جاهز</span>
                 <RefreshButton compact />

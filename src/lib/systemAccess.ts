@@ -37,6 +37,35 @@ export const MANAGER_PASSWORD_ID = '_manager';
  */
 export const KEEP_PASSWORD = '__KEEP_EXISTING__';
 export const GROUPS_KEY = '__groups';
+export const BRANDING_KEY = '__branding';
+
+/** 🎨 هوية الواجهة العامة (الشعار، اسم النظام، إظهار البانر) — تُدار من لوحة التحكم. */
+export type Branding = {
+  /** رابط صورة الشعار. فارغ = شعار الجامعة المرفق بالنظام. */
+  logo_url: string;
+  /** اسم النظام المعروض في الواجهة الرئيسية. */
+  app_title: string;
+  /** سطر الكلية/الجامعة أعلى الاسم. */
+  university_line: string;
+  /** إظهار البانر بالكامل (الشعار + السطر + الاسم) في الواجهة الرئيسية. */
+  show_banner: boolean;
+  show_logo: boolean;
+  show_title: boolean;
+  show_university_line: boolean;
+  /** حجم الشعار بالبكسل (64 - 220). */
+  logo_size: number;
+};
+
+export const DEFAULT_BRANDING: Branding = {
+  logo_url: '',
+  app_title: 'الأنظمة الملحقة بنظام الإدارة الاكاديمية',
+  university_line: 'كلية الهندسة المدنية - الجامعة التكنولوجية',
+  show_banner: true,
+  show_logo: true,
+  show_title: true,
+  show_university_line: true,
+  logo_size: 112,
+};
 
 
 export const SYSTEMS_REGISTRY: ManagedSystem[] = [
@@ -141,6 +170,30 @@ export function getGroups(): SystemGroup[] {
   } catch { return []; }
 }
 
+const normalizeBranding = (parsed: RawRules = {}): Branding => {
+  const b = (parsed?.[BRANDING_KEY] as Partial<Branding>) || {};
+  const size = Number(b.logo_size);
+  return {
+    logo_url: typeof b.logo_url === 'string' ? b.logo_url.trim() : DEFAULT_BRANDING.logo_url,
+    app_title: typeof b.app_title === 'string' && b.app_title.trim() ? b.app_title : DEFAULT_BRANDING.app_title,
+    university_line: typeof b.university_line === 'string' ? b.university_line : DEFAULT_BRANDING.university_line,
+    show_banner: typeof b.show_banner === 'boolean' ? b.show_banner : true,
+    show_logo: typeof b.show_logo === 'boolean' ? b.show_logo : true,
+    show_title: typeof b.show_title === 'boolean' ? b.show_title : true,
+    show_university_line: typeof b.show_university_line === 'boolean' ? b.show_university_line : true,
+    logo_size: Number.isFinite(size) && size >= 48 && size <= 260 ? size : DEFAULT_BRANDING.logo_size,
+  };
+};
+
+/** هوية الواجهة الحالية (من النسخة المحلية المتزامنة مع الخادم). */
+export function getBranding(): Branding {
+  if (typeof window === 'undefined' || !window.localStorage) return { ...DEFAULT_BRANDING };
+  try {
+    const raw = localStorage.getItem(KEY);
+    return normalizeBranding(raw ? JSON.parse(raw) : {});
+  } catch { return { ...DEFAULT_BRANDING }; }
+}
+
 export async function syncRulesFromRemote(): Promise<Record<string, SystemAccessRule>> {
   if (remoteRulesStoreUnavailable) return getRules();
 
@@ -157,7 +210,8 @@ export async function syncRulesFromRemote(): Promise<Record<string, SystemAccess
 
   const normalized = normalizeRules(rules);
   const groups = normalizeGroups(rules);
-  const toStore: RawRules = { ...normalized, [GROUPS_KEY]: groups };
+  const branding = normalizeBranding(rules);
+  const toStore: RawRules = { ...normalized, [GROUPS_KEY]: groups, [BRANDING_KEY]: branding };
   localStorage.setItem(KEY, JSON.stringify(toStore));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
   return normalized;
@@ -182,9 +236,15 @@ export function getSystemIdByPath(pathname: string): string | null {
 }
 
 
-export async function setRules(rules: Record<string, SystemAccessRule>, password: string, groups?: SystemGroup[]) {
+export async function setRules(
+  rules: Record<string, SystemAccessRule>,
+  password: string,
+  groups?: SystemGroup[],
+  branding?: Branding,
+) {
   const groupList = groups ?? getGroups();
-  const payload: RawRules = { ...rules, [GROUPS_KEY]: groupList };
+  const brandingValue = branding ?? getBranding();
+  const payload: RawRules = { ...rules, [GROUPS_KEY]: groupList, [BRANDING_KEY]: brandingValue };
   const { data, error } = await supabase.functions.invoke('system-rules', {
     body: { password, rules: payload },
   });
