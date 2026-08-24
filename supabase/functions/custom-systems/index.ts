@@ -849,7 +849,7 @@ Deno.serve(async (req) => {
                 headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
               });
               const t = await res.text();
-              if (!res.ok) throw new Error(`Sheets API ${res.status}: ${t}`);
+              if (!res.ok) throw sheetsError(res.status, t, archiveSpreadsheetId);
               return t ? JSON.parse(t) : null;
             };
             const aMeta = await gapiA("?fields=sheets(properties(sheetId,title))");
