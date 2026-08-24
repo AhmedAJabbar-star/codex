@@ -387,6 +387,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
     [8, '✨ ميزات متقدمة'],
     [9, '🔗 الربط والقيود'],
     [10, '🧮 معالجة متقدمة'],
+    [11, '🖼️ واجهة النظام'],
   ];
 
   const Step = ({ n, label }: { n: number; label: string }) => (
@@ -2438,6 +2439,81 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       />
                     </div>
                   )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {step === 11 && (() => {
+            const up = (s.ui_prefs || {}) as SystemUiPrefs;
+            const setUp = (patchVal: Partial<SystemUiPrefs>) => patch({ ui_prefs: { ...up, ...patchVal } });
+            const toggles: [keyof SystemUiPrefs, string, string][] = [
+              ['show_banner', '📢 البانر بالكامل', 'إخفاؤه يبدأ الصفحة بالبيانات مباشرة'],
+              ['show_logo', '🖼️ الشعار', 'صورة الشعار أعلى الصفحة'],
+              ['show_title', '🏷️ عنوان النظام', 'الاسم الكبير أعلى الصفحة'],
+              ['show_university_line', '🏛️ سطر الكلية', 'السطر الأزرق فوق العنوان'],
+              ['show_hint', '💡 سطر الملاحظة', 'الملاحظة التوضيحية أسفل العنوان'],
+              ['show_actions', '🎛️ أزرار الأعلى', 'شارة «جاهز» وزر تبديل النمط'],
+            ];
+            return (
+              <div className="space-y-5">
+                <div className="bg-sky-50 border-2 border-sky-200 rounded-lg p-3">
+                  <strong className="text-sm block mb-1">🖼️ واجهة هذا النظام</strong>
+                  <p className="text-[11px] text-slate-600">
+                    تحكم بمظهر صفحة هذا النظام فقط. أي حقل تتركه فارغاً يأخذ قيمته من «هوية الواجهة» في لوحة التحكم.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-black mb-1">🏷️ عنوان بديل للصفحة</label>
+                    <input className="w-full border-2 rounded-lg px-3 py-2 text-sm" type="text"
+                      placeholder="اتركه فارغاً لاستخدام اسم النظام"
+                      value={up.title_override || ''}
+                      onChange={e => setUp({ title_override: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black mb-1">🏛️ سطر كلية/جهة بديل</label>
+                    <input className="w-full border-2 rounded-lg px-3 py-2 text-sm" type="text"
+                      placeholder="اتركه فارغاً لاستخدام سطر لوحة التحكم"
+                      value={up.university_line || ''}
+                      onChange={e => setUp({ university_line: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black mb-1">🖼️ رابط شعار خاص بهذا النظام</label>
+                    <input className="w-full border-2 rounded-lg px-3 py-2 text-sm" type="text"
+                      placeholder="https://.../logo.png — فارغ = الشعار العام"
+                      value={up.logo_url || ''}
+                      onChange={e => setUp({ logo_url: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black mb-1">📐 حجم الشعار (بكسل)</label>
+                    <input className="w-full border-2 rounded-lg px-3 py-2 text-sm" type="number" min={48} max={260}
+                      placeholder="فارغ = الحجم الافتراضي"
+                      value={up.logo_size || ''}
+                      onChange={e => setUp({ logo_size: Number(e.target.value) || 0 })} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black mb-2">👁️ عناصر الواجهة (اضغط للإظهار/الإخفاء)</label>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {toggles.map(([key, label, hintText]) => {
+                      const on = up[key] !== false;
+                      return (
+                        <button key={String(key)} type="button"
+                          onClick={() => setUp({ [key]: !on } as Partial<SystemUiPrefs>)}
+                          className="text-right rounded-lg px-3 py-2 border-2 transition-all"
+                          style={{
+                            background: on ? 'rgba(15,76,129,.08)' : '#f1f5f9',
+                            borderColor: on ? '#0f4c81' : '#cbd5e1',
+                          }}>
+                          <div className="text-xs font-black">{on ? '✓ ' : '✗ '}{label}</div>
+                          <div className="text-[10px] text-slate-600">{hintText}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             );
