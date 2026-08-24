@@ -239,6 +239,16 @@ export interface CustomSystemDef {
   /** GID of the archive sheet/tab. */
   archive_gid?: string;
 
+  /** 🔑 مفتاح Google AI Studio (Gemini) الخاص بهذا النظام — يُدخله المشرف من المنشئ ويُرسل مع طلبات الاستخراج.
+   *  عند تركه فارغاً يُستخدم المفتاح المُخزَّن في أسرار المشروع. */
+  ai_api_key?: string;
+
+  /** 🖨️ التحكم بأزرار الطباعة/التصدير فوق الجدول (إظهار/إخفاء + الاسم + اللون). */
+  toolbar_buttons?: Record<ToolbarButtonKey, ToolbarButtonCfg>;
+
+  /** 🧩 تقارير مدمجة من نظامين (join على عمود مشترك) مع تحكم كامل بالتصميم. */
+  joined_reports?: JoinedReportCfg[];
+
   /** 📷 QR scanner for filling form fields. */
   qr_enabled?: boolean;
   /** Excel letters that can be filled by scanning. Empty = all editable columns. */
@@ -246,6 +256,71 @@ export interface CustomSystemDef {
 }
 
 export type IdentityCriterion = 'name' | 'department' | 'college';
+
+/** مفاتيح أزرار شريط الأدوات القابلة للتحكم من المنشئ. */
+export type ToolbarButtonKey = 'print' | 'pdfFull' | 'pdfQuick' | 'excel' | 'add' | 'import' | 'qr';
+export interface ToolbarButtonCfg {
+  /** إظهار الزر (الافتراضي: نعم). */
+  show?: boolean;
+  /** نص بديل للزر (فارغ = النص الافتراضي). */
+  label?: string;
+  /** لون الزر (hex). فارغ = اللون الافتراضي. */
+  color?: string;
+}
+export const TOOLBAR_BUTTON_LABELS: Record<ToolbarButtonKey, string> = {
+  print: '🖨️ طباعة الجدول',
+  pdfFull: '📄 حفظ PDF كامل على الحاسبة',
+  pdfQuick: '📄 تصدير PDF سريع',
+  excel: '📥 تصدير Excel',
+  add: '➕ إضافة سجل',
+  import: '📤 استيراد من Excel',
+  qr: '📷 إضافة عبر QR',
+};
+
+/** كيف تُشتق قيمة عمود من الجهة الأخرى عند وجود عدة صفوف مطابقة لنفس المُعرِّف. */
+export type JoinAgg = 'first' | 'last' | 'sum' | 'avg' | 'count' | 'min' | 'max' | 'concat';
+
+export interface JoinedColumnCfg {
+  /** من أي نظام يأتي العمود: النظام الحالي (left) أم النظام المرتبط (right). */
+  side: 'left' | 'right';
+  /** حرف عمود Excel في النظام المصدر. */
+  column: string;
+  /** عنوان العمود في التقرير المدمج. */
+  label?: string;
+  /** طريقة الاشتقاق عند تعدد الصفوف المطابقة (تُستخدم لأعمدة right غالباً). */
+  agg?: JoinAgg;
+}
+
+export interface JoinedTableStyle {
+  header_bg?: string;
+  header_color?: string;
+  row_bg?: string;
+  alt_row_bg?: string;
+  text_color?: string;
+  border_color?: string;
+  font_size?: number;
+  row_height?: number;
+  footer_bg?: string;
+  footer_text?: string;
+  align?: 'right' | 'center' | 'left';
+}
+
+export interface JoinedReportCfg {
+  id: string;
+  title: string;
+  /** معرّف النظام الثاني (right). */
+  target_id: string;
+  /** حرف العمود الحامل للمُعرِّف المشترك في النظام الحالي. */
+  left_key: string;
+  /** حرف العمود الحامل للمُعرِّف المشترك في النظام الثاني. */
+  right_key: string;
+  /** نوع الدمج: كل صفوف اليسار (left) أم المتطابقة فقط (inner). */
+  join_type?: 'left' | 'inner';
+  columns: JoinedColumnCfg[];
+  style?: JoinedTableStyle;
+  /** إظهار ذيل مجاميع للأعمدة الرقمية. */
+  show_totals?: boolean;
+}
 
 /** Capacity configuration for a select column. */
 export interface OptionLimitCfg {
@@ -374,6 +449,9 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   archive_gid: '',
   qr_enabled: false,
   qr_fields: [],
+  ai_api_key: '',
+  toolbar_buttons: {} as any,
+  joined_reports: [],
 };
 
 

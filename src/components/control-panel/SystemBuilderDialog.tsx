@@ -5,6 +5,9 @@ import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem, listCustomSystems }
 import { OP_LABELS, type Condition, type ConditionOp, type ComputedColumn, type ConflictCfg, type GroupStage, parseColumnsRange, colIndexToLetter } from '@/lib/conditionEngine';
 import { UI_THEMES, applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
+/** القيمة الوهمية التي يرسلها الخادم بدل الأسرار المحفوظة (كلمة المرور / مفتاح API). */
+const KEEP_SENTINEL = '__KEEP_EXISTING__';
+
 const COLORS = ['#475569','#0891b2','#16a34a','#dc2626','#7c3aed','#d97706','#0ea5e9','#e11d48','#059669','#a16207','#1e40af','#be123c'];
 
 const ICONS = [
@@ -1247,6 +1250,30 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   <p className="text-[11px] text-slate-500 mt-1">
                     💡 إن ظهرت أخطاء استخراج أو نصوص ناقصة مع موديل flash، بدّل إلى pro من هنا دون أي تعديل برمجي.
                   </p>
+
+                  {s.ocr_provider === 'google' && (
+                    <div className="mt-3 border-2 border-emerald-200 bg-emerald-50 rounded-lg p-3">
+                      <label className="block text-xs font-black mb-1">🔑 مفتاح Google AI Studio الخاص بك (اختياري)</label>
+                      <input
+                        className="schedule-select w-full text-xs"
+                        dir="ltr"
+                        value={s.ai_api_key === KEEP_SENTINEL ? '' : (s.ai_api_key || '')}
+                        placeholder={s.ai_api_key === KEEP_SENTINEL ? '•••••••• مفتاح محفوظ — اكتب مفتاحاً جديداً للتغيير' : 'AIza...'}
+                        onChange={(e) => patch({ ai_api_key: e.target.value.trim() })}
+                      />
+                      <p className="text-[11px] text-slate-600 mt-1 leading-5">
+                        يُستخدم هذا المفتاح لهذا النظام فقط، ويتقدّم على المفتاح العام المحفوظ في أسرار المشروع.
+                        إن تركته فارغاً سيُستخدم المفتاح العام. يُخزَّن على الخادم ولا يُعاد إظهاره بعد الحفظ.
+                      </p>
+                      {s.ai_api_key === KEEP_SENTINEL && (
+                        <button
+                          type="button"
+                          className="mt-2 text-[11px] font-black text-red-600 underline"
+                          onClick={() => patch({ ai_api_key: '' })}
+                        >🗑️ حذف المفتاح المحفوظ لهذا النظام</button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1432,6 +1459,51 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     إذا لم تضبط أي قيمة، ستُستخدم الإعدادات الافتراضية ويظهر الشريط كالسابق.
                   </p>
                 </div>
+
+                {(() => {
+                  const tb = (s.toolbar_buttons || {}) as Record<string, { show?: boolean; label?: string; color?: string }>;
+                  const setTB = (k: string, p: any) => patch({ toolbar_buttons: { ...tb, [k]: { ...(tb[k] || {}), ...p } } } as any);
+                  const KEYS: [string, string][] = [
+                    ['print', '🖨️ طباعة الجدول (التقرير الرسمي)'],
+                    ['pdfFull', '📄 حفظ PDF كامل على الحاسبة'],
+                    ['pdfQuick', '📄 تصدير PDF سريع'],
+                    ['excel', '📥 تصدير Excel'],
+                    ['add', '➕ إضافة سجل'],
+                    ['import', '📤 استيراد من Excel'],
+                    ['qr', '📷 إضافة عبر QR'],
+                  ];
+                  return (
+                    <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                      <strong className="text-sm">🎛️ أزرار شريط الأدوات (إظهار / الاسم / اللون)</strong>
+                      <p className="text-[11px] text-slate-600">
+                        أزل التأشير لإخفاء الزر من هذا النظام، أو اكتب اسماً بديلاً (يمكن أن يشمل رمزاً تعبيرياً) واختر لوناً مخصصاً.
+                        الحقول الفارغة تعني «الاسم واللون الافتراضي».
+                      </p>
+                      <div className="space-y-2">
+                        {KEYS.map(([k, lbl]) => (
+                          <div key={k} className="grid grid-cols-1 md:grid-cols-[190px_1fr_120px] gap-2 items-center bg-white border rounded p-2">
+                            <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+                              <input type="checkbox" checked={tb[k]?.show !== false} onChange={(e) => setTB(k, { show: e.target.checked })} />
+                              {lbl}
+                            </label>
+                            <input
+                              className="schedule-select w-full text-xs"
+                              placeholder="اسم بديل للزر (فارغ = الاسم الافتراضي)"
+                              value={tb[k]?.label || ''}
+                              onChange={(e) => setTB(k, { label: e.target.value })}
+                            />
+                            <div className="flex items-center gap-1">
+                              <input type="color" className="w-9 h-8 rounded border" value={tb[k]?.color || '#1d4ed8'} onChange={(e) => setTB(k, { color: e.target.value })} />
+                              {tb[k]?.color && (
+                                <button type="button" className="text-[11px] font-black text-slate-500 underline" onClick={() => setTB(k, { color: '' })}>افتراضي</button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-3">
                   <strong className="text-sm">إعدادات الصفحة</strong>
@@ -1837,6 +1909,149 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     قيود الإرسال (رد واحد لكل مستخدم، سعة الخيارات)، أعمدة التتبّع التلقائية، أرشفة المحذوف، الربط بين الأنظمة، وقارئ QR.
                   </p>
                 </div>
+
+                {/* Joined reports (تقارير مدمجة من نظامين) */}
+                {(() => {
+                  const jrs = (s.joined_reports || []) as any[];
+                  const updJ = (i: number, p: any) => patch({ joined_reports: jrs.map((j, idx) => idx === i ? { ...j, ...p } : j) } as any);
+                  const delJ = (i: number) => patch({ joined_reports: jrs.filter((_, idx) => idx !== i) } as any);
+                  const addJ = () => patch({ joined_reports: [...jrs, {
+                    id: `join_${Date.now().toString(36)}`, title: '', target_id: '', left_key: 'A', right_key: 'A',
+                    join_type: 'left', columns: [], show_totals: false,
+                    style: { header_bg: '#0f172a', header_color: '#ffffff', row_bg: '#ffffff', alt_row_bg: '#f8fafc', text_color: '#0f172a', border_color: '#cbd5e1', font_size: 12, row_height: 24, footer_bg: '#e2e8f0', footer_text: '#0f172a', align: 'center' },
+                  }] } as any);
+                  const setStyle = (i: number, p: any) => updJ(i, { style: { ...(jrs[i].style || {}), ...p } });
+                  const AGGS: [string, string][] = [
+                    ['first', 'أول قيمة مطابقة'],
+                    ['last', 'آخر قيمة مطابقة'],
+                    ['sum', 'مجموع القيم'],
+                    ['avg', 'متوسط القيم'],
+                    ['count', 'عدد القيم'],
+                    ['min', 'أصغر قيمة'],
+                    ['max', 'أكبر قيمة'],
+                    ['concat', 'دمج كل القيم نصياً'],
+                  ];
+                  return (
+                    <div className="border rounded-lg p-3 bg-slate-50 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <strong className="text-sm">🧩 تقارير مدمجة من نظامين (Join)</strong>
+                          <div className="text-[11px] text-slate-600 mt-1 leading-relaxed bg-white border rounded p-2">
+                            اختر النظام الثاني، ثم <b>عمود المُعرِّف المشترك</b> في كل جهة (مثلاً رقم الهوية أو اسم التدريسي).
+                            بعدها أضف الأعمدة التي تريدها في التقرير الموحّد، وحدّد لكل عمود من النظام الثاني
+                            <b> طريقة الاشتقاق</b> عند تعدّد الصفوف المطابقة (أول/آخر/مجموع/متوسط/عدد/أصغر/أكبر/دمج).
+                            يظهر التقرير كزر داخل النظام، مع تحكم كامل بالتصميم من الهيدر حتى الفوتر.
+                          </div>
+                        </div>
+                        <button className="schedule-btn schedule-btn-primary shrink-0" style={{ minHeight: 32, padding: '4px 10px', fontSize: 12 }} onClick={addJ}>+ تقرير مدمج</button>
+                      </div>
+
+                      {jrs.length === 0 && <div className="text-[11px] text-slate-500">لا توجد تقارير مدمجة بعد.</div>}
+
+                      {jrs.map((j, i) => {
+                        const cols = (j.columns || []) as any[];
+                        const updC = (ci: number, p: any) => updJ(i, { columns: cols.map((c, x) => x === ci ? { ...c, ...p } : c) });
+                        const delC = (ci: number) => updJ(i, { columns: cols.filter((_, x) => x !== ci) });
+                        const addC = (side: 'left' | 'right') => updJ(i, { columns: [...cols, { side, column: 'A', label: '', agg: side === 'right' ? 'first' : undefined }] });
+                        const stl = j.style || {};
+                        return (
+                          <div key={j.id || i} className="border-2 rounded-lg p-3 bg-white space-y-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[11px] font-black mb-1">عنوان التقرير</label>
+                                <input className="schedule-select w-full text-xs" value={j.title || ''} onChange={(e) => updJ(i, { title: e.target.value })} placeholder="مثال: كشف موحّد للأجور والتكليفات" />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-black mb-1">النظام الثاني</label>
+                                <select className="schedule-select w-full text-xs" value={j.target_id || ''} onChange={(e) => updJ(i, { target_id: e.target.value })}>
+                                  <option value="">— اختر —</option>
+                                  {allSystems.filter((x) => x.id && x.id !== s.id).map((x) => (
+                                    <option key={x.id} value={x.id}>{x.icon} {x.title}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className="block text-[11px] font-black mb-1">مُعرِّف هذا النظام (حرف)</label>
+                                <input className="schedule-select w-full text-xs" value={j.left_key || ''} onChange={(e) => updJ(i, { left_key: e.target.value.toUpperCase().trim() })} placeholder="مثال: B" />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-black mb-1">مُعرِّف النظام الثاني (حرف)</label>
+                                <input className="schedule-select w-full text-xs" value={j.right_key || ''} onChange={(e) => updJ(i, { right_key: e.target.value.toUpperCase().trim() })} placeholder="مثال: C" />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-black mb-1">نوع الدمج</label>
+                                <select className="schedule-select w-full text-xs" value={j.join_type || 'left'} onChange={(e) => updJ(i, { join_type: e.target.value })}>
+                                  <option value="left">كل صفوف هذا النظام (حتى غير المطابقة)</option>
+                                  <option value="inner">الصفوف المتطابقة فقط</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="border rounded p-2 bg-slate-50 space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <strong className="text-xs">أعمدة التقرير الموحّد</strong>
+                                <div className="flex gap-1">
+                                  <button className="schedule-btn schedule-btn-secondary" style={{ minHeight: 28, padding: '2px 8px', fontSize: 11 }} onClick={() => addC('left')}>+ عمود من هذا النظام</button>
+                                  <button className="schedule-btn schedule-btn-secondary" style={{ minHeight: 28, padding: '2px 8px', fontSize: 11 }} onClick={() => addC('right')}>+ عمود من النظام الثاني</button>
+                                </div>
+                              </div>
+                              {cols.length === 0 && <div className="text-[11px] text-slate-500">أضف عموداً واحداً على الأقل.</div>}
+                              {cols.map((c, ci) => (
+                                <div key={ci} className="grid grid-cols-1 md:grid-cols-[110px_80px_1fr_150px_36px] gap-1 items-center">
+                                  <select className="schedule-select text-[11px]" value={c.side} onChange={(e) => updC(ci, { side: e.target.value })}>
+                                    <option value="left">هذا النظام</option>
+                                    <option value="right">النظام الثاني</option>
+                                  </select>
+                                  <input className="schedule-select text-[11px]" value={c.column || ''} onChange={(e) => updC(ci, { column: e.target.value.toUpperCase().trim() })} placeholder="حرف" />
+                                  <input className="schedule-select text-[11px]" value={c.label || ''} onChange={(e) => updC(ci, { label: e.target.value })} placeholder="عنوان العمود (فارغ = عنوان الورقة)" />
+                                  {c.side === 'right' ? (
+                                    <select className="schedule-select text-[11px]" value={c.agg || 'first'} onChange={(e) => updC(ci, { agg: e.target.value })}>
+                                      {AGGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                                    </select>
+                                  ) : <span className="text-[10px] text-slate-400">—</span>}
+                                  <button className="text-red-600 font-black" onClick={() => delC(ci)}>×</button>
+                                </div>
+                              ))}
+                              <label className="flex items-center gap-2 text-[11px] font-bold pt-1">
+                                <input type="checkbox" checked={!!j.show_totals} onChange={(e) => updJ(i, { show_totals: e.target.checked })} />
+                                إظهار ذيل مجاميع للأعمدة الرقمية
+                              </label>
+                            </div>
+
+                            <div className="border rounded p-2 bg-slate-50">
+                              <strong className="text-xs block mb-1">🎨 تصميم الجدول (الهيدر → الفوتر)</strong>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] font-bold">
+                                <label>خلفية الهيدر<input type="color" className="w-full h-7 rounded border" value={stl.header_bg || '#0f172a'} onChange={(e) => setStyle(i, { header_bg: e.target.value })} /></label>
+                                <label>لون خط الهيدر<input type="color" className="w-full h-7 rounded border" value={stl.header_color || '#ffffff'} onChange={(e) => setStyle(i, { header_color: e.target.value })} /></label>
+                                <label>خلفية الصفوف<input type="color" className="w-full h-7 rounded border" value={stl.row_bg || '#ffffff'} onChange={(e) => setStyle(i, { row_bg: e.target.value })} /></label>
+                                <label>خلفية الصفوف الزوجية<input type="color" className="w-full h-7 rounded border" value={stl.alt_row_bg || '#f8fafc'} onChange={(e) => setStyle(i, { alt_row_bg: e.target.value })} /></label>
+                                <label>لون النص<input type="color" className="w-full h-7 rounded border" value={stl.text_color || '#0f172a'} onChange={(e) => setStyle(i, { text_color: e.target.value })} /></label>
+                                <label>لون الحدود<input type="color" className="w-full h-7 rounded border" value={stl.border_color || '#cbd5e1'} onChange={(e) => setStyle(i, { border_color: e.target.value })} /></label>
+                                <label>خلفية الفوتر<input type="color" className="w-full h-7 rounded border" value={stl.footer_bg || '#e2e8f0'} onChange={(e) => setStyle(i, { footer_bg: e.target.value })} /></label>
+                                <label>لون خط الفوتر<input type="color" className="w-full h-7 rounded border" value={stl.footer_text || '#0f172a'} onChange={(e) => setStyle(i, { footer_text: e.target.value })} /></label>
+                                <label>حجم الخط (px)<input type="number" min={8} max={22} className="schedule-select w-full text-[11px]" value={stl.font_size || 12} onChange={(e) => setStyle(i, { font_size: parseInt(e.target.value) || 12 })} /></label>
+                                <label>ارتفاع الصف (px)<input type="number" min={16} max={60} className="schedule-select w-full text-[11px]" value={stl.row_height || 24} onChange={(e) => setStyle(i, { row_height: parseInt(e.target.value) || 24 })} /></label>
+                                <label>محاذاة النص
+                                  <select className="schedule-select w-full text-[11px]" value={stl.align || 'center'} onChange={(e) => setStyle(i, { align: e.target.value })}>
+                                    <option value="center">وسط</option>
+                                    <option value="right">يمين</option>
+                                    <option value="left">يسار</option>
+                                  </select>
+                                </label>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <button className="text-red-600 text-[11px] font-black underline" onClick={() => delJ(i)}>🗑️ حذف هذا التقرير المدمج</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
                 {/* Single response */}
                 <div className="border rounded-lg p-3 bg-slate-50 space-y-2">

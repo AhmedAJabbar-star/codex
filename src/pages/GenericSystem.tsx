@@ -445,6 +445,9 @@ export function buildConfigFromDef(
     rowColorKey: hasRowColors ? ROW_COLOR_KEY : undefined,
     aggregations: aggregations.length > 0 ? aggregations : undefined,
     globalSearch: !!def.global_search,
+    toolbarButtons: (def.toolbar_buttons && Object.keys(def.toolbar_buttons).length > 0) ? def.toolbar_buttons : undefined,
+    joinedReports: (def.joined_reports || []).map((j) => ({ id: j.id, title: j.title })),
+
   };
 }
 

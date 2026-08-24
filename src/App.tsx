@@ -39,6 +39,7 @@ const ProjectSupervisionExceeded = lazy(() => import("./pages/ProjectSupervision
 const TeachersWithoutTheory = lazy(() => import("./pages/TeachersWithoutTheory"));
 const UnassignedSupervisors = lazy(() => import("./pages/UnassignedSupervisors"));
 const GenericSystem = lazy(() => import("./pages/GenericSystem"));
+const JoinedReport = lazy(() => import("./pages/JoinedReport"));
 
 const queryClient = new QueryClient();
 
@@ -234,6 +235,7 @@ const App = () => (
             <Route path="/teachers-without-theory" element={<ProtectedRoute><TeachersWithoutTheory /></ProtectedRoute>} />
             <Route path="/unassigned-supervisors" element={<ProtectedRoute><UnassignedSupervisors /></ProtectedRoute>} />
             <Route path="/custom/:id" element={<CustomSystemGate><GenericSystem /></CustomSystemGate>} />
+            <Route path="/custom/:id/joined/:jid" element={<CustomSystemGate><JoinedReport /></CustomSystemGate>} />
             <Route path="/group/:groupId" element={<SystemGroupPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

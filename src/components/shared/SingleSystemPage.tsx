@@ -15,6 +15,7 @@ import SystemStatistics from './SystemStatistics';
 import RefreshButton from './RefreshButton';
 import { sheetWrite } from '@/data/customSystemsRegistry';
 import { DateInputDMY } from '@/components/shared/DateInputDMY';
+import { parseCellDate } from '@/lib/conditionEngine';
 import ExcelImportPanel from '@/components/custom-systems/ExcelImportPanel';
 import QrScanDialog from '@/components/custom-systems/QrScanDialog';
 import { getCachedAdminPassword, setCachedAdminPassword } from '@/lib/teacherAuth';
@@ -64,6 +65,18 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
   // Inline CRUD state (used only when system.crudContext is set)
   const [crudSearch, setCrudSearch] = useState('');
+  const [colSearch, setColSearch] = useState<Record<string, string>>({});
+
+  /* ===== تحكم منشئ الأنظمة بأزرار شريط الأدوات (إظهار/اسم/لون) ===== */
+  const toolbarBtns = (system.toolbarButtons || {}) as Record<string, { show?: boolean; label?: string; color?: string }>;
+  const btnShow = (k: string) => toolbarBtns[k]?.show !== false;
+  const btnLabel = (k: string, fallback: string) => (toolbarBtns[k]?.label || '').trim() || fallback;
+  const btnStyle = (k: string, base?: React.CSSProperties): React.CSSProperties => {
+    const c = (toolbarBtns[k]?.color || '').trim();
+    if (!c) return base || {};
+    return { ...(base || {}), background: c, backgroundImage: 'none', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 12px 22px rgba(15,23,42,.22)' };
+  };
+
   // البحث المؤجَّل: يبقي الكتابة سلسة مهما كثرت السجلات
   const deferredSearch = useDeferredValue(crudSearch);
   const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
@@ -152,15 +165,20 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             if (toStr !== '' && cell > parseFloat(toStr)) return false;
             return true;
           }
-          const cell = Date.parse(cellRaw);
-          if (isNaN(cell)) return false;
-          if (fromStr && cell < Date.parse(fromStr)) return false;
-          if (toStr && cell > Date.parse(toStr) + 86_400_000 - 1) return false;
+          const cellDate = parseCellDate(cellRaw);
+          if (!cellDate) return false;
+          const cell = cellDate.getTime();
+          if (fromStr) { const d = parseCellDate(fromStr); if (d && cell < d.getTime()) return false; }
+          if (toStr) { const d = parseCellDate(toStr); if (d && cell > d.getTime() + 86_400_000 - 1) return false; }
           return true;
+        }
+        if (f.control === 'text') {
+          return (row[f.key] || '').toLowerCase().includes(String(val).toLowerCase());
         }
         if (f.matchMode === 'contains') return (row[f.key] || '').includes(val);
         if (f.matchMode === 'token') return (row[f.key] || '').split('\n').map((t) => t.trim()).includes(val);
         return row[f.key] === val;
+
       });
       if (!standardPass) return false;
 
@@ -246,9 +264,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       );
     }
 
+    // 🔎 بحث لكل عمود على حدة (مربعات فوق كل عمود)
+    const colEntries = Object.entries(colSearch).filter(([, v]) => (v || '').trim() !== '');
+    if (colEntries.length > 0) {
+      result = result.filter((r) =>
+        colEntries.every(([h, v]) => (r[h] || '').toLowerCase().includes(v.trim().toLowerCase()))
+      );
+    }
+
     return result;
 
-  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, deferredSearch]);
+  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, deferredSearch, colSearch]);
 
   // ===== عرض تدريجي (Windowing): لا نرسم آلاف الصفوف دفعة واحدة =====
   const PAGE_CHUNK = 150;
@@ -285,7 +311,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     upstreamFilters.forEach(f => {
       const val = filters[f.key];
       if (val) {
-        if (f.matchMode === 'contains') rows = rows.filter(r => (r[f.key] || '').includes(val));
+        if (f.control === 'text') rows = rows.filter(r => (r[f.key] || '').toLowerCase().includes(val.toLowerCase()));
+        else if (f.matchMode === 'contains') rows = rows.filter(r => (r[f.key] || '').includes(val));
         else if (f.matchMode === 'token') rows = rows.filter(r => (r[f.key] || '').split('\n').map((t) => t.trim()).includes(val));
         else rows = rows.filter(r => r[f.key] === val);
       }
@@ -300,7 +327,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const newFilters = { ...filters };
     newFilters[key] = value;
     system.filters.slice(filterIndex + 1).forEach(f => {
-      if (f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number' && f.control !== 'numberRange' && f.control !== 'dateRange') delete newFilters[f.key];
+      if (f.control !== 'time' && f.control !== 'timeSelect' && f.control !== 'number' && f.control !== 'numberRange' && f.control !== 'dateRange' && f.control !== 'text') delete newFilters[f.key];
     });
     setFilters(newFilters);
   };
@@ -325,7 +352,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     });
   };
 
-  const clearFilters = () => { setFilters({}); setComboQuery(''); setStatFilter(null); setActiveQuickFilters(new Set()); };
+  const clearFilters = () => { setFilters({}); setComboQuery(''); setStatFilter(null); setActiveQuickFilters(new Set()); setColSearch({}); setCrudSearch(''); };
 
   const addBooking = () => {
     if (!bookingForm.room || !bookingForm.day || !bookingForm.date || !bookingForm.fromTime || !bookingForm.toTime) return;
@@ -811,7 +838,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     setOcrBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke('ocr-extract', {
-        body: { image_data_url: dataUrl, fields, prompt: ocr.ocr_prompt || '', model: ocr.ocr_model || '', provider: ocr.ocr_provider || '' },
+        body: { image_data_url: dataUrl, fields, prompt: ocr.ocr_prompt || '', model: ocr.ocr_model || '', provider: ocr.ocr_provider || '', system_id: (ocr as any).id || '' },
       });
       if (error) throw new Error(error.message || 'فشل استدعاء الخدمة');
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -900,6 +927,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
             mime_type: f.type || 'application/octet-stream',
             file_name: f.name,
             prompt: def.ocr_text_prompt || '',
+            system_id: (def as any).id || '',
             model: def.ocr_model || '',
             provider: def.ocr_provider || '',
           },
@@ -1103,7 +1131,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     return (
                       <div className="flex items-center gap-1.5" dir="rtl">
                         {inputType === 'date' ? (
-                          <DateInputDMY className="schedule-select flex-1" placeholder="من (يوم/شهر/سنة)" value={fromStr}
+                          <DateInputDMY className="schedule-select flex-1" placeholder="من (سنة/شهر/يوم)" value={fromStr}
                             onChange={(iso) => setRange(iso, toStr)}
                             style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
                         ) : (
@@ -1113,7 +1141,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                         )}
                         <span className="text-xs font-black text-[var(--schedule-muted)] px-1">—</span>
                         {inputType === 'date' ? (
-                          <DateInputDMY className="schedule-select flex-1" placeholder="إلى (يوم/شهر/سنة)" value={toStr}
+                          <DateInputDMY className="schedule-select flex-1" placeholder="إلى (سنة/شهر/يوم)" value={toStr}
                             onChange={(iso) => setRange(fromStr, iso)}
                             style={{ minHeight: 52, paddingInlineEnd: 10, paddingInlineStart: 10, cursor: 'text' }} />
                         ) : (
@@ -1128,12 +1156,32 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                       </div>
                     );
                   })()
+                ) : f.control === 'text' ? (
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      className="schedule-select w-full"
+                      placeholder={(f as any).searchPlaceholder || `اكتب للبحث في ${f.label}...`}
+                      value={filters[f.key] || ''}
+                      onChange={e => handleFilterChange(f.key, e.target.value)}
+                      style={{ cursor: 'text', paddingInlineEnd: 40, minHeight: 52 }}
+                    />
+                    {filters[f.key] && (
+                      <button
+                        className="absolute schedule-btn"
+                        style={{ insetInlineStart: 6, minHeight: 32, padding: '0 8px' }}
+                        onClick={() => handleFilterChange(f.key, '')}
+                        title="مسح"
+                      >✕</button>
+                    )}
+                  </div>
                 ) : (
                   <select className="schedule-select" value={filters[f.key] || ''} onChange={e => handleFilterChange(f.key, e.target.value)} style={{ cursor: 'pointer', paddingInlineEnd: 44 }}>
                     <option value="">— الكل —</option>
                     {getFilterOptions(f.key).map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 )}
+
               </div>
             ))}
           </div>
@@ -1141,41 +1189,53 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
           {/* Toolbar */}
           <div className="schedule-toolbar">
-            <button className="schedule-btn schedule-btn-primary" onClick={() => handlePrint(false)}>🖨️ {activeSystem === 'assignments' ? 'طباعة التكليفات' : 'طباعة الجدول'}</button>
+            {/* تحكم منشئ الأنظمة بأزرار شريط الأدوات: إظهار/إخفاء + الاسم + اللون */}
+            {btnShow('print') && (
+              <button className="schedule-btn schedule-btn-primary" style={btnStyle('print')} onClick={() => handlePrint(false)}>
+                {btnLabel('print', `🖨️ ${activeSystem === 'assignments' ? 'طباعة التكليفات' : 'طباعة الجدول'}`)}
+              </button>
+            )}
             {activeSystem !== 'assignments' && (
               <>
-                <button
-                  className="schedule-btn schedule-btn-secondary"
-                  title="ينشئ ملف PDF رسمي واحد يحتوي جميع السجلات ويحفظه مباشرة على الحاسبة دون نافذة الطباعة"
-                  onClick={() => void handleDirectPdf()}
-                >📄 حفظ PDF كامل على الحاسبة</button>
-                <button
-                  className="schedule-btn schedule-btn-primary"
-                  style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }}
-                  title="تصدير سريع بصيغة PDF بجدول بسيط بدون الفورمة الرسمية"
-                  onClick={() => { if (checkRequiredFilters()) exportToPDF(reportTitle, reportHeaders, filteredRows); }}
-                >📄 تصدير PDF سريع</button>
+                {btnShow('pdfFull') && (
+                  <button
+                    className="schedule-btn schedule-btn-secondary"
+                    style={btnStyle('pdfFull')}
+                    title="ينشئ ملف PDF رسمي واحد يحتوي جميع السجلات ويحفظه مباشرة على الحاسبة دون نافذة الطباعة"
+                    onClick={() => void handleDirectPdf()}
+                  >{btnLabel('pdfFull', '📄 حفظ PDF كامل على الحاسبة')}</button>
+                )}
+                {btnShow('pdfQuick') && (
+                  <button
+                    className="schedule-btn schedule-btn-primary"
+                    style={btnStyle('pdfQuick', { background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' })}
+                    title="تصدير سريع بصيغة PDF بجدول بسيط بدون الفورمة الرسمية"
+                    onClick={() => { if (checkRequiredFilters()) exportToPDF(reportTitle, reportHeaders, filteredRows); }}
+                  >{btnLabel('pdfQuick', '📄 تصدير PDF سريع')}</button>
+                )}
               </>
             )}
 
             {system.shortReport && (
               <button className="schedule-btn schedule-btn-secondary" onClick={handleShortReport}>📋 تقرير مختصر</button>
             )}
-            <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(124,58,237,.28)' }} onClick={handleExcel}>📥 تصدير Excel</button>
+            {btnShow('excel') && (
+              <button className="schedule-btn schedule-btn-primary" style={btnStyle('excel', { background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(124,58,237,.28)' })} onClick={handleExcel}>{btnLabel('excel', '📥 تصدير Excel')}</button>
+            )}
             {activeSystem === 'assignments' && (
               <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(220,38,38,.28)' }} onClick={handlePDF}>📄 تصدير PDF</button>
             )}
             {activeSystem === 'emptyRooms' && (
               <button className="schedule-btn schedule-btn-primary" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(5,150,105,.28)' }} onClick={() => setShowBookingDialog(true)}>📅 حجز مؤقت</button>
             )}
-            {crudCtx && crudPerms?.add && (
+            {crudCtx && crudPerms?.add && btnShow('add') && (
               <button
                 className="schedule-btn schedule-btn-primary"
-                style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(8,145,178,.28)' }}
+                style={btnStyle('add', { background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(8,145,178,.28)' })}
                 onClick={crudOpenAdd}
                 disabled={crudBusy || singleUsed}
                 title={singleUsed ? 'يُسمح بسجل واحد فقط لكل مستخدم — تم إرسال سجلك' : 'إضافة سجل جديد'}
-              >➕ إضافة سجل</button>
+              >{btnLabel('add', '➕ إضافة سجل')}</button>
             )}
             {crudCtx && singleUsed && (
               <span className="schedule-counter" style={{ color: '#b45309' }}>
@@ -1185,15 +1245,23 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 )}
               </span>
             )}
-            {crudCtx && crudPerms?.add && (crudCtx.def as any).qr_enabled && (
+            {crudCtx && crudPerms?.add && (crudCtx.def as any).qr_enabled && btnShow('qr') && (
               <button
                 className="schedule-btn schedule-btn-primary"
-                style={{ background: 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)' }}
+                style={btnStyle('qr', { background: 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)' })}
                 onClick={() => { if (!crudEditing) crudOpenAdd(); setShowQr(true); }}
                 disabled={crudBusy}
                 title="امسح رمز QR لتعبئة الحقول تلقائياً"
-              >📷 إضافة عبر QR</button>
+              >{btnLabel('qr', '📷 إضافة عبر QR')}</button>
             )}
+            {(system.joinedReports || []).map((jr) => (
+              <button
+                key={jr.id}
+                className="schedule-btn schedule-btn-secondary"
+                onClick={() => window.open(`/custom/${activeSystem.replace(/^custom_/, '')}/joined/${jr.id}`, '_blank')}
+                title="عرض التقرير المدمج من نظامين"
+              >🧩 {jr.title}</button>
+            ))}
             {crudCtx && (crudCtx.linked || []).map((lk) => (
               <button
                 key={lk.id}
@@ -1202,14 +1270,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 title={`الانتقال إلى ${lk.title} مع نقل البيانات المشتركة`}
               >{lk.icon || '🔗'} {lk.label}</button>
             ))}
-            {crudCtx && crudPerms?.add && (crudCtx.def as any).bulk_import_enabled && (
+            {crudCtx && crudPerms?.add && (crudCtx.def as any).bulk_import_enabled && btnShow('import') && (
               <button
                 className="schedule-btn schedule-btn-primary"
-                style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(79,70,229,.28)' }}
+                style={btnStyle('import', { background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 16px 28px rgba(79,70,229,.28)' })}
                 onClick={() => { setCrudEditing(null); setShowImport(true); }}
                 disabled={crudBusy}
                 title="رفع ملف Excel/CSV وتعبئة السجلات دفعة واحدة"
-              >📤 استيراد من Excel</button>
+              >{btnLabel('import', '📤 استيراد من Excel')}</button>
             )}
             {(crudCtx || system.globalSearch) && (
               <div className="relative" style={{ flex: '1 1 220px', minWidth: 220 }}>
@@ -1519,7 +1587,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
           {/* Table */}
           <div className="schedule-table-wrap">
-            {filteredRows.length === 0 ? (
+            {filteredRows.length === 0 && !Object.values(colSearch).some((v) => (v || '').trim() !== '') ? (
               <div className="schedule-empty">
                 <span className="text-[34px] mb-2.5 opacity-70">📄</span>
                 لا توجد بيانات مطابقة.
@@ -1532,8 +1600,26 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     {activeSystem === 'emptyRooms' && <th>ملاحظة الحجز</th>}
                     {showCrudActions && <th style={{ width: 100 }}>إجراءات</th>}
                   </tr>
-
+                  {(system.crudContext || system.globalSearch) && (
+                    <tr className="schedule-colsearch-row">
+                      {system.headers.map(h => (
+                        <th key={`s-${h}`} style={{ padding: 4 }}>
+                          <input
+                            className="w-full text-[11px] font-bold rounded-md border px-2 py-1"
+                            style={{ minWidth: 70, background: 'rgba(255,255,255,.92)', color: '#0f172a', borderColor: 'rgba(100,116,139,.35)' }}
+                            placeholder={`🔍 ${h}`}
+                            title={`بحث داخل عمود «${h}» فقط`}
+                            value={colSearch[h] || ''}
+                            onChange={(e) => setColSearch((prev) => ({ ...prev, [h]: e.target.value }))}
+                          />
+                        </th>
+                      ))}
+                      {activeSystem === 'emptyRooms' && <th />}
+                      {showCrudActions && <th />}
+                    </tr>
+                  )}
                 </thead>
+
                 <tbody>
                   {visibleRows.map((row, i) => {
                     const lectureTypeMissing =
@@ -1633,6 +1719,13 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
                     );
                   })}
+                  {filteredRows.length === 0 && (
+                    <tr>
+                      <td colSpan={system.headers.length + (showCrudActions ? 1 : 0) + (activeSystem === 'emptyRooms' ? 1 : 0)} style={{ textAlign: 'center', padding: 18, fontWeight: 800 }}>
+                        لا توجد نتائج مطابقة لبحث الأعمدة.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
                 {system.aggregations && system.aggregations.length > 0 && (
                   <tfoot>

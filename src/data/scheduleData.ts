@@ -53,6 +53,10 @@ export interface SystemConfig {
   aggregations?: { header: string; op: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'countUnique'; label?: string }[];
   /** Show a global search box above the table (searches across every visible column). */
   globalSearch?: boolean;
+  /** Per-system control of the print/export toolbar buttons (show / label / color). */
+  toolbarButtons?: Partial<Record<import('./customSystemsRegistry').ToolbarButtonKey, import('./customSystemsRegistry').ToolbarButtonCfg>>;
+  /** Joined reports available for this system (merged tables built from two systems). */
+  joinedReports?: { id: string; title: string }[];
 }
 
 
