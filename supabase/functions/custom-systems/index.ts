@@ -73,6 +73,8 @@ const HEADERS = [
   // v16 additions (advanced processing engine + hidden helper columns):
   "computed_columns_json", "group_stage_json", "conflict_detector_json",
   "hidden_columns",
+  // v21 additions (own Gemini API key per system, toolbar button control, joined reports):
+  "ai_api_key", "toolbar_buttons_json", "joined_reports_json",
 
 ];
 
@@ -294,6 +296,9 @@ function rowToSystem(r: Record<string, string>) {
     group_stage: parseJson(r.group_stage_json || "null", null),
     conflict_detector: parseJson(r.conflict_detector_json || "null", null),
     hidden_columns: clean(r.hidden_columns),
+    ai_api_key: clean(r.ai_api_key),
+    toolbar_buttons: parseJson(r.toolbar_buttons_json || "{}", {}),
+    joined_reports: parseJson(r.joined_reports_json || "[]", []),
   };
 }
 
@@ -380,6 +385,9 @@ async function systemToRow(s: any): Promise<string[]> {
     group_stage_json: (s.group_stage && (s.group_stage.keys || []).length > 0) ? JSON.stringify(s.group_stage) : "",
     conflict_detector_json: (s.conflict_detector && (s.conflict_detector.group_by || []).length > 0) ? JSON.stringify(s.conflict_detector) : "",
     hidden_columns: String(s.hidden_columns || "").toUpperCase(),
+    ai_api_key: String(s.ai_api_key || ""),
+    toolbar_buttons_json: JSON.stringify(s.toolbar_buttons || {}),
+    joined_reports_json: JSON.stringify(s.joined_reports || []),
   };
   return order.map((h) => valByCol[h] ?? "");
 }
@@ -411,7 +419,11 @@ const LIST_TTL_MS = 60_000;
 /** Sentinel sent to the browser instead of a stored password. */
 const KEEP = "__KEEP_EXISTING__";
 /** Never expose a system password to the client. */
-const maskSystem = (s: any) => ({ ...s, password: s?.password ? KEEP : "" });
+const maskSystem = (s: any) => ({
+  ...s,
+  password: s?.password ? KEEP : "",
+  ai_api_key: s?.ai_api_key ? KEEP : "",
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -479,6 +491,10 @@ Deno.serve(async (req) => {
       if (String(sys.password || "") === KEEP) {
         sys.password = idx >= 0 ? String((rowToSystem(all[idx]) as any).password || "") : "";
       }
+      // Same for the per-system Gemini API key (masked in the public listing).
+      if (String(sys.ai_api_key || "") === KEEP) {
+        sys.ai_api_key = idx >= 0 ? String((rowToSystem(all[idx]) as any).ai_api_key || "") : "";
+      }
       if (idx >= 0) {
 
         sys.created_at = clean(all[idx].created_at) || new Date().toISOString();
@@ -495,6 +511,16 @@ Deno.serve(async (req) => {
       }
       listCache = null;
       return json({ ok: true, id: sys.id });
+    }
+
+    // Internal-only: return the per-system Gemini key (used by the ocr-extract function).
+    if (action === "ai-key") {
+      const internal = req.headers.get("x-internal-key") || "";
+      if (!SERVICE_ROLE || internal !== SERVICE_ROLE) return json({ error: "غير مصرح" }, 403);
+      const id = clean(body?.id);
+      const all = await readAll();
+      const row = all.find((r) => clean(r.id) === id);
+      return json({ key: row ? clean(row.ai_api_key) : "" });
     }
 
     if (action === "delete") {

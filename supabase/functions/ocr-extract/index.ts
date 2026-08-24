@@ -16,6 +16,8 @@ const json = (b: unknown, status = 200) =>
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") || "";
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY") || "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
 interface FieldSpec {
   letter: string;
@@ -53,6 +55,7 @@ async function callGoogle(opts: {
   instruction: string;
   dataUrl: string;
   jsonMode?: boolean;
+  apiKey?: string;
 }): Promise<{ text: string; finishReason: string }> {
   const m = opts.dataUrl.match(/^data:([^;]+);base64,([\s\S]*)$/);
   if (!m) throw new ProviderError("صيغة الملف غير صالحة — مطلوب data:...;base64,...", 400);
@@ -68,7 +71,7 @@ async function callGoogle(opts: {
     },
   };
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent?key=${GOOGLE_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent?key=${opts.apiKey || GOOGLE_API_KEY}`,
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
   );
   if (res.status === 429) {
@@ -110,6 +113,8 @@ const BodySchema = z.object({
   prompt: z.string().max(4000).optional(),
   model: z.string().max(120).optional(),
   provider: z.union([z.enum(['lovable', 'google']), z.literal('')]).optional(),
+  /** معرّف النظام — يُستخدم لجلب مفتاح Gemini الخاص بالنظام (إن وُجد) بدل سر المشروع. */
+  system_id: z.string().max(80).optional(),
   action: z.enum(['list_models']).optional(),
 });
 
@@ -136,8 +141,26 @@ Deno.serve(async (req) => {
 
     // مزوّد الذكاء الاصطناعي: lovable (بوابة المشروع — تُخصم من الكريدت) أو google (مفتاح المستخدم الخاص).
     const provider = String(body?.provider || "lovable").toLowerCase() === "google" ? "google" : "lovable";
-    if (provider === "google" && !GOOGLE_API_KEY) {
-      return json({ error: "مفتاح GOOGLE_API_KEY غير مُهيأ في الخادم — أضفه من أسرار المشروع أو بدّل المزوّد إلى بوابة Lovable AI" }, 400);
+    // مفتاح Gemini الخاص بالنظام (يُدخله المشرف من منشئ الأنظمة) يتقدّم على سر المشروع.
+    let googleKey = GOOGLE_API_KEY;
+    if (provider === "google" && body?.system_id) {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/custom-systems`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SERVICE_ROLE}`,
+            "x-internal-key": SERVICE_ROLE,
+          },
+          body: JSON.stringify({ action: "ai-key", id: body.system_id }),
+        });
+        const d = await r.json().catch(() => null);
+        const k = String(d?.key || "").trim();
+        if (k) googleKey = k;
+      } catch { /* تجاهل — نعود إلى سر المشروع */ }
+    }
+    if (provider === "google" && !googleKey) {
+      return json({ error: "لا يوجد مفتاح Gemini — أضفه من منشئ الأنظمة (حقل مفتاح Google AI Studio) أو بدّل المزوّد إلى بوابة Lovable AI" }, 400);
     }
 
     // اختيار الموديل من منشئ الأنظمة — فارغ = الافتراضي الأدق؛ القيمة يجب أن تكون ضمن القائمة البيضاء.
@@ -210,7 +233,8 @@ Deno.serve(async (req) => {
       // مسار المزوّد الخارجي: Google AI Studio مباشرة بمفتاح المستخدم (بلا كريدت Lovable).
       if (provider === "google") {
         try {
-          const r = await callGoogle({ model: aiModel, systemPrompt, instruction, dataUrl: fileUrl });
+          const r = await callGoogle({ apiKey: googleKey, model: aiModel, systemPrompt, instruction, dataUrl: fileUrl });
+
           return json({ text: r.text, finish_reason: r.finishReason });
         } catch (e) {
           const err = e as ProviderError;
@@ -286,6 +310,7 @@ Deno.serve(async (req) => {
     if (provider === "google") {
       try {
         const r = await callGoogle({
+          apiKey: googleKey,
           model: aiModel,
           systemPrompt: "أعِد فقط كائن JSON صالحاً، بدون أي نص أو أسوار كود.",
           instruction: systemPrompt,

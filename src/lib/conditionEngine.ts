@@ -204,13 +204,24 @@ export function rangesOverlap(a: [number, number], b: [number, number]): boolean
 
 /* ─────────────── Date helpers ─────────────── */
 
-/** Parse a sheet date cell (ISO, M/D/YYYY, D/M/YYYY) into a Date. */
+/** Parse a sheet date cell into a Date. Supported shapes:
+ *  - ISO: 2026-08-24 (with or without time)
+ *  - Y/M/D: 2021/08/24
+ *  - M/D/Y أو D/M/Y: 08/24/2021 — 24/08/2021
+ *  - طوابع عربية مع وقت: «1:44:56 م 2021/08/24» أو «2021/08/24 1:44:56 م»
+ *  الوقت يُتجاهل دائماً (المقارنة على مستوى اليوم). */
 export function parseCellDate(raw: string): Date | null {
-  const s = (raw || '').trim();
+  let s = (raw || '').trim();
   if (!s) return null;
-  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (iso) return new Date(parseInt(iso[1]), parseInt(iso[2]) - 1, parseInt(iso[3]));
-  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  // إزالة أي جزء وقت (مع علامات ص/م أو AM/PM) لتبقى الأرقام التاريخية فقط
+  s = s
+    .replace(/[\u200f\u200e]/g, '')
+    .replace(/\d{1,2}:\d{2}(:\d{2})?\s*(ص|م|صباحاً|مساءً|AM|PM|am|pm)?/g, ' ')
+    .replace(/\b(ص|م|AM|PM|am|pm)\b/g, ' ')
+    .trim();
+  const ymd = s.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  if (ymd) return new Date(parseInt(ymd[1]), parseInt(ymd[2]) - 1, parseInt(ymd[3]));
+  const m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
   if (m) {
     const a = parseInt(m[1]);
     const b = parseInt(m[2]);
@@ -220,8 +231,10 @@ export function parseCellDate(raw: string): Date | null {
     return new Date(y, a - 1, b);             // M/D/Y (Sheets default)
   }
   const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
+  if (isNaN(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
+
 
 /** Resolve a condition date value: ISO date, "today", "today+N", "today-N",
  *  or "academic_year_start" (Sept 1 of the current academic year, with optional ±N days). */
