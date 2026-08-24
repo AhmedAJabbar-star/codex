@@ -66,14 +66,6 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   // Inline CRUD state (used only when system.crudContext is set)
   const [crudSearch, setCrudSearch] = useState('');
   const [colSearch, setColSearch] = useState<Record<string, string>>({});
-
-  /* ===== تحكم منشئ الأنظمة بأزرار شريط الأدوات (إظهار/اسم/لون) ===== */
-  const toolbarBtns = (system.toolbarButtons || {}) as Record<string, { show?: boolean; label?: string; color?: string }>;
-  const btnShow = (k: string) => toolbarBtns[k]?.show !== false;
-  const btnLabel = (k: string, fallback: string) => (toolbarBtns[k]?.label || '').trim() || fallback;
-  const btnStyle = (k: string, base?: React.CSSProperties): React.CSSProperties => {
-    const c = (toolbarBtns[k]?.color || '').trim();
-    if (!c) return base || {};
     return { ...(base || {}), background: c, backgroundImage: 'none', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.20), 0 12px 22px rgba(15,23,42,.22)' };
   };
 
@@ -116,6 +108,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return [];
   }, [systemsOverride]);
   const system = useMemo(() => systems.find(s => s.id === activeSystem) || systems[0], [activeSystem, systems]);
+
+  /* ===== تحكم منشئ الأنظمة بأزرار شريط الأدوات (إظهار/اسم/لون) ===== */
+  const toolbarBtns = (system.toolbarButtons || {}) as Record<string, { show?: boolean; label?: string; color?: string }>;
+  const btnShow = (k: string) => toolbarBtns[k]?.show !== false;
+  const btnLabel = (k: string, fallback: string) => (toolbarBtns[k]?.label || '').trim() || fallback;
+  const btnStyle = (k: string, base?: React.CSSProperties): React.CSSProperties => {
+    const c = (toolbarBtns[k]?.color || '').trim();
+    if (!c) return base || {};
 
   useEffect(() => {
     if (systems.length > 0 && !systems.some((sys) => sys.id === activeSystem)) {
