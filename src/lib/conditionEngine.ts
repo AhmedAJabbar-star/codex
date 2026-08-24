@@ -49,6 +49,8 @@ export interface ComputedColumn {
   fallback?: string;
   /** Decimal places for numeric results (default: trim trailing zeros). */
   round?: number;
+  /** 🔎 إظهار فلتر جاهز لهذا العمود أعلى الجدول (مفيد للأعمدة المدمجة/المشتركة). */
+  filterable?: boolean;
 }
 
 /** 📊 Group stage: group filtered rows, compute aggregates, optionally filter groups (HAVING). */

@@ -146,6 +146,12 @@ export function buildConfigFromDef(
     if (k && !requiredFilterKeys.includes(k)) requiredFilterKeys.push(k);
   });
 
+  // 🔎 فلاتر جاهزة للأعمدة المحسوبة/المدمجة المُعلَّمة بـ filterable.
+  (def.computed_columns || []).forEach((cc: any) => {
+    if (!cc?.name || !cc.filterable) return;
+    builtFilters.push({ label: String(cc.name), key: String(cc.name), control: 'combo' as any } as any);
+  });
+
   (def.derived_columns || []).forEach((d) => {
     const options = Array.from(new Set(Object.values(d.from_columns).map(String)));
     builtFilters.push({ label: d.name, key: d.name, control: 'select' as any, fixedOptions: options } as any);

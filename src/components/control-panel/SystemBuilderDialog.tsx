@@ -2453,6 +2453,11 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         </select>
                         <button onClick={() => delCC(i)} className="col-span-2 text-red-600 font-black">✕ حذف</button>
                       </div>
+                      <label className="flex items-center gap-2 text-[11px] font-bold cursor-pointer bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
+                        <input type="checkbox" checked={!!cc.filterable}
+                          onChange={(e) => updCC(i, { filterable: e.target.checked })} />
+                        <span>🔎 إتاحة فلتر لهذا العمود أعلى الجدول (ويُشمل تلقائياً في البحث العام وبحث الأعمدة)</span>
+                      </label>
                       <div className="flex flex-wrap gap-2 items-center">
                         {cc.type === 'duration' && (
                           <FreeTextInput className="schedule-select flex-1 font-mono text-center" dir="ltr"
