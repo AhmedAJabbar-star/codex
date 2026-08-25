@@ -375,9 +375,9 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
     finally { setBusy(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3" dir="rtl" onClick={() => !busy && onClose()}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3" dir="rtl" onClick={() => !busy && onClose()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <header className="px-5 py-4 bg-gradient-to-l from-rose-500 to-rose-700 text-white flex items-center justify-between">
           <div>
             <h3 className="text-base font-black">🎯 صلاحيات «{user.full_name}» لكل نظام</h3>
