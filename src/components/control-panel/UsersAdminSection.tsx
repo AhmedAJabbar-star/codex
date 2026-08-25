@@ -401,8 +401,16 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
           </div>
           <button className="w-9 h-9 rounded-lg bg-white/15 hover:bg-white/25 text-xl" onClick={() => !busy && onClose()}>✕</button>
         </header>
-        <div className="px-5 py-4 overflow-auto flex-1 bg-slate-50/50">
-          {systems.length === 0 ? (
+        <div className="px-5 py-3 bg-white border-b border-slate-200 shrink-0">
+          <input
+            className="schedule-select w-full"
+            placeholder="🔍 بحث عن نظام…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+        <div className="px-5 py-4 overflow-auto flex-1 min-h-0 bg-slate-50/50">
+          {shown.length === 0 ? (
             <p className="text-center text-slate-500 py-8">لا توجد أنظمة مخصّصة بعد.</p>
           ) : (
             <table className="w-full text-xs">
