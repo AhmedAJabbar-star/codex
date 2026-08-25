@@ -1069,11 +1069,28 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                               onChange={(e) => patch({ teacher_match_min_tokens: Number(e.target.value) || 2 })}
                               placeholder="2"
                             />
-                            <span className="block text-[11px] text-slate-600 mt-1">
+            <span className="block text-[11px] text-slate-600 mt-1">
                               مثال: «هبة أحمد» تطابق «هبه احمد علي حسن» عند القيمة 2.
                             </span>
                           </div>
                         )}
+                        {(s.teacher_match_mode === 'tokens' || s.teacher_match_mode === 'similarity') && (
+                          <div className="md:col-span-2 rounded-lg border border-amber-300 bg-amber-50/70 p-2">
+                            <label className="flex items-center gap-1 text-xs font-black">
+                              <input
+                                type="checkbox"
+                                checked={s.teacher_match_adjacent !== false}
+                                onChange={(e) => patch({ teacher_match_adjacent: e.target.checked })}
+                              />
+                              🔒 تشديد التجاور (موصى به) — أجزاء الاسم يجب أن تكون متتابعة داخل النص
+                            </label>
+                            <span className="block text-[11px] text-slate-700 mt-1">
+                              عند التفعيل: «احمد كان يذهب الى عبد الامير الى جبار ومن ثم الى عيسى» <b>لا</b> يطابق «احمد عبدالامير جبار عيسى»،
+                              بينما «احمد عبد الامير» يبقى تطابقاً 100%. عند الإلغاء تُحسب الكلمات المشتركة أينما وردت (قد يعطي تطابقاً خاطئاً).
+                            </span>
+                          </div>
+                        )}
+
                       </div>
 
                       <div className="flex flex-wrap gap-4">
