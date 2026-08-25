@@ -101,6 +101,9 @@ export function tokensMatch(cell: string, needle: string, minTokens = 2): boolea
   const common = b.filter((t) => setA.has(t)).length;
   const need = Math.max(1, Math.min(minTokens, Math.min(a.length, b.length)));
   return common >= need;
+}
+
+
 
 
 /**
