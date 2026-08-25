@@ -193,14 +193,15 @@ export function arabicMatch(cell: string, needle: string, opts: ArabicMatchOptio
       return !!cp && (cp === np || c.includes(np));
     }
     case 'tokens':
-      return tokensMatch(cell, needle, opts.minTokens ?? 2);
+      return tokensMatch(cell, needle, opts.minTokens ?? 2, opts.requireAdjacent !== false);
     case 'similarity': {
       const th = typeof opts.threshold === 'number' ? opts.threshold : 85;
       if (!c) return false;
       if (c.includes(n) || n.includes(c)) return true;
-      if (tokensMatch(cell, needle, opts.minTokens ?? 2)) return true;
+      if (tokensMatch(cell, needle, opts.minTokens ?? 2, opts.requireAdjacent !== false)) return true;
       return similarityPct(c, n, ignoreSpaces) >= th;
     }
+
 
     case 'exact':
     default:
