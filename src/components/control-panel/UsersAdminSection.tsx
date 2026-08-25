@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -348,6 +349,21 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
     () => (((user as any).permissions as UserPermissions) || { systems: {} })
   );
   const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState('');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [busy, onClose]);
+
+  const shown = useMemo(() => {
+    const s = q.trim();
+    return s ? systems.filter((x) => (x.title || '').includes(s)) : systems;
+  }, [systems, q]);
+
 
   const togglePerm = (sysId: string, key: 'view' | 'add' | 'edit' | 'delete') => {
     setPerms((p) => {
@@ -375,9 +391,9 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
     finally { setBusy(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3" dir="rtl" onClick={() => !busy && onClose()}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3" dir="rtl" onClick={() => !busy && onClose()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <header className="px-5 py-4 bg-gradient-to-l from-rose-500 to-rose-700 text-white flex items-center justify-between">
           <div>
             <h3 className="text-base font-black">🎯 صلاحيات «{user.full_name}» لكل نظام</h3>
@@ -385,8 +401,16 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
           </div>
           <button className="w-9 h-9 rounded-lg bg-white/15 hover:bg-white/25 text-xl" onClick={() => !busy && onClose()}>✕</button>
         </header>
-        <div className="px-5 py-4 overflow-auto flex-1 bg-slate-50/50">
-          {systems.length === 0 ? (
+        <div className="px-5 py-3 bg-white border-b border-slate-200 shrink-0">
+          <input
+            className="schedule-select w-full"
+            placeholder="🔍 بحث عن نظام…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+        <div className="px-5 py-4 overflow-auto flex-1 min-h-0 bg-slate-50/50">
+          {shown.length === 0 ? (
             <p className="text-center text-slate-500 py-8">لا توجد أنظمة مخصّصة بعد.</p>
           ) : (
             <table className="w-full text-xs">
@@ -401,7 +425,7 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
                 </tr>
               </thead>
               <tbody>
-                {systems.map((s) => {
+                {shown.map((s) => {
                   const cur = (perms.systems?.[s.id] || {}) as Record<string, boolean>;
                   const hasOverride = !!perms.systems?.[s.id];
                   return (
@@ -429,12 +453,16 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
             </table>
           )}
         </div>
-        <footer className="px-5 py-3 border-t bg-white flex justify-end gap-2">
-          <button onClick={onClose} disabled={busy} className="schedule-btn">إلغاء</button>
-          <button onClick={save} disabled={busy} className="schedule-btn schedule-btn-primary">{busy ? '⏳…' : '💾 حفظ'}</button>
+        <footer className="px-5 py-3 border-t bg-white flex flex-wrap justify-between items-center gap-2 shrink-0">
+          <span className="text-[11px] text-slate-500">عدد الأنظمة المخصّصة: {Object.keys(perms.systems || {}).length}</span>
+          <div className="flex gap-2">
+            <button onClick={onClose} disabled={busy} className="schedule-btn">✕ إلغاء</button>
+            <button onClick={save} disabled={busy} className="schedule-btn schedule-btn-primary">{busy ? '⏳…' : '💾 حفظ'}</button>
+          </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
