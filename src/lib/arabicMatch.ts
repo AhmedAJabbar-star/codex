@@ -92,11 +92,19 @@ export function arabicTokens(input: string): string[] {
     .filter((t) => t.length > 1 && !TITLES.has(t));
 }
 
-/** يطابق الأسماء الجزئية: «هبة أحمد» ↔ «هبه أحمد علي حسن». */
+/** يطابق الأسماء الجزئية: «هبة أحمد» ↔ «هبه أحمد علي حسن».
+ *  كما يتعامل مع الأسماء الملتصقة مقابل المفصولة: «عبدالامير» ↔ «عبد الامير».
+ */
 export function tokensMatch(cell: string, needle: string, minTokens = 2): boolean {
   const a = arabicTokens(cell);
   const b = arabicTokens(needle);
   if (!a.length || !b.length) return false;
+
+  // ✅ حالة خاصة: الاسم الملتصق مقابل المفصول (عبدالامير vs عبد الامير)
+  const joinedA = a.join('');
+  const joinedB = b.join('');
+  if (joinedA.includes(joinedB) || joinedB.includes(joinedA)) return true;
+
   const setA = new Set(a);
   const common = b.filter((t) => setA.has(t)).length;
   const need = Math.max(1, Math.min(minTokens, Math.min(a.length, b.length)));
