@@ -425,7 +425,7 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
                 </tr>
               </thead>
               <tbody>
-                {systems.map((s) => {
+                {shown.map((s) => {
                   const cur = (perms.systems?.[s.id] || {}) as Record<string, boolean>;
                   const hasOverride = !!perms.systems?.[s.id];
                   return (
