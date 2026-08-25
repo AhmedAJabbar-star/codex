@@ -595,6 +595,43 @@ function teacherNamesFromUsers(all: Record<string, string>[]) {
   return names;
 }
 
+async function ensureSheetsReady(titles: Array<"users" | "archive"> = ["users"]): Promise<boolean> {
+  const now = Date.now();
+  const cacheIsFresh = titles.every((title) => ensuredSheetCache[title]?.exp > now);
+  if (cacheIsFresh) {
+    bootstrapState = { done: true, ready: true, lastTry: now };
+    return true;
+  }
+  if (bootstrapState.ready && cacheIsFresh) return true;
+  if (bootstrapState.done && !bootstrapState.ready && (now - bootstrapState.lastTry) < 10_000) return false;
+
+  try {
+    const task = Promise.all(titles.map((title) =>
+      ensureSheet(title, title === "users" ? USERS_HEADERS : ARCHIVE_HEADERS)
+    ));
+    await Promise.race([
+      task,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("sheets readiness budget exceeded")), 12_000)),
+    ]);
+    bootstrapState = { done: true, ready: true, lastTry: Date.now() };
+    return true;
+  } catch (e) {
+    bootstrapState = { done: true, ready: false, lastTry: Date.now() };
+    console.warn("Sheets readiness unavailable:", (e as Error).message);
+    return false;
+  }
+}
+
+async function readUsersWithGrace(): Promise<Record<string,string>[]> {
+  try {
+    await ensureSheet("users", USERS_HEADERS);
+    return await readAll("users", USERS_HEADERS);
+  } catch (e) {
+    console.warn("Users sheet unavailable, using assignments fallback:", (e as Error).message);
+    return await getFallbackUsersFromAssignments();
+  }
+}
+
 async function removeDuplicateUsers(): Promise<number> {
   const all = await getAllUsers();
   const seen = new Set<string>();
@@ -631,47 +668,18 @@ Deno.serve(async (req) => {
     setConnectionFromBody(body);
     const { action } = body as { action: string };
 
-    // Try to initialize sheets/admin once per cold start to avoid Sheets API quota burn.
-    // فشل سابق: أعد المحاولة بعد 30 ثانية فقط (بدل 5 دقائق) حتى يتعافى النظام سريعاً من أعطال الشبكة العابرة.
+    // لا نهيئ كل الأوراق في بداية كل طلب؛ هذا كان يستهلك الوقت ويجعل لوحة المدير/الأرشيف تسقط 503.
+    // تتم تهيئة الورقة المطلوبة فقط عند الحاجة وبمهلة قصيرة مع كاش نجاح مؤقت.
     let sheetsReady = bootstrapState.ready;
-    if (!bootstrapState.done || (!bootstrapState.ready && (Date.now() - bootstrapState.lastTry) > 30_000)) {
-      // سقف زمني إجمالي 20 ثانية للتهيئة حتى لا تتجاوز الدالة حدّها الزمني عند انقطاع Google.
-      const BOOTSTRAP_BUDGET_MS = 20_000;
-      const budgetTimer = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("bootstrap budget exceeded")), BOOTSTRAP_BUDGET_MS));
-      for (let attempt = 1; attempt <= 1; attempt++) {
-        try {
-          await Promise.race([
-            (async () => {
-              await ensureSheet("users", USERS_HEADERS);
-              await ensureSheet("archive", ARCHIVE_HEADERS);
-              await ensureAdmin();
-            })(),
-            budgetTimer,
-          ]);
-          bootstrapState = { done: true, ready: true, lastTry: Date.now() };
-          sheetsReady = true;
-          break;
-        } catch (e) {
-          bootstrapState = { done: true, ready: false, lastTry: Date.now() };
-          sheetsReady = false;
-          console.warn(`Sheets bootstrap unavailable (attempt ${attempt}/2):`, (e as Error).message);
-          if (attempt === 1 && isTransientNetError(e)) {
-            await new Promise((r) => setTimeout(r, 800));
-            continue;
-          }
-          break;
-        }
-      }
-    }
 
     // NOTE: Keep this block as the single source of truth for teacher-name loading
     // to avoid merge conflicts between fallback and non-fallback branches.
     if (action === "list-users") {
-      let all = sheetsReady ? await getAllUsers() : await getFallbackUsersFromAssignments();
+      let all = await readUsersWithGrace();
       let names = teacherNamesFromUsers(all);
       // If users sheet is still empty in production, sync once from assignments CSV.
       if (names.length === 0) {
+        sheetsReady = await ensureSheetsReady(["users"]);
         if (sheetsReady) {
           await syncFromAssignments("list-users-auto-sync");
           all = await getAllUsers();
@@ -725,6 +733,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "change-password") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const u = await getSessionUser(body.token);
       if (!u) return json({ error: "الجلسة منتهية" }, 401);
@@ -753,6 +762,7 @@ Deno.serve(async (req) => {
     };
 
     if (action === "connection-test") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "تعذر الاتصال بـ Google Sheets. تحقق من Google Sheet ID وملف الخدمة." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const r = await syncFromAssignments(a.full_name || "admin");
@@ -761,6 +771,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-list") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "لوحة المدير غير متاحة حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const all = await getAllUsers();
@@ -773,6 +784,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-reset-password") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, new_password } = body;
@@ -789,6 +801,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-create-user") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { full_name, department, college, role, password, position } = body;
@@ -810,6 +823,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-update-user") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, department, college, position } = body;
@@ -827,6 +841,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-delete-user") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id } = body;
@@ -839,6 +854,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-sync") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "تعذر المزامنة حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const r = await syncFromAssignments(a.full_name);
@@ -846,6 +862,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-archive") {
+      sheetsReady = await ensureSheetsReady(["archive"]);
       if (!sheetsReady) return json({ error: "الأرشيف غير متاح حالياً بسبب مشكلة ربط Google Sheets." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       await ensureSheet("archive", ARCHIVE_HEADERS);
@@ -865,6 +882,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-set-role") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, role } = body;
@@ -879,6 +897,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "admin-set-permissions") {
+      sheetsReady = await ensureSheetsReady(["users"]);
       if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
       const { user_id, permissions } = body;
