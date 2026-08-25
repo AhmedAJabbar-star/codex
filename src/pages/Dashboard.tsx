@@ -8,7 +8,8 @@ import universityLogo from '@/assets/university-logo.jpg';
 import { useEffect, useMemo, useState } from 'react';
 import { useDarkMode } from '@/lib/darkMode';
 import { useBranding } from '@/lib/useBranding';
-import { getGroups, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
+import { getGroups, getRoleVisibility, getRules, SYSTEM_ACCESS_RULES_UPDATED_EVENT, syncRulesFromRemote, type SystemGroup } from '@/lib/systemAccess';
+import { getSession } from '@/lib/teacherAuth';
 import { listCustomSystems, CUSTOM_SYSTEMS_UPDATED_EVENT } from '@/data/customSystemsRegistry';
 import { evaluateCondition, applyDerivedColumns } from '@/lib/conditionEngine';
 import {
@@ -259,6 +260,7 @@ const Dashboard = () => {
   const branding = useBranding();
   const [rules, setRules] = useState(() => getRules());
   const [groups, setGroups] = useState<SystemGroup[]>(() => getGroups());
+  const [roleVis, setRoleVis] = useState(() => getRoleVisibility());
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: liveData } = useLiveScheduleData();
@@ -395,9 +397,9 @@ const Dashboard = () => {
 
 
   useEffect(() => {
-    void syncRulesFromRemote().then((r) => { setRules(r); setGroups(getGroups()); });
+    void syncRulesFromRemote().then((r) => { setRules(r); setGroups(getGroups()); setRoleVis(getRoleVisibility()); });
 
-    const refreshRules = () => { setRules(getRules()); setGroups(getGroups()); };
+    const refreshRules = () => { setRules(getRules()); setGroups(getGroups()); setRoleVis(getRoleVisibility()); };
     const refreshCustomSystems = () => {
       void queryClient.invalidateQueries({ queryKey: ['custom-systems-list'] });
     };
@@ -507,9 +509,19 @@ const Dashboard = () => {
       color: sys.color || '#0891b2',
       gradient: `linear-gradient(135deg, ${sys.color || '#0891b2'} 0%, ${sys.color || '#0891b2'}cc 100%)`,
       _sortOrder: sys.sort_order ?? 100,
+      _allowedRoles: sys.allowed_roles,
     }));
+  // 🎭 رؤية البطاقات حسب دور المستخدم: قائمة فارغة = الكل، والمدير يرى كل شيء دائماً.
+  // غير المسجَّل يُعامل كمستخدم عادي («user»).
+  const currentRole = ((getSession()?.user?.role as string) || 'user');
+  const roleAllowed = (allowed?: string[] | null) => {
+    if (!allowed || allowed.length === 0) return true;
+    if (currentRole === 'admin') return true;
+    return allowed.includes(currentRole);
+  };
   // Merge built-in (with overrides) + custom, then sort by _sortOrder (stable for equal values).
-  const visibleCards: any[] = [...baseVisibleCards, ...customCards]
+  const visibleCards: any[] = ([...baseVisibleCards, ...customCards] as any[])
+    .filter((c) => roleAllowed(roleVis[c.id]) && roleAllowed(c._allowedRoles))
     .map((c, i) => ({ ...c, _idx: i }))
     .sort((a, b) => (a._sortOrder - b._sortOrder) || (a._idx - b._idx));
 

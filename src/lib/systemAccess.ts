@@ -38,6 +38,29 @@ export const MANAGER_PASSWORD_ID = '_manager';
 export const KEEP_PASSWORD = '__KEEP_EXISTING__';
 export const GROUPS_KEY = '__groups';
 export const BRANDING_KEY = '__branding';
+/** 🎭 رؤية البطاقات حسب الدور: { systemId: [roles] } — فارغة = مرئي للجميع. المدير يرى الكل دائماً. */
+export const ROLEVIS_KEY = '__role_visibility';
+export type RoleVisibility = Record<string, ('admin' | 'editor' | 'viewer' | 'user')[]>;
+
+const normalizeRoleVis = (parsed: RawRules = {}): RoleVisibility => {
+  const raw = parsed?.[ROLEVIS_KEY];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: RoleVisibility = {};
+  Object.entries(raw as Record<string, unknown>).forEach(([k, v]) => {
+    if (!Array.isArray(v)) return;
+    const roles = v.map(String).filter((r) => ['admin', 'editor', 'viewer', 'user'].includes(r)) as RoleVisibility[string];
+    if (roles.length > 0) out[k] = roles;
+  });
+  return out;
+};
+
+export function getRoleVisibility(): RoleVisibility {
+  if (typeof window === 'undefined' || !window.localStorage) return {};
+  try {
+    const raw = localStorage.getItem(KEY);
+    return normalizeRoleVis(raw ? JSON.parse(raw) : {});
+  } catch { return {}; }
+}
 
 /** 🎨 هوية الواجهة العامة (الشعار، اسم النظام، إظهار البانر) — تُدار من لوحة التحكم. */
 export type Branding = {
@@ -211,7 +234,8 @@ export async function syncRulesFromRemote(): Promise<Record<string, SystemAccess
   const normalized = normalizeRules(rules);
   const groups = normalizeGroups(rules);
   const branding = normalizeBranding(rules);
-  const toStore: RawRules = { ...normalized, [GROUPS_KEY]: groups, [BRANDING_KEY]: branding };
+  const roleVis = normalizeRoleVis(rules);
+  const toStore: RawRules = { ...normalized, [GROUPS_KEY]: groups, [BRANDING_KEY]: branding, [ROLEVIS_KEY]: roleVis };
   localStorage.setItem(KEY, JSON.stringify(toStore));
   window.dispatchEvent(new Event(SYSTEM_ACCESS_RULES_UPDATED_EVENT));
   return normalized;
@@ -241,10 +265,12 @@ export async function setRules(
   password: string,
   groups?: SystemGroup[],
   branding?: Branding,
+  roleVis?: RoleVisibility,
 ) {
   const groupList = groups ?? getGroups();
   const brandingValue = branding ?? getBranding();
-  const payload: RawRules = { ...rules, [GROUPS_KEY]: groupList, [BRANDING_KEY]: brandingValue };
+  const roleVisValue = roleVis ?? getRoleVisibility();
+  const payload: RawRules = { ...rules, [GROUPS_KEY]: groupList, [BRANDING_KEY]: brandingValue, [ROLEVIS_KEY]: roleVisValue };
   const { data, error } = await supabase.functions.invoke('system-rules', {
     body: { password, rules: payload },
   });

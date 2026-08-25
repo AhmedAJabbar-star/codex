@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Condition, ConditionOp, ComputedColumn, ConflictCfg, DerivedColumn, GroupStage } from '@/lib/conditionEngine';
+import type { Condition, ConditionGroup, ConditionOp, ComputedColumn, ConflictCfg, DerivedColumn, GroupStage } from '@/lib/conditionEngine';
 
 export interface SignatureItem { label: string; name?: string }
 
@@ -120,6 +120,10 @@ export interface CustomSystemDef {
   filters_config?: FilterConfigItem[];
   conditions: Condition[];
   conditions_logic?: 'AND' | 'OR';
+  /** 🧩 مجموعات شروط ديناميكية إضافية (كل مجموعة لها منطق AND/OR خاص) تُربط بـ groups_join. */
+  condition_groups?: ConditionGroup[];
+  /** الربط بين المجموعة الأساسية ومجموعات الشروط الإضافية. */
+  groups_join?: 'AND' | 'OR';
   derived_columns: DerivedColumn[];
   /** 🧮 Computed columns (formulas) evaluated per row after conditions. */
   computed_columns?: ComputedColumn[];
@@ -239,6 +243,10 @@ export interface CustomSystemDef {
   teacher_match_threshold?: number;
   /** أعمدة إضافية (أحرف Excel مفصولة بفواصل) يُبحث فيها عن اسم المستخدم — مثل عمود «النصوص». */
   teacher_extra_match_columns?: string;
+  /** 💼 عمود المنصب: يُبحث فيه عن منصب المستخدم (من صفحة المستخدمون) — يُطبَّق فقط عندما لا يكون دوره «مستخدم». يُضاف لنطاق الاسم. */
+  teacher_position_column?: string;
+  /** 🎭 الأدوار المسموح لها برؤية بطاقة هذا النظام في الصفحة الرئيسية. فارغة/غير محددة = الكل. المدير يرى الكل دائماً. */
+  allowed_roles?: ('admin' | 'editor' | 'viewer' | 'user')[];
 
 
   /** 🔒 Allow each user to add only one record in this system. */
@@ -501,6 +509,10 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   teacher_match_prefix_len: 15,
   teacher_match_threshold: 85,
   teacher_extra_match_columns: '',
+  teacher_position_column: '',
+  allowed_roles: [],
+  condition_groups: [],
+  groups_join: 'AND',
 
   single_response_enabled: false,
   single_response_column: '',

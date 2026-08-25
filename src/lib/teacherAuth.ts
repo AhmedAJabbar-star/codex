@@ -14,6 +14,8 @@ export interface TeacherUser {
   department: string;
   college: string;
   role: AppRole;
+  /** المنصب (مثل: رئيس قسم) — يُستخدم في فلترة البيانات حسب المنصب. */
+  position?: string;
   must_change_password: boolean;
   permissions?: UserPermissions | null;
 }
@@ -252,9 +254,12 @@ export async function adminResetPassword(user_id: string, new_password?: string)
   return call<{ ok: true; new_password: string }>('admin-reset-password', { user_id, new_password });
 }
 export async function adminCreateUser(payload: {
-  full_name: string; department?: string; college?: string; role?: AppRole; password?: string;
+  full_name: string; department?: string; college?: string; role?: AppRole; password?: string; position?: string;
 }) {
   return call<{ ok: true; password: string }>('admin-create-user', payload);
+}
+export async function adminUpdateUser(user_id: string, payload: { department?: string; college?: string; position?: string }) {
+  return call<{ ok: true }>('admin-update-user', { user_id, ...payload });
 }
 export async function adminDeleteUser(user_id: string) {
   return call('admin-delete-user', { user_id });
