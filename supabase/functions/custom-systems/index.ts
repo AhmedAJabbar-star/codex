@@ -3,16 +3,16 @@
 // Writes require the control-panel password (validated against system_access_rules).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+const responseCorsHeaders = {
+  ...corsHeaders,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...responseCorsHeaders, "Content-Type": "application/json" },
   });
 
 const SHEET_ID = Deno.env.get("GOOGLE_SHEET_ID") || "1vAuWBa1ERY0EYL2T-MMTO7MYM0yP7dGJP64dBCRMSzQ";
@@ -94,6 +94,49 @@ function clean(s: any) { return (s ?? "").toString().replace(/^\uFEFF/, "").trim
 
 /* ---------- Service Account JWT ---------- */
 let cachedToken: { token: string; exp: number } | null = null;
+const GOOGLE_ATTEMPT_MS = 12_000;
+const TRANSIENT_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+type GoogleResponse = { ok: boolean; status: number; text: string };
+
+/**
+ * Prevent a stalled Google connection from keeping the Edge request silent until
+ * the platform's 150-second idle limit. Reads are safe to retry; mutating calls
+ * are deliberately attempted once so an uncertain response cannot duplicate data.
+ */
+async function googleRequest(
+  url: string,
+  init: RequestInit,
+  options: { label: string; retrySafe?: boolean },
+): Promise<GoogleResponse> {
+  const maxAttempts = options.retrySafe ? 3 : 1;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), GOOGLE_ATTEMPT_MS);
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      const text = await response.text();
+      if (response.ok || !TRANSIENT_STATUS.has(response.status) || attempt === maxAttempts) {
+        return { ok: response.ok, status: response.status, text };
+      }
+      lastError = new Error(`${options.label}: HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxAttempts) break;
+    } finally {
+      clearTimeout(timer);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+  }
+
+  const timedOut = lastError instanceof DOMException && lastError.name === "AbortError";
+  throw new Error(timedOut
+    ? `تعذّر الاتصال بخدمة Google خلال ${GOOGLE_ATTEMPT_MS / 1000} ثانية (${options.label}). أعد المحاولة.`
+    : `تعذّر الاتصال بخدمة Google (${options.label}): ${lastError instanceof Error ? lastError.message : "خطأ شبكة"}`);
+}
+
 function pemToBuf(pem: string): ArrayBuffer {
   const b64 = pem.replace(/-----BEGIN [^-]+-----/g, "").replace(/-----END [^-]+-----/g, "").replace(/\s+/g, "");
   const bin = atob(b64);
@@ -122,12 +165,13 @@ async function getAccessToken(): Promise<string> {
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
   const sig = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned)));
   const jwt = `${unsigned}.${b64url(sig)}`;
-  const r = await fetch("https://oauth2.googleapis.com/token", {
+  const r = await googleRequest("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-  const data = await r.json();
+  }, { label: "مصادقة Google", retrySafe: true });
+  let data: any = null;
+  try { data = r.text ? JSON.parse(r.text) : null; } catch { data = r.text; }
   if (!r.ok) throw new Error(`OAuth failed: ${JSON.stringify(data)}`);
   cachedToken = { token: data.access_token, exp: now + (data.expires_in || 3600) };
   return cachedToken.token;
@@ -147,11 +191,12 @@ function sheetsError(status: number, data: any, spreadsheetId: string): Error {
 }
 async function gapi(path: string, init: RequestInit = {}) {
   const token = await getAccessToken();
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}${path}`, {
+  const method = String(init.method || "GET").toUpperCase();
+  const res = await googleRequest(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
-  });
-  const text = await res.text();
+  }, { label: "Google Sheets", retrySafe: method === "GET" });
+  const text = res.text;
   let data: any = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) throw sheetsError(res.status, data, SHEET_ID);
@@ -226,17 +271,22 @@ async function getColOrder(): Promise<string[]> {
   return cachedColOrder;
 }
 
-async function readAll(): Promise<Record<string, string>[]> {
-  await ensureSheet();
-  cachedColOrder = null; // re-read after ensureSheet (may have extended)
-  const order = await getColOrder();
-  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A2:ZZ`);
-  const rows = (r.values || []) as string[][];
+async function readAll(ensureRegistry = true): Promise<Record<string, string>[]> {
+  if (ensureRegistry) await ensureSheet();
+  // Read header and data in one request. Public/list operations no longer make
+  // separate metadata + header + data calls on every cold Edge invocation.
+  const r = await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1:ZZ`);
+  const values = (r.values || []) as string[][];
+  const order = values[0]?.map((x: any) => String(x || "")) || HEADERS;
+  const rows = values.slice(1);
   return rows
     .filter((row) => row.some((c) => clean(c)))
     .map((row) => {
       const obj: Record<string, string> = {};
-      order.forEach((h, i) => { obj[h] = (row[i] ?? "").toString(); });
+      order.forEach((h, i) => {
+        const key = String(h || "").trim();
+        if (key && !(key in obj)) obj[key] = (row[i] ?? "").toString();
+      });
       return obj;
     });
 }
@@ -478,7 +528,7 @@ const maskSystem = (s: any) => ({
 });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: responseCorsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || "list");
@@ -489,7 +539,7 @@ Deno.serve(async (req) => {
         return json(listCache.payload);
       }
       try {
-        const all = await readAll();
+        const all = await readAll(false);
         const payload = { systems: all.map(rowToSystem).map(maskSystem) };
         listCache = { at: Date.now(), payload };
         return json(payload);
@@ -504,7 +554,7 @@ Deno.serve(async (req) => {
     if (action === "verify") {
       const id = clean(body?.id);
       if (!id) return json({ error: "id مطلوب" }, 400);
-      const all = await readAll();
+      const all = await readAll(false);
       const row = all.find((r) => clean(r.id) === id);
       if (!row) return json({ ok: false });
       const expected = String((rowToSystem(row) as any).password || "");
@@ -528,7 +578,7 @@ Deno.serve(async (req) => {
       if (sys.id && !(originalId && rawId === originalId)) {
         sys.id = String(sys.id).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
       }
-      const all = await readAll();
+      const all = await readAll(false);
       if (!sys.id) sys.id = slugify(sys.title);
       // Rename: locate row by originalId when it changed.
       const lookupId = originalId && originalId !== sys.id ? originalId : sys.id;
@@ -619,7 +669,7 @@ Deno.serve(async (req) => {
 
       // Enforce per-system CRUD permissions (looks up the system by gid+url within registry).
       try {
-        const all = await readAll();
+        const all = await readAll(false);
         const candidates = all.map(rowToSystem).filter((s: any) => clean(s.sheet_gid) === gid && (
           (s.sheet_source === 'external' ? clean(s.sheet_url) === externalUrl : !externalUrl)
         ));
@@ -665,11 +715,12 @@ Deno.serve(async (req) => {
 
       const gapiX = async (path: string, init: RequestInit = {}) => {
         const token = await getAccessToken();
-        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`, {
+        const method = String(init.method || "GET").toUpperCase();
+        const res = await googleRequest(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`, {
           ...init,
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
-        });
-        const text = await res.text();
+        }, { label: "Google Sheets للورقة المصدر", retrySafe: method === "GET" });
+        const text = res.text;
         let data: any = null;
         try { data = text ? JSON.parse(text) : null; } catch { data = text; }
         if (!res.ok) throw sheetsError(res.status, data, spreadsheetId);
@@ -871,11 +922,12 @@ Deno.serve(async (req) => {
             }
             const token = await getAccessToken();
             const gapiA = async (path: string, init: RequestInit = {}) => {
-              const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${archiveSpreadsheetId}${path}`, {
+              const method = String(init.method || "GET").toUpperCase();
+              const res = await googleRequest(`https://sheets.googleapis.com/v4/spreadsheets/${archiveSpreadsheetId}${path}`, {
                 ...init,
                 headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
-              });
-              const t = await res.text();
+              }, { label: "Google Sheets للأرشيف", retrySafe: method === "GET" });
+              const t = res.text;
               if (!res.ok) throw sheetsError(res.status, t, archiveSpreadsheetId);
               return t ? JSON.parse(t) : null;
             };
