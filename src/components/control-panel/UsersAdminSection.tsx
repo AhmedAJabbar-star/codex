@@ -5,13 +5,14 @@ import { toast } from 'sonner';
 import {
   adminListUsers, adminResetPassword, adminCreateUser, adminDeleteUser,
   adminSync, adminArchive, adminTestConnection,
-  adminSetRole, adminSetPermissions,
+  adminSetRole, adminSetPermissions, adminUpdateUser,
   setConnectionConfig, getConnectionConfig,
   login, getSession, setSession,
   type AdminUser, type ArchiveEntry,
 } from '@/lib/teacherAuth';
 import { ROLE_LABELS, type AppRole, type UserPermissions } from '@/lib/permissions';
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
+import { getRoleVisibility, setRules, getRules, SYSTEMS_REGISTRY, type RoleVisibility } from '@/lib/systemAccess';
 import { uiConfirm } from '@/lib/ui-dialog';
 
 /**
@@ -77,7 +78,7 @@ const AdminWorkspace = ({ onLogout }: { onLogout: () => void }) => {
   const { data: customSystems = [] } =
     useQuery({ queryKey: ['custom-systems-list'], queryFn: listCustomSystems, staleTime: 60_000 });
 
-  const [tab, setTab] = useState<'users' | 'archive' | 'add' | 'connection'>('users');
+  const [tab, setTab] = useState<'users' | 'archive' | 'add' | 'connection' | 'roles'>('users');
   const [search, setSearch] = useState('');
   const [permTarget, setPermTarget] = useState<AdminUser | null>(null);
 
@@ -103,6 +104,7 @@ const AdminWorkspace = ({ onLogout }: { onLogout: () => void }) => {
         {[
           { k: 'users', l: `👥 المستخدمون (${users.length})` },
           { k: 'add', l: '➕ إضافة' },
+          { k: 'roles', l: '🎭 الأدوار والبطاقات' },
           { k: 'archive', l: `📜 الأرشيف (${archive.length})` },
           { k: 'connection', l: '⚙️ الربط' },
         ].map((t) => (
@@ -125,6 +127,7 @@ const AdminWorkspace = ({ onLogout }: { onLogout: () => void }) => {
         />
       )}
       {tab === 'add' && <AddUserTab onAdded={() => { refresh(); }} />}
+      {tab === 'roles' && <RolesCardsTab customSystems={customSystems} />}
       {tab === 'archive' && <ArchiveTab archive={archive as ArchiveEntry[]} />}
       {tab === 'connection' && <ConnectionTab onChanged={refresh} />}
 
@@ -180,6 +183,7 @@ const UsersTab = ({ users, isLoading, search, setSearch, onChanged, onOpenPerms,
             <tr>
               <th className="p-2 text-right font-black">الاسم</th>
               <th className="p-2 text-right font-black">القسم</th>
+              <th className="p-2 text-right font-black">💼 المنصب</th>
               <th className="p-2 text-center font-black">الدور</th>
               <th className="p-2 text-center font-black">صلاحيات مخصّصة</th>
               <th className="p-2 text-center font-black">الباسورد</th>
@@ -188,9 +192,9 @@ const UsersTab = ({ users, isLoading, search, setSearch, onChanged, onOpenPerms,
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={6} className="text-center p-4">⏳ جاري التحميل…</td></tr>
+              <tr><td colSpan={7} className="text-center p-4">⏳ جاري التحميل…</td></tr>
             ) : users.length === 0 ? (
-              <tr><td colSpan={6} className="text-center p-4 text-slate-400">لا يوجد مستخدمون.</td></tr>
+              <tr><td colSpan={7} className="text-center p-4 text-slate-400">لا يوجد مستخدمون.</td></tr>
             ) : users.map((u) => {
               const sysCount = Object.keys((u as any).permissions?.systems || {}).length;
               const isProtected = u.full_name === 'aa';
@@ -198,6 +202,7 @@ const UsersTab = ({ users, isLoading, search, setSearch, onChanged, onOpenPerms,
                 <tr key={u.id} className="border-t border-[var(--schedule-border)]/40">
                   <td className="p-2 font-bold">{u.full_name}</td>
                   <td className="p-2">{u.department}</td>
+                  <td className="p-2"><PositionCell user={u} onChanged={onChanged} /></td>
                   <td className="p-2 text-center">
                     <select
                       className="schedule-select text-xs"
@@ -242,16 +247,126 @@ const UsersTab = ({ users, isLoading, search, setSearch, onChanged, onOpenPerms,
   );
 };
 
+/* ---------- Position cell (inline edit) ---------- */
+const PositionCell = ({ user, onChanged }: { user: AdminUser; onChanged: () => void }) => {
+  const [val, setVal] = useState((user as any).position || '');
+  const [busy, setBusy] = useState(false);
+  const dirty = val.trim() !== String((user as any).position || '').trim();
+  const save = async () => {
+    if (!dirty || busy) return;
+    setBusy(true);
+    try { await adminUpdateUser(user.id, { position: val.trim() }); toast.success('تم حفظ المنصب'); onChanged(); }
+    catch (e) { toast.error((e as Error).message); setVal((user as any).position || ''); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        className="schedule-select text-xs"
+        style={{ minHeight: 28, padding: '2px 6px', minWidth: 110 }}
+        placeholder="مثال: رئيس قسم"
+        value={val}
+        disabled={busy || user.full_name === 'aa'}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void save(); } }}
+      />
+      {dirty && !busy && <button type="button" onClick={() => void save()} className="schedule-btn text-xs" style={{ minHeight: 26, padding: '0 8px' }} title="حفظ المنصب">💾</button>}
+    </div>
+  );
+};
+
+/* ---------- Roles × Cards visibility tab ---------- */
+const ROLES: AppRole[] = ['editor', 'viewer', 'user'];
+const RolesCardsTab = ({ customSystems }: { customSystems: CustomSystemDef[] }) => {
+  const [roleVis, setRoleVis] = useState<RoleVisibility>(() => getRoleVisibility());
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // بطاقات الأنظمة المدمجة + الأنظمة المخصّصة
+  const cards = useMemo(() => {
+    const built = SYSTEMS_REGISTRY
+      .filter((s) => s.id !== '_manager' && s.id !== 'controlPanel')
+      .map((s) => ({ id: s.id, title: s.title, source: 'مدمج' }));
+    const custom = (customSystems || []).map((s) => ({ id: `custom_${s.id}`, title: s.title, source: 'مخصّص' }));
+    return [...built, ...custom];
+  }, [customSystems]);
+
+  const isChecked = (cardId: string, role: AppRole) => {
+    const list = roleVis[cardId];
+    // فارغ = مرئي للجميع ⇒ كل الأدوار مفعّلة
+    return !list || list.length === 0 || list.includes(role);
+  };
+  const toggle = (cardId: string, role: AppRole) => {
+    setRoleVis((prev) => {
+      const next: RoleVisibility = { ...prev };
+      const cur = prev[cardId];
+      const current = !cur || cur.length === 0 ? [...ROLES] : [...cur];
+      const idx = current.indexOf(role);
+      if (idx >= 0) current.splice(idx, 1); else current.push(role);
+      if (current.length >= ROLES.length) delete next[cardId]; // الكل = بلا قيد
+      else next[cardId] = current as RoleVisibility[string];
+      return next;
+    });
+  };
+  const save = async () => {
+    if (!password.trim()) return toast.error('أدخل كلمة مرور لوحة التحكم للحفظ');
+    setBusy(true);
+    try {
+      await setRules(getRules(), password.trim(), undefined, undefined, roleVis);
+      toast.success('تم حفظ صلاحيات رؤية البطاقات');
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-bold text-[var(--schedule-muted)] bg-[var(--schedule-accent-blue)]/10 rounded-lg p-2.5">
+        🎭 حدّد الأدوار المسموح لها برؤية كل بطاقة في الصفحة الرئيسية. البطاقة بلا تحديد تظهر للجميع،
+        والمستخدم بدور <b>«🛡️ مدير»</b> يرى كل البطاقات دائماً. الزائر غير المسجَّل يُعامل كمستخدم عادي.
+      </p>
+      <div className="overflow-auto rounded-xl border border-[var(--schedule-border)] bg-white max-h-[420px]">
+        <table className="w-full text-xs">
+          <thead className="bg-[var(--schedule-accent-blue)]/10 sticky top-0">
+            <tr>
+              <th className="p-2 text-right font-black">البطاقة / النظام</th>
+              {ROLES.map((r) => <th key={r} className="p-2 text-center font-black">{ROLE_LABELS[r]}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {cards.map((c) => (
+              <tr key={c.id} className="border-t border-[var(--schedule-border)]/40">
+                <td className="p-2 font-bold">{c.title} <span className="text-[10px] text-[var(--schedule-muted)]">({c.source})</span></td>
+                {ROLES.map((r) => (
+                  <td key={r} className="p-2 text-center">
+                    <input type="checkbox" checked={isChecked(c.id, r)} onChange={() => toggle(c.id, r)} className="w-4 h-4 accent-[var(--schedule-accent-blue)]" />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="password" className="schedule-select" style={{ maxWidth: 220 }} placeholder="كلمة مرور لوحة التحكم" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <button onClick={() => void save()} disabled={busy} className="schedule-btn schedule-btn-primary text-xs" style={{ minHeight: 36 }}>
+          {busy ? '⏳ جاري الحفظ…' : '💾 حفظ صلاحيات البطاقات'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 /* ---------- Add user tab ---------- */
 const AddUserTab = ({ onAdded }: { onAdded: () => void }) => {
-  const [u, setU] = useState({ full_name: '', department: '', college: '', role: 'user' as AppRole, password: '' });
+  const [u, setU] = useState({ full_name: '', department: '', college: '', role: 'user' as AppRole, password: '', position: '' });
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!u.full_name.trim()) return toast.error('الاسم مطلوب');
     try {
       const r = await adminCreateUser({ ...u, password: u.password || '123' });
       toast.success(`تم إنشاء المستخدم. كلمة المرور: ${r.password}`);
-      setU({ full_name: '', department: '', college: '', role: 'user', password: '' });
+      setU({ full_name: '', department: '', college: '', role: 'user', password: '', position: '' });
       onAdded();
     } catch (e) { toast.error((e as Error).message); }
   };
@@ -260,6 +375,7 @@ const AddUserTab = ({ onAdded }: { onAdded: () => void }) => {
       <input className="schedule-select" placeholder="الاسم الكامل *" value={u.full_name} onChange={(e) => setU({ ...u, full_name: e.target.value })} />
       <input className="schedule-select" placeholder="القسم" value={u.department} onChange={(e) => setU({ ...u, department: e.target.value })} />
       <input className="schedule-select" placeholder="الكلية" value={u.college} onChange={(e) => setU({ ...u, college: e.target.value })} />
+      <input className="schedule-select" placeholder="💼 المنصب (مثال: رئيس قسم) — يُستخدم في فلترة الأنظمة حسب المنصب" value={u.position} onChange={(e) => setU({ ...u, position: e.target.value })} />
       <select className="schedule-select" value={u.role} onChange={(e) => setU({ ...u, role: e.target.value as AppRole })}>
         <option value="user">{ROLE_LABELS.user}</option>
         <option value="viewer">{ROLE_LABELS.viewer}</option>

@@ -19,6 +19,58 @@ export interface Condition {
   values?: (string | number)[];
 }
 
+/** 🧩 مجموعة شروط بمنطق داخلي (AND/OR) — تُربط المجموعات ببعضها عبر groups_join في تعريف النظام. */
+export interface ConditionGroup {
+  logic: 'AND' | 'OR';
+  conditions: Condition[];
+}
+
+/** سياق التقييم الديناميكي: بيانات المستخدم الحالي (لحقول {user.*}). */
+export interface CondCtx {
+  user?: { name?: string; department?: string; college?: string; position?: string } | null;
+}
+
+/**
+ * يحلّل القيم الديناميكية داخل نص الشرط:
+ *  - {user.name} {user.department} {user.college} {user.position} ← بيانات المستخدم الداخل
+ *  - {A} {B} ... ← قيمة عمود من الصف الحالي (حرف Excel)
+ *  - {today} أو {today+N} / {today-N} ← تاريخ اليوم بصيغة YYYY/M/D
+ *  - قيمة تبدأ بـ "=" ← معادلة حسابية بسيطة (مثل ={A}+{B}*2 أو ={A}-{today}) تشبه Google Sheets
+ */
+export function resolveDynamicValue(
+  value: string | number | undefined,
+  row: Record<string, string>,
+  headers: string[],
+  ctx?: CondCtx,
+): string {
+  let s = String(value ?? '');
+  if (!s) return s;
+  // معادلة حسابية: =({A}+{B})*2
+  if (s.trim().startsWith('=')) {
+    const n = evalExpr(s.trim().slice(1), row, headers);
+    return n === null ? '' : String(n);
+  }
+  const user = ctx?.user || null;
+  s = s.replace(/\{today(?:\s*([+-])\s*(\d+))?\}/gi, (_, sign: string, num: string) => {
+    const d = new Date();
+    if (num) d.setDate(d.getDate() + (sign === '-' ? -1 : 1) * parseInt(num, 10));
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  });
+  s = s.replace(/\{user\.(name|full_name|department|college|position)\}/gi, (_, k: string) => {
+    const key = k.toLowerCase();
+    if (key === 'name' || key === 'full_name') return (user?.name || '').trim();
+    if (key === 'department') return (user?.department || '').trim();
+    if (key === 'college') return (user?.college || '').trim();
+    return (user?.position || '').trim();
+  });
+  // مراجع الأعمدة {A} {AA} — بعد حقول المستخدم حتى لا تلتقط شيئاً منها
+  s = s.replace(/\{([A-Za-z]{1,3})\}/g, (m, letter: string) => {
+    const i = colLetterToIndex(letter);
+    return i >= 0 && i < headers.length ? (row[headers[i]] || '') : m;
+  });
+  return s;
+}
+
 export interface DerivedColumn {
   name: string;
   /** Map: column letter -> label to assign when match is true */
@@ -268,11 +320,13 @@ export function evaluateCondition(
   cond: Condition,
   row: Record<string, string>,
   headers: string[],
+  ctx?: CondCtx,
 ): boolean {
   const raw = getCellByLetter(row, headers, cond.column);
   const t = raw.trim();
   const tokens = splitCellTokens(raw);
-  const target = String(cond.value ?? '').trim();
+  const target = resolveDynamicValue(String(cond.value ?? ''), row, headers, ctx).trim();
+  const dynValues = (cond.values || []).map((v) => resolveDynamicValue(String(v), row, headers, ctx).trim());
   switch (cond.op) {
     case 'eq': return tokens.some((x) => x === target);
     case 'neq': return !tokens.some((x) => x === target);
@@ -290,22 +344,22 @@ export function evaluateCondition(
       return !parts.some((x) => normalizeAr(x) === nTarget);
     }
     case 'in_list': {
-      const list = (cond.values || []).map((v) => normalizeAr(String(v)));
+      const list = dynValues.map((v) => normalizeAr(v));
       return tokens.some((x) => list.includes(normalizeAr(x)));
     }
     case 'not_in_list': {
-      const list = (cond.values || []).map((v) => normalizeAr(String(v)));
+      const list = dynValues.map((v) => normalizeAr(v));
       return !tokens.some((x) => list.includes(normalizeAr(x)));
     }
     case 'contains_any': {
-      const list = (cond.values || []).map((v) => normalizeAr(String(v)));
+      const list = dynValues.map((v) => normalizeAr(v));
       const nt = normalizeAr(t);
       return list.some((v) => v && nt.includes(v));
     }
     case 'is_empty': return t === '';
     case 'is_not_empty': return t !== '';
     case 'eq_number': {
-      const num = Number(cond.value);
+      const num = Number(target);
       if (isNaN(num)) return false;
       if (t === '') return num === 0;
       return tokens.some((x) => {
@@ -313,28 +367,28 @@ export function evaluateCondition(
         return n !== null && n === num;
       });
     }
-    case 'gt': return tokens.some((x) => { const n = toNumber(x); return n !== null && n > Number(cond.value); });
-    case 'lt': return tokens.some((x) => { const n = toNumber(x); return n !== null && n < Number(cond.value); });
-    case 'gte': return tokens.some((x) => { const n = toNumber(x); return n !== null && n >= Number(cond.value); });
-    case 'lte': return tokens.some((x) => { const n = toNumber(x); return n !== null && n <= Number(cond.value); });
+    case 'gt': return tokens.some((x) => { const n = toNumber(x); return n !== null && n > Number(target); });
+    case 'lt': return tokens.some((x) => { const n = toNumber(x); return n !== null && n < Number(target); });
+    case 'gte': return tokens.some((x) => { const n = toNumber(x); return n !== null && n >= Number(target); });
+    case 'lte': return tokens.some((x) => { const n = toNumber(x); return n !== null && n <= Number(target); });
     case 'between': {
-      const [lo, hi] = (cond.values || []).map(Number);
+      const [lo, hi] = dynValues.map(Number);
       if (isNaN(lo) || isNaN(hi)) return false;
       return tokens.some((x) => { const n = toNumber(x); return n !== null && n >= lo && n <= hi; });
     }
     case 'date_before': {
       const cell = parseCellDate(t);
-      const ref = resolveCondDate(cond.value);
+      const ref = resolveCondDate(target);
       return !!cell && !!ref && cell.getTime() < ref.getTime();
     }
     case 'date_after': {
       const cell = parseCellDate(t);
-      const ref = resolveCondDate(cond.value);
+      const ref = resolveCondDate(target);
       return !!cell && !!ref && cell.getTime() > ref.getTime();
     }
     case 'date_equals': {
       const cell = parseCellDate(t);
-      const ref = resolveCondDate(cond.value);
+      const ref = resolveCondDate(target);
       if (!cell || !ref) return false;
       // مقارنة باليوم/الشهر/السنة فقط (تجاهل الوقت)
       return cell.getFullYear() === ref.getFullYear() && cell.getMonth() === ref.getMonth() && cell.getDate() === ref.getDate();
@@ -363,9 +417,29 @@ export function evaluateCondition(
   }
 }
 
-export function evaluateAll(conditions: Condition[], row: Record<string, string>, headers: string[]): boolean {
+export function evaluateAll(conditions: Condition[], row: Record<string, string>, headers: string[], ctx?: CondCtx): boolean {
   if (!conditions || conditions.length === 0) return true;
-  return conditions.every((c) => evaluateCondition(c, row, headers));
+  return conditions.every((c) => evaluateCondition(c, row, headers, ctx));
+}
+
+/**
+ * 🧩 تقييم مجموعات الشروط الديناميكية:
+ * داخل كل مجموعة تُطبَّق logic الخاصة بها (AND/OR)، ثم تُربط نتائج المجموعات بـ join (AND/OR).
+ */
+export function evaluateGroups(
+  groups: ConditionGroup[],
+  join: 'AND' | 'OR',
+  row: Record<string, string>,
+  headers: string[],
+  ctx?: CondCtx,
+): boolean {
+  const gs = (groups || []).filter((g) => (g.conditions || []).length > 0);
+  if (gs.length === 0) return true;
+  const results = gs.map((g) => {
+    const fn = g.logic === 'OR' ? 'some' : 'every';
+    return g.conditions[fn]((c) => evaluateCondition(c, row, headers, ctx));
+  });
+  return join === 'OR' ? results.some(Boolean) : results.every(Boolean);
 }
 
 export function applyDerivedColumns(

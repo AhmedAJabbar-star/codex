@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { CustomSystemDef, FilterConfigItem, FilterRule, SignatureItem, SystemUiPrefs } from '@/data/customSystemsRegistry';
 import { EMPTY_SYSTEM, saveCustomSystem, deleteCustomSystem, listCustomSystems } from '@/data/customSystemsRegistry';
 import { OP_LABELS, type Condition, type ConditionOp, type ComputedColumn, type ConflictCfg, type GroupStage, parseColumnsRange, colIndexToLetter } from '@/lib/conditionEngine';
+import { ROLE_LABELS } from '@/lib/permissions';
 import { UI_THEMES, applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 /** القيمة الوهمية التي يرسلها الخادم بدل الأسرار المحفوظة (كلمة المرور / مفتاح API). */
@@ -880,6 +881,123 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                   </div>
                 ))}
               </div>
+
+              {/* 🧩 مجموعات الشروط المتقدمة — منطق مختلط AND/OR */}
+              <div className="border-2 border-emerald-300 rounded-lg p-3 bg-emerald-50/40 space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <strong className="text-xs">🧩 مجموعات شروط متقدمة (منطق مختلط)</strong>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-600">الربط بين المجموعات:</span>
+                    <select
+                      className="schedule-select"
+                      value={s.groups_join || 'OR'}
+                      onChange={(e) => patch({ groups_join: e.target.value as 'AND' | 'OR' })}
+                      style={{ minHeight: 30, minWidth: 90 }}
+                    >
+                      <option value="OR">أي مجموعة (OR)</option>
+                      <option value="AND">كل المجموعات (AND)</option>
+                    </select>
+                    <button
+                      className="schedule-btn schedule-btn-primary text-xs"
+                      style={{ minHeight: 30 }}
+                      onClick={() => patch({ condition_groups: [...(s.condition_groups || []), { logic: 'AND', conditions: [{ column: 'A', op: 'eq', value: '' }] }] } as any)}
+                    >➕ مجموعة</button>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-5">
+                  مثال: مجموعة (الحالة=مقبول <b>و</b> القسم=مدني) <b>أو</b> مجموعة (المنصب=&#123;user.position&#125;).
+                  تُقيَّم كل مجموعة بمنطقها الداخلي ثم تُربط النتائج وفق «الربط بين المجموعات».
+                  <b> عند وجود مجموعات تُتجاهل الشروط البسيطة أعلاه.</b>
+                </p>
+                {(s.condition_groups || []).map((g, gi) => (
+                  <div key={gi} className="rounded-lg border-2 border-emerald-200 bg-white p-2 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black">مجموعة {gi + 1}</span>
+                        <select
+                          className="schedule-select"
+                          value={g.logic}
+                          onChange={(e) => {
+                            const groups = [...(s.condition_groups || [])];
+                            groups[gi] = { ...g, logic: e.target.value as 'AND' | 'OR' };
+                            patch({ condition_groups: groups } as any);
+                          }}
+                          style={{ minHeight: 28, minWidth: 80 }}
+                        >
+                          <option value="AND">الكل داخلها (AND)</option>
+                          <option value="OR">أي شرط داخلها (OR)</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="schedule-btn text-xs"
+                          style={{ minHeight: 26 }}
+                          onClick={() => {
+                            const groups = [...(s.condition_groups || [])];
+                            groups[gi] = { ...g, conditions: [...g.conditions, { column: 'A', op: 'eq', value: '' }] };
+                            patch({ condition_groups: groups } as any);
+                          }}
+                        >➕ شرط</button>
+                        <button
+                          className="text-red-600 font-black px-2"
+                          onClick={() => patch({ condition_groups: (s.condition_groups || []).filter((_, x) => x !== gi) } as any)}
+                        >🗑️</button>
+                      </div>
+                    </div>
+                    {g.conditions.map((c, ci) => (
+                      <div key={ci} className="grid grid-cols-12 gap-2 items-center bg-emerald-50/60 p-2 rounded-lg border border-emerald-100">
+                        <input
+                          className="schedule-select col-span-2" value={c.column} placeholder="عمود (E)"
+                          onChange={(e) => {
+                            const groups = JSON.parse(JSON.stringify(s.condition_groups || []));
+                            groups[gi].conditions[ci].column = e.target.value.toUpperCase();
+                            patch({ condition_groups: groups } as any);
+                          }}
+                        />
+                        <select
+                          className="schedule-select col-span-4" value={c.op}
+                          onChange={(e) => {
+                            const groups = JSON.parse(JSON.stringify(s.condition_groups || []));
+                            groups[gi].conditions[ci] = { ...groups[gi].conditions[ci], op: e.target.value, value: '', values: [] };
+                            patch({ condition_groups: groups } as any);
+                          }}
+                        >
+                          {OPS.map((o) => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
+                        </select>
+                        <CondValueInput
+                          c={c} span={5}
+                          upd={(p) => {
+                            const groups = JSON.parse(JSON.stringify(s.condition_groups || []));
+                            groups[gi].conditions[ci] = { ...groups[gi].conditions[ci], ...p };
+                            patch({ condition_groups: groups } as any);
+                          }}
+                        />
+                        <button
+                          className="col-span-1 text-red-600 font-black"
+                          onClick={() => {
+                            const groups = JSON.parse(JSON.stringify(s.condition_groups || []));
+                            groups[gi].conditions.splice(ci, 1);
+                            if (groups[gi].conditions.length === 0) groups.splice(gi, 1);
+                            patch({ condition_groups: groups } as any);
+                          }}
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* ✨ القيم الديناميكية */}
+              <div className="border-2 border-sky-300 rounded-lg p-3 bg-sky-50/50">
+                <strong className="text-xs block mb-1">✨ قيم ديناميكية في الشروط (بدل النص الثابت)</strong>
+                <div className="text-[11px] text-slate-700 leading-6 space-y-1">
+                  <p>• <code className="bg-white px-1 rounded border">{'{user.position}'}</code> منصب المستخدم الداخل • <code className="bg-white px-1 rounded border">{'{user.name}'}</code> اسمه • <code className="bg-white px-1 rounded border">{'{user.department}'}</code> قسمه • <code className="bg-white px-1 rounded border">{'{user.college}'}</code> كليته</p>
+                  <p>• <code className="bg-white px-1 rounded border">{'{A}'}</code> أو <code className="bg-white px-1 rounded border">{'{AC}'}</code> قيمة عمود آخر من نفس السطر (حرف Excel)</p>
+                  <p>• <code className="bg-white px-1 rounded border">{'{today}'}</code> تاريخ اليوم • <code className="bg-white px-1 rounded border">{'{today+7}'}</code> / <code className="bg-white px-1 rounded border">{'{today-3}'}</code> بصيغة YYYY/M/D</p>
+                  <p>• معادلة تبدأ بـ <code className="bg-white px-1 rounded border">=</code> مثل <code className="bg-white px-1 rounded border" dir="ltr">={'{A}'}+{'{B}'}*2</code> (حساب بسيط كما في Google Sheets)</p>
+                  <p className="font-bold text-sky-800">مثال عملي: عمود G يساوي <code className="bg-white px-1 rounded border">{'{user.position}'}</code> — يعرض للمستخدم السطور التي تحمل منصبه.</p>
+                </div>
+              </div>
               <details className="mt-4">
                 <summary className="cursor-pointer text-xs font-black text-slate-600">أعمدة مشتقة (متقدم) — JSON</summary>
                 <textarea className="schedule-select w-full mt-2 font-mono text-xs" rows={4}
@@ -1129,8 +1247,57 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         </span>
                       </div>
                     </div>
+
+                    {/* 💼 الفلترة حسب المنصب */}
+                    <div className="border-2 rounded-lg p-3 bg-violet-50/60 border-violet-200 space-y-2">
+                      <strong className="text-xs block">💼 فلترة حسب منصب المستخدم (من جدول المستخدمين)</strong>
+                      <p className="text-[11px] text-slate-600">
+                        يظهر السجل للمستخدم إذا كانت قيمة هذا العمود <b>تطابق «المنصب»</b> المسجَّل بجانب اسمه في
+                        تبويب «المستخدمون والصلاحيات». يُطبَّق فقط على المستخدمين الذين <b>لهم منصب ودورهم ليس «مستخدم»</b>
+                        (محرّر/مُطّلع/مدير). من ليس له منصب لا تُطبَّق عليه هذه الفلترة.
+                      </p>
+                      <div>
+                        <label className="block text-xs font-black mb-1">عمود المنصب في هذا النظام (حرف Excel)</label>
+                        <input
+                          className="schedule-select w-full"
+                          value={s.teacher_position_column || ''}
+                          onChange={(e) => patch({ teacher_position_column: e.target.value.toUpperCase() })}
+                          placeholder="مثال: N — اتركه فارغاً لإيقاف فلترة المنصب"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
+
+                {/* 🎭 تقييد ظهور البطاقة حسب الدور */}
+                <div className="border-2 rounded-lg p-3 bg-slate-50/80 border-slate-200 space-y-2 mt-3">
+                  <strong className="text-xs block">🎭 من يرى هذا النظام؟ (حسب الدور)</strong>
+                  <p className="text-[11px] text-slate-600">
+                    اترك كل الأدوار مفعّلة ليظهر للجميع. المستخدم بدور «🛡️ مدير» يرى كل البطاقات دائماً.
+                    ملاحظة: تُطبَّق أيضاً إعدادات «🎭 الأدوار والبطاقات» العامة في المستخدمون والصلاحيات.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {(['editor', 'viewer', 'user'] as const).map((r) => {
+                      const cur = (s.allowed_roles || []) as string[];
+                      const on = cur.length === 0 || cur.includes(r);
+                      return (
+                        <label key={r} className="flex items-center gap-1 text-xs font-bold">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={(e) => {
+                              let next = cur.length === 0 ? ['editor', 'viewer', 'user'] : [...cur];
+                              if (e.target.checked) { if (!next.includes(r)) next.push(r); }
+                              else next = next.filter((x) => x !== r);
+                              patch({ allowed_roles: next.length >= 3 ? [] : next } as any);
+                            }}
+                          />
+                          {ROLE_LABELS[r]}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
 
 
               </div>

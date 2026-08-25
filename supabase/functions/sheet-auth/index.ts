@@ -97,7 +97,7 @@ const DEFAULT_SA_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || "";
 const DEFAULT_ASSIGNMENTS_CSV =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub?gid=1147039908&single=true&output=csv";
 
-const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at","permissions_json"];
+const USERS_HEADERS = ["id","full_name","department","college","role","password_hash","must_change_password","is_manual","created_at","updated_at","permissions_json","position"];
 const ARCHIVE_HEADERS = ["id","timestamp","user_id","full_name","action","performed_by"];
 const VALID_ROLES = ["admin","editor","viewer","user"] as const;
 function normalizeRole(r: any): string {
@@ -396,6 +396,7 @@ async function getFallbackUsersFromAssignments(): Promise<Record<string, string>
     is_manual: "false",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    position: "",
   }));
   fallbackUsersCache = { users, exp: nowMs + 5 * 60 * 1000 };
   return users;
@@ -510,7 +511,7 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
       id, full_name: name, department: info.dept, college: info.college,
       role: "user", password_hash: defaultHash,
       must_change_password: "true", is_manual: "false",
-      created_at: now, updated_at: now,
+      created_at: now, updated_at: now, position: "",
     });
     await archive("initial_create", name, performedBy, id);
     added++;
@@ -566,6 +567,7 @@ function publicUser(u: Record<string,string>) {
     department: u.department || "",
     college: u.college || "",
     role: normalizeRole(u.role) as "admin" | "editor" | "viewer" | "user",
+    position: u.position || "",
     must_change_password: String(u.must_change_password).toLowerCase() === "true",
     permissions,
   };
@@ -778,7 +780,7 @@ Deno.serve(async (req) => {
     if (action === "admin-create-user") {
       if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
       const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
-      const { full_name, department, college, role, password } = body;
+      const { full_name, department, college, role, password, position } = body;
       if (!full_name) return json({ error: "الاسم مطلوب" }, 400);
       const exists = await findUserByName(full_name);
       if (exists) return json({ error: "الاسم موجود مسبقاً" }, 400);
@@ -787,12 +789,30 @@ Deno.serve(async (req) => {
       const id = uuid(); const now = new Date().toISOString();
       await appendRow("users", USERS_HEADERS, {
         id, full_name, department: department || "", college: college || "",
-        role: role === "admin" ? "admin" : "user",
+        role: normalizeRole(role),
         password_hash: pwHash, must_change_password: "true", is_manual: "true",
         created_at: now, updated_at: now,
+        position: clean(position || ""),
       });
       await archive("admin_create", full_name, a.full_name, id);
       return json({ ok: true, password: pw });
+    }
+
+    if (action === "admin-update-user") {
+      if (!sheetsReady) return json({ error: "خدمة الحفظ غير متاحة حالياً. يرجى المحاولة لاحقاً." }, 503);
+      const a = await requireAdmin(); if (!a) return json({ error: "صلاحية المدير مطلوبة" }, 403);
+      const { user_id, department, college, position } = body;
+      const found = await findUserById(user_id);
+      if (!found) return json({ error: "المستخدم غير موجود" }, 404);
+      await updateRowByIndex("users", USERS_HEADERS, found.index, {
+        ...found.user,
+        department: department !== undefined ? clean(department) : (found.user.department || ""),
+        college: college !== undefined ? clean(college) : (found.user.college || ""),
+        position: position !== undefined ? clean(position) : (found.user.position || ""),
+        updated_at: new Date().toISOString(),
+      });
+      await archive("admin_update", found.user.full_name, a.full_name, user_id);
+      return json({ ok: true });
     }
 
     if (action === "admin-delete-user") {

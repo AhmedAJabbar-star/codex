@@ -15,7 +15,7 @@ import { getEffectivePerms } from '@/lib/permissions';
 import { applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
 import {
   parseColumnsRange, colLetterToIndex, colIndexToLetter,
-  evaluateAll, evaluateCondition, applyDerivedColumns,
+  evaluateAll, evaluateCondition, evaluateGroups, applyDerivedColumns,
   computeColumnValue, applyGroupStage, applyConflictDetection,
 } from '@/lib/conditionEngine';
 
@@ -188,22 +188,43 @@ export function buildConfigFromDef(
     builtFilters.push({ label: d.name, key: d.name, control: 'select' as any, fixedOptions: options } as any);
   });
 
-  // Apply conditions (AND or OR), expand derived rows, and project onto display headers
+  // Apply conditions (AND or OR) + dynamic condition groups, expand derived rows, project onto display headers
   const logic = def.conditions_logic || 'AND';
   const conds = def.conditions || [];
+  const condGroups = def.condition_groups || [];
+  const groupsJoin = def.groups_join || 'AND';
   const passes = (r: Record<string, string>) => {
-    if (conds.length === 0) return true;
-    return logic === 'OR'
-      ? conds.some((c) => evaluateCondition(c, r, sheet.headers))
-      : evaluateAll(conds, r, sheet.headers);
+    const baseOk = conds.length === 0
+      ? true
+      : logic === 'OR'
+        ? conds.some((c) => evaluateCondition(c, r, sheet.headers, condCtx))
+        : evaluateAll(conds, r, sheet.headers, condCtx);
+    const groupsOk = evaluateGroups(condGroups, groupsJoin, r, sheet.headers, condCtx);
+    // المجموعة الأساسية والمجموعات الإضافية تُعامل كمجموعات متساوية تُربط بـ groups_join
+    if (conds.length === 0 || condGroups.filter((g) => (g.conditions || []).length > 0).length === 0) {
+      return baseOk && groupsOk;
+    }
+    return groupsJoin === 'OR' ? (baseOk || groupsOk) : (baseOk && groupsOk);
   };
 
-  // Identity row-filter (name / department / college) — only when require_teacher_auth is on.
+  // Identity row-filter (name / department / college / position) — only when require_teacher_auth is on.
   const session = getSession();
   const identity = {
     name: (session?.user?.full_name || '').trim(),
     department: (session?.user?.department || '').trim(),
     college: ((session?.user as any)?.college || '').trim(),
+    position: ((session?.user as any)?.position || '').trim(),
+  };
+  // سياق الشروط الديناميكية ({user.name} {user.position} ... {A} {today} =formulas)
+  const condCtx = {
+    user: session?.user
+      ? {
+          name: identity.name,
+          department: identity.department,
+          college: identity.college,
+          position: identity.position,
+        }
+      : null,
   };
   let teacherFilter: ((r: Record<string, string>) => boolean) | null = null;
   // 🛡️ المدير يرى كل السجلات دون شروط مطابقة الهوية.
@@ -255,6 +276,14 @@ export function buildConfigFromDef(
       if (active.length > 0) {
         const logicAll = (def.teacher_scope_logic || 'any') === 'all';
         teacherFilter = (r) => (logicAll ? active.every((f) => f(r)) : active.some((f) => f(r)));
+      }
+      // 💼 نطاق المنصب: يُضاف (OR) لنطاق الهوية الحالي — فقط حين يملك المستخدم منصباً ودوره ليس «مستخدم».
+      const roleStr = ((session?.user?.role as string) || 'user');
+      const posKey = keyOf(def.teacher_position_column);
+      if (identity.position && roleStr !== 'user' && (posKey || extraKeys.length > 0)) {
+        const posMatch = (r: Record<string, string>) => hitAny(r, posKey, identity.position);
+        const baseFilter = teacherFilter;
+        teacherFilter = baseFilter ? (r) => baseFilter(r) || posMatch(r) : posMatch;
       }
     } catch { /* ignore */ }
   }

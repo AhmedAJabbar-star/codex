@@ -85,6 +85,8 @@ const HEADERS = [
   "column_modes_json",
   // v23 additions (per-system UI/banner control from the builder):
   "ui_prefs_json",
+  // v25 additions (position scoping, role-based card visibility, dynamic condition groups):
+  "teacher_position_column", "allowed_roles_json", "condition_groups_json", "groups_join",
 
 ];
 
@@ -364,6 +366,10 @@ function rowToSystem(r: Record<string, string>) {
     teacher_match_min_tokens: Number(r.teacher_match_min_tokens || 2) || 2,
     teacher_match_adjacent: String(r.teacher_match_adjacent || "true").toLowerCase() !== "false",
     teacher_extra_match_columns: clean(r.teacher_extra_match_columns).toUpperCase(),
+    teacher_position_column: clean(r.teacher_position_column).toUpperCase(),
+    allowed_roles: parseJson(r.allowed_roles_json || "[]", []),
+    condition_groups: parseJson(r.condition_groups_json || "[]", []),
+    groups_join: clean(r.groups_join).toUpperCase() === "OR" ? "OR" : "AND",
 
     single_response_enabled: String(r.single_response_enabled || "").toLowerCase() === "true",
     single_response_column: clean(r.single_response_column).toUpperCase(),
@@ -467,6 +473,10 @@ async function systemToRow(s: any): Promise<string[]> {
     teacher_match_min_tokens: String(Number(s.teacher_match_min_tokens) || 2),
     teacher_match_adjacent: String(s.teacher_match_adjacent === false ? "false" : "true"),
     teacher_extra_match_columns: String(s.teacher_extra_match_columns || "").toUpperCase(),
+    teacher_position_column: String(s.teacher_position_column || "").toUpperCase(),
+    allowed_roles_json: JSON.stringify(s.allowed_roles || []),
+    condition_groups_json: JSON.stringify(s.condition_groups || []),
+    groups_join: String(s.groups_join || "AND").toUpperCase() === "OR" ? "OR" : "AND",
 
     single_response_enabled: String(!!s.single_response_enabled),
     single_response_column: String(s.single_response_column || "").toUpperCase(),
