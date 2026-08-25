@@ -210,11 +210,17 @@ async function getAccessToken(): Promise<string> {
 }
 
 /* ---------------- Sheets API helpers ---------------- */
-async function gapi(path: string, init: RequestInit = {}) {
+const isTransientNetError = (e: unknown) => {
+  const msg = String((e as Error)?.message || e || "");
+  return (e as Error)?.name === "AbortError" || (e as Error)?.name === "TimeoutError"
+    || /timed out|timeout|network|fetch failed|connection/i.test(msg);
+};
+
+async function gapiOnce(path: string, init: RequestInit = {}) {
   const token = await getAccessToken();
   const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${getConnection().sheetId}${path}`, {
     ...init,
-    signal: (init as any).signal ?? AbortSignal.timeout(20_000),
+    signal: (init as any).signal ?? AbortSignal.timeout(25_000),
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -226,6 +232,24 @@ async function gapi(path: string, init: RequestInit = {}) {
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) throw new Error(`Sheets API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
   return data;
+}
+
+/** استدعاء Sheets API مع إعادة محاولة تلقائية عند انتهاء المهلة/أخطاء الشبكة العابرة. */
+async function gapi(path: string, init: RequestInit = {}) {
+  const method = (init.method || "GET").toUpperCase();
+  const idempotent = method === "GET";
+  const maxAttempts = idempotent ? 3 : 2;
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await gapiOnce(path, init);
+    } catch (e) {
+      lastErr = e;
+      if (!isTransientNetError(e) || attempt === maxAttempts) throw e;
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
+  throw lastErr;
 }
 
 async function ensureSheet(title: string, headers: string[]) {
