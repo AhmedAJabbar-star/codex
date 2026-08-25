@@ -8,6 +8,8 @@ import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta
 import { fetchSheetByGid, type SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
+import { arabicMatch } from '@/lib/arabicMatch';
+
 import { getBranding } from '@/lib/systemAccess';
 import { getEffectivePerms } from '@/lib/permissions';
 import { applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
@@ -213,12 +215,27 @@ export function buildConfigFromDef(
       const nameKey = keyOf(def.teacher_column);
       const deptKey = keyOf(def.teacher_department_column);
       const collKey = keyOf(def.teacher_college_column);
-      const eq = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
-      const matchers: Record<string, ((r: Record<string, string>) => boolean) | null> = {
-        name:       identity.name && nameKey ? (r) => eq(r[nameKey] || '', identity.name) : null,
-        department: identity.department && deptKey ? (r) => eq(r[deptKey] || '', identity.department) : null,
-        college:    identity.college && collKey ? (r) => eq(r[collKey] || '', identity.college) : null,
+      const matchOpts = {
+        mode: (def.teacher_match_mode || 'exact') as any,
+        normalize: def.teacher_match_normalize !== false,
+        ignoreSpaces: def.teacher_match_ignore_spaces !== false,
+        prefixLen: Number(def.teacher_match_prefix_len) || 15,
+        threshold: Number(def.teacher_match_threshold) || 85,
       };
+      // Extra columns that may contain the identity inside a longer text (e.g. «النصوص»).
+      const extraKeys = String(def.teacher_extra_match_columns || '')
+        .split(/[,،\s]+/).filter(Boolean).map((L) => keyOf(L)).filter(Boolean);
+      const eq = (cell: string, needle: string) => arabicMatch(cell || '', needle, matchOpts);
+      const hitAny = (r: Record<string, string>, primaryKey: string, needle: string) => {
+        if (primaryKey && eq(r[primaryKey] || '', needle)) return true;
+        return extraKeys.some((k) => arabicMatch(r[k] || '', needle, { ...matchOpts, mode: matchOpts.mode === 'exact' ? 'contains' : matchOpts.mode }));
+      };
+      const matchers: Record<string, ((r: Record<string, string>) => boolean) | null> = {
+        name:       identity.name && (nameKey || extraKeys.length) ? (r) => hitAny(r, nameKey, identity.name) : null,
+        department: identity.department && (deptKey || extraKeys.length) ? (r) => hitAny(r, deptKey, identity.department) : null,
+        college:    identity.college && (collKey || extraKeys.length) ? (r) => hitAny(r, collKey, identity.college) : null,
+      };
+
       // New granular criteria take precedence; otherwise fall back to the legacy scope.
       let criteria = (def.teacher_scope_criteria || []).filter(Boolean) as string[];
       if (criteria.length === 0) {

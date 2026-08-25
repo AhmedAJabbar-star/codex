@@ -65,6 +65,10 @@ const HEADERS = [
   // v14 additions (identity scoping, single response, option limits,
   // linked systems, audit columns, delete archiving, QR input):
   "teacher_college_column", "teacher_scope_criteria_json", "teacher_scope_logic",
+  // v24 additions (Arabic fuzzy identity matching):
+  "teacher_match_mode", "teacher_match_normalize", "teacher_match_ignore_spaces",
+  "teacher_match_prefix_len", "teacher_match_threshold", "teacher_extra_match_columns",
+
   "single_response_enabled", "single_response_column", "single_response_allow_edit",
   "option_limits_json", "linked_systems_json",
   "audit_enabled", "audit_created_by_column", "audit_created_at_column",
@@ -301,6 +305,13 @@ function rowToSystem(r: Record<string, string>) {
     teacher_college_column: clean(r.teacher_college_column).toUpperCase(),
     teacher_scope_criteria: parseJson(r.teacher_scope_criteria_json || "[]", []),
     teacher_scope_logic: clean(r.teacher_scope_logic) === "all" ? "all" : "any",
+    teacher_match_mode: (["exact","contains","prefix","similarity"].includes(clean(r.teacher_match_mode)) ? clean(r.teacher_match_mode) : "exact"),
+    teacher_match_normalize: String(r.teacher_match_normalize || "true").toLowerCase() !== "false",
+    teacher_match_ignore_spaces: String(r.teacher_match_ignore_spaces || "true").toLowerCase() !== "false",
+    teacher_match_prefix_len: Number(r.teacher_match_prefix_len || 15) || 15,
+    teacher_match_threshold: Number(r.teacher_match_threshold || 85) || 85,
+    teacher_extra_match_columns: clean(r.teacher_extra_match_columns).toUpperCase(),
+
     single_response_enabled: String(r.single_response_enabled || "").toLowerCase() === "true",
     single_response_column: clean(r.single_response_column).toUpperCase(),
     single_response_allow_edit: String(r.single_response_allow_edit || "true").toLowerCase() !== "false",
@@ -395,6 +406,13 @@ async function systemToRow(s: any): Promise<string[]> {
     teacher_college_column: String(s.teacher_college_column || "").toUpperCase(),
     teacher_scope_criteria_json: JSON.stringify(s.teacher_scope_criteria || []),
     teacher_scope_logic: String(s.teacher_scope_logic || "any") === "all" ? "all" : "any",
+    teacher_match_mode: (["exact","contains","prefix","similarity"].includes(String(s.teacher_match_mode || "")) ? String(s.teacher_match_mode) : "exact"),
+    teacher_match_normalize: String(s.teacher_match_normalize === false ? "false" : "true"),
+    teacher_match_ignore_spaces: String(s.teacher_match_ignore_spaces === false ? "false" : "true"),
+    teacher_match_prefix_len: String(Number(s.teacher_match_prefix_len) || 15),
+    teacher_match_threshold: String(Number(s.teacher_match_threshold) || 85),
+    teacher_extra_match_columns: String(s.teacher_extra_match_columns || "").toUpperCase(),
+
     single_response_enabled: String(!!s.single_response_enabled),
     single_response_column: String(s.single_response_column || "").toUpperCase(),
     single_response_allow_edit: String(s.single_response_allow_edit === false ? "false" : "true"),

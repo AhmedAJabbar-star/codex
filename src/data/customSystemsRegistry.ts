@@ -222,6 +222,19 @@ export interface CustomSystemDef {
   teacher_scope_criteria?: IdentityCriterion[];
   /** 'all' = every selected criterion must match, 'any' = at least one. Default 'any'. */
   teacher_scope_logic?: 'all' | 'any';
+  /** 🔤 وضع مطابقة الهوية: تام / يحتوي / أول N حرف / نسبة تشابه. الافتراضي 'exact'. */
+  teacher_match_mode?: 'exact' | 'contains' | 'prefix' | 'similarity';
+  /** تفعيل تطبيع الحروف العربية (أ/إ/آ→ا، ة→ه، ى→ي، ؤ→و، ئ→ي). الافتراضي مفعّل. */
+  teacher_match_normalize?: boolean;
+  /** إهمال المسافات عند المقارنة. الافتراضي مفعّل. */
+  teacher_match_ignore_spaces?: boolean;
+  /** عدد الحروف المعتمدة في وضع «أول N حرف». الافتراضي 15. */
+  teacher_match_prefix_len?: number;
+  /** الحد الأدنى لنسبة التشابه (0-100) في وضع النسبة. الافتراضي 85. */
+  teacher_match_threshold?: number;
+  /** أعمدة إضافية (أحرف Excel مفصولة بفواصل) يُبحث فيها عن اسم المستخدم — مثل عمود «النصوص». */
+  teacher_extra_match_columns?: string;
+
 
   /** 🔒 Allow each user to add only one record in this system. */
   single_response_enabled?: boolean;
@@ -474,6 +487,13 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   teacher_college_column: '',
   teacher_scope_criteria: [],
   teacher_scope_logic: 'any',
+  teacher_match_mode: 'exact',
+  teacher_match_normalize: true,
+  teacher_match_ignore_spaces: true,
+  teacher_match_prefix_len: 15,
+  teacher_match_threshold: 85,
+  teacher_extra_match_columns: '',
+
   single_response_enabled: false,
   single_response_column: '',
   single_response_allow_edit: true,

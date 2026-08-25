@@ -1011,8 +1011,89 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         </div>
                       </div>
                     )}
+
+                    {/* 🔤 دقة مطابقة الهوية — يعالج فروقات الكتابة العربية */}
+                    <div className="border-2 rounded-lg p-3 bg-amber-50/60 border-amber-200 space-y-2">
+                      <strong className="text-xs block">🔤 دقة مطابقة الهوية (تطابق تام أو جزئي)</strong>
+                      <p className="text-[11px] text-slate-600">
+                        يعالج فروقات العربية تلقائياً (أ/إ/آ ← ا، ة ← ه، ى ← ي، ؤ ← و، ئ ← ي) ويهمل المسافات والتشكيل،
+                        تماماً مثل معادلة SUBSTITUTE/TRIM/LEFT في Excel.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-black mb-1">وضع المطابقة</label>
+                          <select
+                            className="schedule-select w-full"
+                            value={s.teacher_match_mode || 'exact'}
+                            onChange={(e) => patch({ teacher_match_mode: e.target.value as any })}
+                          >
+                            <option value="exact">تطابق تام (بعد التطبيع)</option>
+                            <option value="contains">تطابق جزئي — الاسم موجود ضمن النص</option>
+                            <option value="prefix">أول N حرف (مثل معادلة LEFT)</option>
+                            <option value="similarity">نسبة تشابه ٪</option>
+                          </select>
+                        </div>
+                        {s.teacher_match_mode === 'prefix' && (
+                          <div>
+                            <label className="block text-xs font-black mb-1">عدد الحروف المعتمدة</label>
+                            <input
+                              type="number" min={3} max={60}
+                              className="schedule-select w-full"
+                              value={s.teacher_match_prefix_len ?? 15}
+                              onChange={(e) => patch({ teacher_match_prefix_len: Number(e.target.value) || 15 })}
+                              placeholder="15"
+                            />
+                          </div>
+                        )}
+                        {s.teacher_match_mode === 'similarity' && (
+                          <div>
+                            <label className="block text-xs font-black mb-1">الحد الأدنى للتشابه (٪)</label>
+                            <input
+                              type="number" min={50} max={100}
+                              className="schedule-select w-full"
+                              value={s.teacher_match_threshold ?? 85}
+                              onChange={(e) => patch({ teacher_match_threshold: Number(e.target.value) || 85 })}
+                              placeholder="85"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-4">
+                        <label className="flex items-center gap-1 text-xs font-bold">
+                          <input
+                            type="checkbox"
+                            checked={s.teacher_match_normalize !== false}
+                            onChange={(e) => patch({ teacher_match_normalize: e.target.checked })}
+                          />
+                          توحيد الحروف العربية (إزالة الفوارق)
+                        </label>
+                        <label className="flex items-center gap-1 text-xs font-bold">
+                          <input
+                            type="checkbox"
+                            checked={s.teacher_match_ignore_spaces !== false}
+                            onChange={(e) => patch({ teacher_match_ignore_spaces: e.target.checked })}
+                          />
+                          إهمال المسافات
+                        </label>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black mb-1">
+                          أعمدة إضافية يُبحث فيها عن الهوية (أحرف Excel مفصولة بفواصل)
+                        </label>
+                        <input
+                          className="schedule-select w-full"
+                          value={s.teacher_extra_match_columns || ''}
+                          onChange={(e) => patch({ teacher_extra_match_columns: e.target.value.toUpperCase() })}
+                          placeholder="مثال: R, T — مفيد إذا كان الاسم والقسم داخل عمود نصوص واحد"
+                        />
+                        <span className="block text-[11px] text-slate-600 mt-1">
+                          يُقبل الصف إذا ظهرت الهوية في العمود الأساسي أو في أي من هذه الأعمدة (بحث جزئي داخل النص).
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
+
 
               </div>
 
