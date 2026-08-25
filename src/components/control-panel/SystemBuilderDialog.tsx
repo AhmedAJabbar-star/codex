@@ -1016,8 +1016,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     <div className="border-2 rounded-lg p-3 bg-amber-50/60 border-amber-200 space-y-2">
                       <strong className="text-xs block">🔤 دقة مطابقة الهوية (تطابق تام أو جزئي)</strong>
                       <p className="text-[11px] text-slate-600">
-                        يعالج فروقات العربية تلقائياً (أ/إ/آ ← ا، ة ← ه، ى ← ي، ؤ ← و، ئ ← ي) ويهمل المسافات والتشكيل،
-                        تماماً مثل معادلة SUBSTITUTE/TRIM/LEFT في Excel.
+                        يعالج فروقات العربية تلقائياً (أ/إ/آ ← ا، ة ← ه، ى ← ي، ؤ ← و، ئ ← ي) ويهمل المسافات والتشكيل.
+                        مثال: «احمد عبدالامير جبار عيسى» يطابق «احمد عبد الامير» عند اختيار وضع «تطابق جزئي».
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div>
