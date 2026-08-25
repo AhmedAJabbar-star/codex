@@ -429,12 +429,16 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
             </table>
           )}
         </div>
-        <footer className="px-5 py-3 border-t bg-white flex justify-end gap-2">
-          <button onClick={onClose} disabled={busy} className="schedule-btn">إلغاء</button>
-          <button onClick={save} disabled={busy} className="schedule-btn schedule-btn-primary">{busy ? '⏳…' : '💾 حفظ'}</button>
+        <footer className="px-5 py-3 border-t bg-white flex flex-wrap justify-between items-center gap-2 shrink-0">
+          <span className="text-[11px] text-slate-500">عدد الأنظمة المخصّصة: {Object.keys(perms.systems || {}).length}</span>
+          <div className="flex gap-2">
+            <button onClick={onClose} disabled={busy} className="schedule-btn">✕ إلغاء</button>
+            <button onClick={save} disabled={busy} className="schedule-btn schedule-btn-primary">{busy ? '⏳…' : '💾 حفظ'}</button>
+          </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
