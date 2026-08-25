@@ -491,6 +491,8 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   teacher_scope_criteria: [],
   teacher_scope_logic: 'any',
   teacher_match_mode: 'exact',
+  teacher_match_min_tokens: 2,
+
   teacher_match_normalize: true,
   teacher_match_ignore_spaces: true,
   teacher_match_prefix_len: 15,
