@@ -349,6 +349,21 @@ const PermissionsDialog = ({ user, systems, onClose, onSaved }: {
     () => (((user as any).permissions as UserPermissions) || { systems: {} })
   );
   const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState('');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [busy, onClose]);
+
+  const shown = useMemo(() => {
+    const s = q.trim();
+    return s ? systems.filter((x) => (x.title || '').includes(s)) : systems;
+  }, [systems, q]);
+
 
   const togglePerm = (sysId: string, key: 'view' | 'add' | 'edit' | 'delete') => {
     setPerms((p) => {
