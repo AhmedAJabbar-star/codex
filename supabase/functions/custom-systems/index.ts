@@ -406,6 +406,13 @@ async function systemToRow(s: any): Promise<string[]> {
     teacher_college_column: String(s.teacher_college_column || "").toUpperCase(),
     teacher_scope_criteria_json: JSON.stringify(s.teacher_scope_criteria || []),
     teacher_scope_logic: String(s.teacher_scope_logic || "any") === "all" ? "all" : "any",
+    teacher_match_mode: (["exact","contains","prefix","similarity"].includes(String(s.teacher_match_mode || "")) ? String(s.teacher_match_mode) : "exact"),
+    teacher_match_normalize: String(s.teacher_match_normalize === false ? "false" : "true"),
+    teacher_match_ignore_spaces: String(s.teacher_match_ignore_spaces === false ? "false" : "true"),
+    teacher_match_prefix_len: String(Number(s.teacher_match_prefix_len) || 15),
+    teacher_match_threshold: String(Number(s.teacher_match_threshold) || 85),
+    teacher_extra_match_columns: String(s.teacher_extra_match_columns || "").toUpperCase(),
+
     single_response_enabled: String(!!s.single_response_enabled),
     single_response_column: String(s.single_response_column || "").toUpperCase(),
     single_response_allow_edit: String(s.single_response_allow_edit === false ? "false" : "true"),
