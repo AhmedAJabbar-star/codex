@@ -622,11 +622,20 @@ Deno.serve(async (req) => {
     // فشل سابق: أعد المحاولة بعد 30 ثانية فقط (بدل 5 دقائق) حتى يتعافى النظام سريعاً من أعطال الشبكة العابرة.
     let sheetsReady = bootstrapState.ready;
     if (!bootstrapState.done || (!bootstrapState.ready && (Date.now() - bootstrapState.lastTry) > 30_000)) {
+      // سقف زمني إجمالي 45 ثانية للتهيئة حتى لا تتجاوز الدالة حدّها الزمني عند انقطاع Google.
+      const BOOTSTRAP_BUDGET_MS = 45_000;
+      const budgetTimer = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("bootstrap budget exceeded")), BOOTSTRAP_BUDGET_MS));
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
-          await ensureSheet("users", USERS_HEADERS);
-          await ensureSheet("archive", ARCHIVE_HEADERS);
-          await ensureAdmin();
+          await Promise.race([
+            (async () => {
+              await ensureSheet("users", USERS_HEADERS);
+              await ensureSheet("archive", ARCHIVE_HEADERS);
+              await ensureAdmin();
+            })(),
+            budgetTimer,
+          ]);
           bootstrapState = { done: true, ready: true, lastTry: Date.now() };
           sheetsReady = true;
           break;
