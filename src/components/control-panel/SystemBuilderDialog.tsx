@@ -1029,8 +1029,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                           >
                             <option value="exact">تطابق تام (بعد التطبيع)</option>
                             <option value="contains">تطابق جزئي — الاسم موجود ضمن النص</option>
+                            <option value="tokens">أجزاء الاسم — يقبل الثنائي مقابل الرباعي (موصى به)</option>
                             <option value="prefix">أول N حرف (مثل معادلة LEFT)</option>
                             <option value="similarity">نسبة تشابه ٪</option>
+
                           </select>
                         </div>
                         {s.teacher_match_mode === 'prefix' && (
