@@ -65,6 +65,10 @@ const HEADERS = [
   // v14 additions (identity scoping, single response, option limits,
   // linked systems, audit columns, delete archiving, QR input):
   "teacher_college_column", "teacher_scope_criteria_json", "teacher_scope_logic",
+  // v24 additions (Arabic fuzzy identity matching):
+  "teacher_match_mode", "teacher_match_normalize", "teacher_match_ignore_spaces",
+  "teacher_match_prefix_len", "teacher_match_threshold", "teacher_extra_match_columns",
+
   "single_response_enabled", "single_response_column", "single_response_allow_edit",
   "option_limits_json", "linked_systems_json",
   "audit_enabled", "audit_created_by_column", "audit_created_at_column",
