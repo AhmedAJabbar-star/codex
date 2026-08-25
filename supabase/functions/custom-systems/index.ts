@@ -94,7 +94,7 @@ function clean(s: any) { return (s ?? "").toString().replace(/^\uFEFF/, "").trim
 
 /* ---------- Service Account JWT ---------- */
 let cachedToken: { token: string; exp: number } | null = null;
-const GOOGLE_ATTEMPT_MS = 20_000;
+const GOOGLE_ATTEMPT_MS = 12_000;
 const TRANSIENT_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 type GoogleResponse = { ok: boolean; status: number; text: string };
@@ -528,7 +528,7 @@ const maskSystem = (s: any) => ({
 });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: responseCorsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || "list");
@@ -539,7 +539,7 @@ Deno.serve(async (req) => {
         return json(listCache.payload);
       }
       try {
-        const all = await readAll();
+        const all = await readAll(false);
         const payload = { systems: all.map(rowToSystem).map(maskSystem) };
         listCache = { at: Date.now(), payload };
         return json(payload);
@@ -554,7 +554,7 @@ Deno.serve(async (req) => {
     if (action === "verify") {
       const id = clean(body?.id);
       if (!id) return json({ error: "id مطلوب" }, 400);
-      const all = await readAll();
+      const all = await readAll(false);
       const row = all.find((r) => clean(r.id) === id);
       if (!row) return json({ ok: false });
       const expected = String((rowToSystem(row) as any).password || "");
@@ -578,7 +578,7 @@ Deno.serve(async (req) => {
       if (sys.id && !(originalId && rawId === originalId)) {
         sys.id = String(sys.id).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
       }
-      const all = await readAll();
+      const all = await readAll(false);
       if (!sys.id) sys.id = slugify(sys.title);
       // Rename: locate row by originalId when it changed.
       const lookupId = originalId && originalId !== sys.id ? originalId : sys.id;
@@ -669,7 +669,7 @@ Deno.serve(async (req) => {
 
       // Enforce per-system CRUD permissions (looks up the system by gid+url within registry).
       try {
-        const all = await readAll();
+        const all = await readAll(false);
         const candidates = all.map(rowToSystem).filter((s: any) => clean(s.sheet_gid) === gid && (
           (s.sheet_source === 'external' ? clean(s.sheet_url) === externalUrl : !externalUrl)
         ));
@@ -715,11 +715,12 @@ Deno.serve(async (req) => {
 
       const gapiX = async (path: string, init: RequestInit = {}) => {
         const token = await getAccessToken();
-        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`, {
+        const method = String(init.method || "GET").toUpperCase();
+        const res = await googleRequest(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`, {
           ...init,
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
-        });
-        const text = await res.text();
+        }, { label: "Google Sheets للورقة المصدر", retrySafe: method === "GET" });
+        const text = res.text;
         let data: any = null;
         try { data = text ? JSON.parse(text) : null; } catch { data = text; }
         if (!res.ok) throw sheetsError(res.status, data, spreadsheetId);
@@ -921,11 +922,12 @@ Deno.serve(async (req) => {
             }
             const token = await getAccessToken();
             const gapiA = async (path: string, init: RequestInit = {}) => {
-              const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${archiveSpreadsheetId}${path}`, {
+              const method = String(init.method || "GET").toUpperCase();
+              const res = await googleRequest(`https://sheets.googleapis.com/v4/spreadsheets/${archiveSpreadsheetId}${path}`, {
                 ...init,
                 headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
-              });
-              const t = await res.text();
+              }, { label: "Google Sheets للأرشيف", retrySafe: method === "GET" });
+              const t = res.text;
               if (!res.ok) throw sheetsError(res.status, t, archiveSpreadsheetId);
               return t ? JSON.parse(t) : null;
             };
