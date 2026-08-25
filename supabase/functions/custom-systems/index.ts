@@ -305,6 +305,13 @@ function rowToSystem(r: Record<string, string>) {
     teacher_college_column: clean(r.teacher_college_column).toUpperCase(),
     teacher_scope_criteria: parseJson(r.teacher_scope_criteria_json || "[]", []),
     teacher_scope_logic: clean(r.teacher_scope_logic) === "all" ? "all" : "any",
+    teacher_match_mode: (["exact","contains","prefix","similarity"].includes(clean(r.teacher_match_mode)) ? clean(r.teacher_match_mode) : "exact"),
+    teacher_match_normalize: String(r.teacher_match_normalize || "true").toLowerCase() !== "false",
+    teacher_match_ignore_spaces: String(r.teacher_match_ignore_spaces || "true").toLowerCase() !== "false",
+    teacher_match_prefix_len: Number(r.teacher_match_prefix_len || 15) || 15,
+    teacher_match_threshold: Number(r.teacher_match_threshold || 85) || 85,
+    teacher_extra_match_columns: clean(r.teacher_extra_match_columns).toUpperCase(),
+
     single_response_enabled: String(r.single_response_enabled || "").toLowerCase() === "true",
     single_response_column: clean(r.single_response_column).toUpperCase(),
     single_response_allow_edit: String(r.single_response_allow_edit || "true").toLowerCase() !== "false",
