@@ -99,10 +99,44 @@ function arabicTokensRaw(input: string): string[] {
     .filter((t) => t.length > 1 && !TITLES.has(t));
 }
 
+/** كلمات وصل/سرد شائعة: لا تُعتبر أجزاء اسم أبداً. */
+const FILLERS = new Set(['الى', 'إلى', 'من', 'ومن', 'ثم', 'كان', 'كانت', 'في', 'على', 'عن', 'مع', 'الذي', 'التي', 'يذهب', 'ذهب', 'و', 'او', 'ال']);
+
+/** يطابق تتابع أجزاء الاسم داخل مصفوفة كلمات، مع السماح بفاصل كلمة واحدة
+ *  ودمج كلمتين متتاليتين («عبد» + «الامير» = «عبدالامير»). يعيد أطول تتابع مطابق. */
+function orderedRun(hay: string[], needle: string[]): number {
+  let best = 0;
+  for (let start = 0; start < hay.length; start++) {
+    let i = start;
+    let j = 0;
+    let matched = 0;
+    let gapUsed = false;
+    while (i < hay.length && j < needle.length) {
+      const one = hay[i];
+      const two = i + 1 < hay.length ? hay[i] + hay[i + 1] : '';
+      if (one === needle[j]) {
+        matched++; i += 1; j += 1; gapUsed = false; continue;
+      }
+      if (two && two === needle[j]) {
+        matched++; i += 2; j += 1; gapUsed = false; continue;
+      }
+      if (!gapUsed && matched > 0) {
+        gapUsed = true; i += 1; continue;
+      }
+      break;
+    }
+    if (matched > best) best = matched;
+    if (best >= needle.length) break;
+  }
+  return best;
+}
+
 /** يطابق الأسماء الجزئية: «هبة أحمد» ↔ «هبه أحمد علي حسن».
  *  كما يتعامل مع الأسماء الملتصقة مقابل المفصولة: «عبدالامير» ↔ «عبد الامير».
+ *  عند `requireAdjacent` (الافتراضي) يجب أن تكون أجزاء الاسم متتابعة داخل النص،
+ *  فلا تتحقّق المطابقة إذا كانت الكلمات متفرّقة في جملة سردية طويلة.
  */
-export function tokensMatch(cell: string, needle: string, minTokens = 2): boolean {
+export function tokensMatch(cell: string, needle: string, minTokens = 2, requireAdjacent = true): boolean {
   const a = arabicTokens(cell);
   const b = arabicTokens(needle);
   if (!a.length || !b.length) return false;
@@ -112,11 +146,23 @@ export function tokensMatch(cell: string, needle: string, minTokens = 2): boolea
   const rawB = arabicTokensRaw(needle).join('');
   if (rawA.includes(rawB) || rawB.includes(rawA)) return true;
 
+  const nameA = arabicTokensRaw(cell).filter((t) => !FILLERS.has(t));
+  const nameB = arabicTokensRaw(needle).filter((t) => !FILLERS.has(t));
+  if (!nameA.length || !nameB.length) return false;
+  const need = Math.max(1, Math.min(minTokens, Math.min(nameA.length, nameB.length)));
+
+  if (requireAdjacent) {
+    const hayA = arabicTokensRaw(cell);
+    const hayB = arabicTokensRaw(needle);
+    const run = Math.max(orderedRun(hayA, nameB), orderedRun(hayB, nameA));
+    return run >= need;
+  }
+
   const setA = new Set(a);
   const common = b.filter((t) => setA.has(t)).length;
-  const need = Math.max(1, Math.min(minTokens, Math.min(a.length, b.length)));
   return common >= need;
 }
+
 
 
 
