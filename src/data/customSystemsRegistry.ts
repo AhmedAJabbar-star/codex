@@ -487,6 +487,13 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   teacher_college_column: '',
   teacher_scope_criteria: [],
   teacher_scope_logic: 'any',
+  teacher_match_mode: 'exact',
+  teacher_match_normalize: true,
+  teacher_match_ignore_spaces: true,
+  teacher_match_prefix_len: 15,
+  teacher_match_threshold: 85,
+  teacher_extra_match_columns: '',
+
   single_response_enabled: false,
   single_response_column: '',
   single_response_allow_edit: true,
