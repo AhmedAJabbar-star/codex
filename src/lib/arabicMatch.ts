@@ -92,6 +92,13 @@ export function arabicTokens(input: string): string[] {
     .filter((t) => t.length > 1 && !TITLES.has(t));
 }
 
+/** يعيد أجزاء النص قبل إزالة التعريف «ال»؛ مفيد للمقارنة الملتصقة/المفصولة. */
+function arabicTokensRaw(input: string): string[] {
+  return normalizeArabic(input, false)
+    .split(' ')
+    .filter((t) => t.length > 1 && !TITLES.has(t));
+}
+
 /** يطابق الأسماء الجزئية: «هبة أحمد» ↔ «هبه أحمد علي حسن».
  *  كما يتعامل مع الأسماء الملتصقة مقابل المفصولة: «عبدالامير» ↔ «عبد الامير».
  */
@@ -101,9 +108,9 @@ export function tokensMatch(cell: string, needle: string, minTokens = 2): boolea
   if (!a.length || !b.length) return false;
 
   // ✅ حالة خاصة: الاسم الملتصق مقابل المفصول (عبدالامير vs عبد الامير)
-  const joinedA = a.join('');
-  const joinedB = b.join('');
-  if (joinedA.includes(joinedB) || joinedB.includes(joinedA)) return true;
+  const rawA = arabicTokensRaw(cell).join('');
+  const rawB = arabicTokensRaw(needle).join('');
+  if (rawA.includes(rawB) || rawB.includes(rawA)) return true;
 
   const setA = new Set(a);
   const common = b.filter((t) => setA.has(t)).length;
