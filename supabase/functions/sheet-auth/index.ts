@@ -197,14 +197,23 @@ async function getAccessToken(): Promise<string> {
     await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned)),
   );
   const jwt = `${unsigned}.${b64url(sig)}`;
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-    signal: AbortSignal.timeout(15_000),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(`OAuth failed: ${JSON.stringify(data)}`);
+  let res: Response | null = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      res = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+        signal: AbortSignal.timeout(15_000),
+      });
+      break;
+    } catch (e) {
+      if (attempt === 3) throw e;
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
+  const data = await res!.json();
+  if (!res!.ok) throw new Error(`OAuth failed: ${JSON.stringify(data)}`);
   cachedToken = { token: data.access_token, exp: now + (data.expires_in || 3600) };
   return cachedToken.token;
 }
