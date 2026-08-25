@@ -121,6 +121,7 @@ let cachedToken: { token: string; exp: number } | null = null;
 let fallbackUsersCache: { users: Record<string, string>[]; exp: number } | null = null;
 let runtimeConnection: { sheetId: string; saJson: string; assignmentsCsv: string } | null = null;
 let bootstrapState: { done: boolean; ready: boolean; lastTry: number } = { done: false, ready: false, lastTry: 0 };
+let ensuredSheetCache: Record<string, { exp: number }> = {};
 function getConnection() {
   return runtimeConnection || { sheetId: DEFAULT_SHEET_ID, saJson: DEFAULT_SA_JSON, assignmentsCsv: DEFAULT_ASSIGNMENTS_CSV };
 }
@@ -134,6 +135,7 @@ function setConnectionFromBody(body: any) {
   runtimeConnection = { sheetId, saJson, assignmentsCsv };
   cachedToken = null;
   fallbackUsersCache = null;
+  ensuredSheetCache = {};
   bootstrapState = { done: false, ready: false, lastTry: 0 };
 }
 
@@ -204,7 +206,7 @@ async function getAccessToken(): Promise<string> {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(8_000),
       });
       break;
     } catch (e) {
@@ -229,7 +231,7 @@ async function gapiOnce(path: string, init: RequestInit = {}) {
   const token = await getAccessToken();
   const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${getConnection().sheetId}${path}`, {
     ...init,
-    signal: (init as any).signal ?? AbortSignal.timeout(25_000),
+    signal: (init as any).signal ?? AbortSignal.timeout(10_000),
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -247,7 +249,7 @@ async function gapiOnce(path: string, init: RequestInit = {}) {
 async function gapi(path: string, init: RequestInit = {}) {
   const method = (init.method || "GET").toUpperCase();
   const idempotent = method === "GET";
-  const maxAttempts = idempotent ? 3 : 2;
+  const maxAttempts = idempotent ? 2 : 1;
   let lastErr: unknown = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -262,6 +264,8 @@ async function gapi(path: string, init: RequestInit = {}) {
 }
 
 async function ensureSheet(title: string, headers: string[]) {
+  const cached = ensuredSheetCache[title];
+  if (cached && cached.exp > Date.now()) return;
   const meta = await gapi("?fields=sheets(properties(title))");
   const exists = (meta.sheets || []).some((s: any) => s.properties?.title === title);
   if (!exists) {
@@ -275,6 +279,7 @@ async function ensureSheet(title: string, headers: string[]) {
       method: "PUT",
       body: JSON.stringify({ values: [headers] }),
     });
+    ensuredSheetCache[title] = { exp: Date.now() + 5 * 60_000 };
     return;
   }
   // Make sure headers exist and include all expected columns (extend if needed).
@@ -285,6 +290,7 @@ async function ensureSheet(title: string, headers: string[]) {
       method: "PUT",
       body: JSON.stringify({ values: [headers] }),
     });
+    ensuredSheetCache[title] = { exp: Date.now() + 5 * 60_000 };
     return;
   }
   const missing = headers.filter((h) => !current.includes(h));
@@ -294,6 +300,7 @@ async function ensureSheet(title: string, headers: string[]) {
       body: JSON.stringify({ values: [[...current, ...missing]] }),
     });
   }
+  ensuredSheetCache[title] = { exp: Date.now() + 5 * 60_000 };
 }
 
 async function readAll(title: string, headers: string[]): Promise<Record<string,string>[]> {
@@ -432,15 +439,19 @@ async function findUserById(id: string) {
 }
 
 async function archive(action: string, full_name: string, performed_by: string, user_id = "") {
-  await ensureSheet("archive", ARCHIVE_HEADERS);
-  await appendRow("archive", ARCHIVE_HEADERS, {
-    id: uuid(),
-    timestamp: new Date().toISOString(),
-    user_id,
-    full_name,
-    action,
-    performed_by,
-  });
+  try {
+    await ensureSheet("archive", ARCHIVE_HEADERS);
+    await appendRow("archive", ARCHIVE_HEADERS, {
+      id: uuid(),
+      timestamp: new Date().toISOString(),
+      user_id,
+      full_name,
+      action,
+      performed_by,
+    });
+  } catch (e) {
+    console.warn("Archive write skipped:", (e as Error).message);
+  }
 }
 
 /* ---------------- Bootstrap (admin + sync from assignments CSV) ---------------- */
