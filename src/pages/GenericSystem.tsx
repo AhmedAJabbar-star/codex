@@ -8,6 +8,8 @@ import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta
 import { fetchSheetByGid, type SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession } from '@/lib/teacherAuth';
+import { arabicMatch } from '@/lib/arabicMatch';
+
 import { getBranding } from '@/lib/systemAccess';
 import { getEffectivePerms } from '@/lib/permissions';
 import { applyUiTheme, getUiTheme, type UiTheme } from '@/lib/uiTheme';
