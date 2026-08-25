@@ -221,6 +221,8 @@ export function buildConfigFromDef(
         ignoreSpaces: def.teacher_match_ignore_spaces !== false,
         prefixLen: Number(def.teacher_match_prefix_len) || 15,
         threshold: Number(def.teacher_match_threshold) || 85,
+        minTokens: Number(def.teacher_match_min_tokens) || 2,
+
       };
       // Extra columns that may contain the identity inside a longer text (e.g. «النصوص»).
       const extraKeys = String(def.teacher_extra_match_columns || '')
