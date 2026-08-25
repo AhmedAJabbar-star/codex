@@ -6,7 +6,7 @@
  * =LEFT(SUBSTITUTE(...TRIM(R7)," ","")...,15)
  */
 
-export type ArabicMatchMode = 'exact' | 'contains' | 'prefix' | 'similarity';
+export type ArabicMatchMode = 'exact' | 'contains' | 'prefix' | 'similarity' | 'tokens';
 
 /** يزيل الفوارق الشكلية المعروفة في العربية ويهمل المسافات (اختياري). */
 export function normalizeArabic(input: string, ignoreSpaces = true): string {
