@@ -226,6 +226,8 @@ export interface CustomSystemDef {
   teacher_match_mode?: 'exact' | 'contains' | 'prefix' | 'similarity' | 'tokens';
   /** أقل عدد أجزاء اسم متطابقة في وضع «أجزاء الاسم». الافتراضي 2. */
   teacher_match_min_tokens?: number;
+  /** تشديد التجاور: أجزاء الاسم يجب أن تكون متتابعة في النص (يمنع التطابق الخاطئ في الجمل السردية). الافتراضي مفعّل. */
+  teacher_match_adjacent?: boolean;
 
   /** تفعيل تطبيع الحروف العربية (أ/إ/آ→ا، ة→ه، ى→ي، ؤ→و، ئ→ي). الافتراضي مفعّل. */
   teacher_match_normalize?: boolean;
@@ -492,6 +494,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   teacher_scope_logic: 'any',
   teacher_match_mode: 'exact',
   teacher_match_min_tokens: 2,
+  teacher_match_adjacent: true,
 
   teacher_match_normalize: true,
   teacher_match_ignore_spaces: true,

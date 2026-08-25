@@ -68,7 +68,7 @@ const HEADERS = [
   // v24 additions (Arabic fuzzy identity matching):
   "teacher_match_mode", "teacher_match_normalize", "teacher_match_ignore_spaces",
   "teacher_match_prefix_len", "teacher_match_threshold", "teacher_extra_match_columns",
-  "teacher_match_min_tokens",
+  "teacher_match_min_tokens", "teacher_match_adjacent",
 
   "single_response_enabled", "single_response_column", "single_response_allow_edit",
   "option_limits_json", "linked_systems_json",
@@ -312,6 +312,7 @@ function rowToSystem(r: Record<string, string>) {
     teacher_match_prefix_len: Number(r.teacher_match_prefix_len || 15) || 15,
     teacher_match_threshold: Number(r.teacher_match_threshold || 85) || 85,
     teacher_match_min_tokens: Number(r.teacher_match_min_tokens || 2) || 2,
+    teacher_match_adjacent: String(r.teacher_match_adjacent || "true").toLowerCase() !== "false",
     teacher_extra_match_columns: clean(r.teacher_extra_match_columns).toUpperCase(),
 
     single_response_enabled: String(r.single_response_enabled || "").toLowerCase() === "true",
@@ -414,6 +415,7 @@ async function systemToRow(s: any): Promise<string[]> {
     teacher_match_prefix_len: String(Number(s.teacher_match_prefix_len) || 15),
     teacher_match_threshold: String(Number(s.teacher_match_threshold) || 85),
     teacher_match_min_tokens: String(Number(s.teacher_match_min_tokens) || 2),
+    teacher_match_adjacent: String(s.teacher_match_adjacent === false ? "false" : "true"),
     teacher_extra_match_columns: String(s.teacher_extra_match_columns || "").toUpperCase(),
 
     single_response_enabled: String(!!s.single_response_enabled),
