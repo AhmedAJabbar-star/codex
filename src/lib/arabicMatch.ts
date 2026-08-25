@@ -6,7 +6,7 @@
  * =LEFT(SUBSTITUTE(...TRIM(R7)," ","")...,15)
  */
 
-export type ArabicMatchMode = 'exact' | 'contains' | 'prefix' | 'similarity';
+export type ArabicMatchMode = 'exact' | 'contains' | 'prefix' | 'similarity' | 'tokens';
 
 /** يزيل الفوارق الشكلية المعروفة في العربية ويهمل المسافات (اختياري). */
 export function normalizeArabic(input: string, ignoreSpaces = true): string {
@@ -79,7 +79,32 @@ export interface ArabicMatchOptions {
   prefixLen?: number;
   /** الحد الأدنى للتشابه في وضع النسبة. الافتراضي 85. */
   threshold?: number;
+  /** أقل عدد أجزاء اسم متطابقة في وضع «أجزاء الاسم». الافتراضي 2. */
+  minTokens?: number;
 }
+
+/** يقسّم النص إلى أجزاء (كلمات) مطبّعة، مع تجاهل الألقاب الشائعة. */
+const TITLES = new Set(['د', 'دكتور', 'الدكتور', 'ا', 'أ', 'است', 'استاذ', 'الاستاذ', 'م', 'مهندس', 'السيد', 'السيده', 'ام', 'ابو']);
+export function arabicTokens(input: string): string[] {
+  return normalizeArabic(input, false)
+    .split(' ')
+    .map((t) => t.replace(/^ال(?=.{3,})/, ''))
+    .filter((t) => t.length > 1 && !TITLES.has(t));
+}
+
+/** يطابق الأسماء الجزئية: «هبة أحمد» ↔ «هبه أحمد علي حسن». */
+export function tokensMatch(cell: string, needle: string, minTokens = 2): boolean {
+  const a = arabicTokens(cell);
+  const b = arabicTokens(needle);
+  if (!a.length || !b.length) return false;
+  const setA = new Set(a);
+  const common = b.filter((t) => setA.has(t)).length;
+  const need = Math.max(1, Math.min(minTokens, Math.min(a.length, b.length)));
+  return common >= need;
+}
+
+
+
 
 /**
  * يقارن قيمة خلية بقيمة هوية المستخدم وفق الخيارات.
@@ -103,12 +128,16 @@ export function arabicMatch(cell: string, needle: string, opts: ArabicMatchOptio
       const np = n.slice(0, len);
       return !!cp && (cp === np || c.includes(np));
     }
+    case 'tokens':
+      return tokensMatch(cell, needle, opts.minTokens ?? 2);
     case 'similarity': {
       const th = typeof opts.threshold === 'number' ? opts.threshold : 85;
       if (!c) return false;
       if (c.includes(n) || n.includes(c)) return true;
+      if (tokensMatch(cell, needle, opts.minTokens ?? 2)) return true;
       return similarityPct(c, n, ignoreSpaces) >= th;
     }
+
     case 'exact':
     default:
       return !!c && c === n;

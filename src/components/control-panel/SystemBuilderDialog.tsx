@@ -1029,8 +1029,10 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                           >
                             <option value="exact">تطابق تام (بعد التطبيع)</option>
                             <option value="contains">تطابق جزئي — الاسم موجود ضمن النص</option>
+                            <option value="tokens">أجزاء الاسم — يقبل الثنائي مقابل الرباعي (موصى به)</option>
                             <option value="prefix">أول N حرف (مثل معادلة LEFT)</option>
                             <option value="similarity">نسبة تشابه ٪</option>
+
                           </select>
                         </div>
                         {s.teacher_match_mode === 'prefix' && (
@@ -1057,7 +1059,23 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                             />
                           </div>
                         )}
+                        {(s.teacher_match_mode === 'tokens' || s.teacher_match_mode === 'similarity') && (
+                          <div>
+                            <label className="block text-xs font-black mb-1">أقل عدد أجزاء اسم متطابقة</label>
+                            <input
+                              type="number" min={1} max={4}
+                              className="schedule-select w-full"
+                              value={s.teacher_match_min_tokens ?? 2}
+                              onChange={(e) => patch({ teacher_match_min_tokens: Number(e.target.value) || 2 })}
+                              placeholder="2"
+                            />
+                            <span className="block text-[11px] text-slate-600 mt-1">
+                              مثال: «هبة أحمد» تطابق «هبه احمد علي حسن» عند القيمة 2.
+                            </span>
+                          </div>
+                        )}
                       </div>
+
                       <div className="flex flex-wrap gap-4">
                         <label className="flex items-center gap-1 text-xs font-bold">
                           <input

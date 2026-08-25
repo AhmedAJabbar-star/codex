@@ -223,7 +223,10 @@ export interface CustomSystemDef {
   /** 'all' = every selected criterion must match, 'any' = at least one. Default 'any'. */
   teacher_scope_logic?: 'all' | 'any';
   /** 🔤 وضع مطابقة الهوية: تام / يحتوي / أول N حرف / نسبة تشابه. الافتراضي 'exact'. */
-  teacher_match_mode?: 'exact' | 'contains' | 'prefix' | 'similarity';
+  teacher_match_mode?: 'exact' | 'contains' | 'prefix' | 'similarity' | 'tokens';
+  /** أقل عدد أجزاء اسم متطابقة في وضع «أجزاء الاسم». الافتراضي 2. */
+  teacher_match_min_tokens?: number;
+
   /** تفعيل تطبيع الحروف العربية (أ/إ/آ→ا، ة→ه، ى→ي، ؤ→و، ئ→ي). الافتراضي مفعّل. */
   teacher_match_normalize?: boolean;
   /** إهمال المسافات عند المقارنة. الافتراضي مفعّل. */
@@ -488,6 +491,8 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   teacher_scope_criteria: [],
   teacher_scope_logic: 'any',
   teacher_match_mode: 'exact',
+  teacher_match_min_tokens: 2,
+
   teacher_match_normalize: true,
   teacher_match_ignore_spaces: true,
   teacher_match_prefix_len: 15,
