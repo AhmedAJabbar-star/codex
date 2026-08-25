@@ -610,18 +610,27 @@ Deno.serve(async (req) => {
     const { action } = body as { action: string };
 
     // Try to initialize sheets/admin once per cold start to avoid Sheets API quota burn.
+    // فشل سابق: أعد المحاولة بعد 30 ثانية فقط (بدل 5 دقائق) حتى يتعافى النظام سريعاً من أعطال الشبكة العابرة.
     let sheetsReady = bootstrapState.ready;
-    if (!bootstrapState.done || (!bootstrapState.ready && (Date.now() - bootstrapState.lastTry) > 300_000)) {
-      try {
-        await ensureSheet("users", USERS_HEADERS);
-        await ensureSheet("archive", ARCHIVE_HEADERS);
-        await ensureAdmin();
-        bootstrapState = { done: true, ready: true, lastTry: Date.now() };
-        sheetsReady = true;
-      } catch (e) {
-        bootstrapState = { done: true, ready: false, lastTry: Date.now() };
-        sheetsReady = false;
-        console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
+    if (!bootstrapState.done || (!bootstrapState.ready && (Date.now() - bootstrapState.lastTry) > 30_000)) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          await ensureSheet("users", USERS_HEADERS);
+          await ensureSheet("archive", ARCHIVE_HEADERS);
+          await ensureAdmin();
+          bootstrapState = { done: true, ready: true, lastTry: Date.now() };
+          sheetsReady = true;
+          break;
+        } catch (e) {
+          bootstrapState = { done: true, ready: false, lastTry: Date.now() };
+          sheetsReady = false;
+          console.warn(`Sheets bootstrap unavailable (attempt ${attempt}/2):`, (e as Error).message);
+          if (attempt === 1 && isTransientNetError(e)) {
+            await new Promise((r) => setTimeout(r, 800));
+            continue;
+          }
+          break;
+        }
       }
     }
 
