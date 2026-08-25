@@ -626,7 +626,7 @@ Deno.serve(async (req) => {
       const BOOTSTRAP_BUDGET_MS = 20_000;
       const budgetTimer = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("bootstrap budget exceeded")), BOOTSTRAP_BUDGET_MS));
-      for (let attempt = 1; attempt <= 2; attempt++) {
+      for (let attempt = 1; attempt <= 1; attempt++) {
         try {
           await Promise.race([
             (async () => {
