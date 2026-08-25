@@ -1019,6 +1019,9 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         يعالج فروقات العربية تلقائياً (أ/إ/آ ← ا، ة ← ه، ى ← ي، ؤ ← و، ئ ← ي) ويهمل المسافات والتشكيل.
                         مثال: «احمد عبدالامير جبار عيسى» يطابق «احمد عبد الامير» عند اختيار وضع «تطابق جزئي».
                       </p>
+                      <p className="text-[11px] text-emerald-700 font-bold">
+                        🛡️ ملاحظة: المستخدم الذي دوره «مدير» في صلاحيات المستخدمين يرى كل السجلات دون أي شرط مطابقة.
+                      </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs font-black mb-1">وضع المطابقة</label>
