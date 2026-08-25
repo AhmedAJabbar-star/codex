@@ -197,24 +197,39 @@ async function getAccessToken(): Promise<string> {
     await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned)),
   );
   const jwt = `${unsigned}.${b64url(sig)}`;
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-    signal: AbortSignal.timeout(15_000),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(`OAuth failed: ${JSON.stringify(data)}`);
+  let res: Response | null = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      res = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+        signal: AbortSignal.timeout(15_000),
+      });
+      break;
+    } catch (e) {
+      if (attempt === 3) throw e;
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
+  const data = await res!.json();
+  if (!res!.ok) throw new Error(`OAuth failed: ${JSON.stringify(data)}`);
   cachedToken = { token: data.access_token, exp: now + (data.expires_in || 3600) };
   return cachedToken.token;
 }
 
 /* ---------------- Sheets API helpers ---------------- */
-async function gapi(path: string, init: RequestInit = {}) {
+const isTransientNetError = (e: unknown) => {
+  const msg = String((e as Error)?.message || e || "");
+  return (e as Error)?.name === "AbortError" || (e as Error)?.name === "TimeoutError"
+    || /timed out|timeout|network|fetch failed|connection/i.test(msg);
+};
+
+async function gapiOnce(path: string, init: RequestInit = {}) {
   const token = await getAccessToken();
   const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${getConnection().sheetId}${path}`, {
     ...init,
-    signal: (init as any).signal ?? AbortSignal.timeout(20_000),
+    signal: (init as any).signal ?? AbortSignal.timeout(25_000),
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -226,6 +241,24 @@ async function gapi(path: string, init: RequestInit = {}) {
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) throw new Error(`Sheets API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
   return data;
+}
+
+/** استدعاء Sheets API مع إعادة محاولة تلقائية عند انتهاء المهلة/أخطاء الشبكة العابرة. */
+async function gapi(path: string, init: RequestInit = {}) {
+  const method = (init.method || "GET").toUpperCase();
+  const idempotent = method === "GET";
+  const maxAttempts = idempotent ? 3 : 2;
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await gapiOnce(path, init);
+    } catch (e) {
+      lastErr = e;
+      if (!isTransientNetError(e) || attempt === maxAttempts) throw e;
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
+  throw lastErr;
 }
 
 async function ensureSheet(title: string, headers: string[]) {
@@ -586,18 +619,36 @@ Deno.serve(async (req) => {
     const { action } = body as { action: string };
 
     // Try to initialize sheets/admin once per cold start to avoid Sheets API quota burn.
+    // فشل سابق: أعد المحاولة بعد 30 ثانية فقط (بدل 5 دقائق) حتى يتعافى النظام سريعاً من أعطال الشبكة العابرة.
     let sheetsReady = bootstrapState.ready;
-    if (!bootstrapState.done || (!bootstrapState.ready && (Date.now() - bootstrapState.lastTry) > 300_000)) {
-      try {
-        await ensureSheet("users", USERS_HEADERS);
-        await ensureSheet("archive", ARCHIVE_HEADERS);
-        await ensureAdmin();
-        bootstrapState = { done: true, ready: true, lastTry: Date.now() };
-        sheetsReady = true;
-      } catch (e) {
-        bootstrapState = { done: true, ready: false, lastTry: Date.now() };
-        sheetsReady = false;
-        console.warn("Sheets bootstrap unavailable, using fallback mode:", (e as Error).message);
+    if (!bootstrapState.done || (!bootstrapState.ready && (Date.now() - bootstrapState.lastTry) > 30_000)) {
+      // سقف زمني إجمالي 20 ثانية للتهيئة حتى لا تتجاوز الدالة حدّها الزمني عند انقطاع Google.
+      const BOOTSTRAP_BUDGET_MS = 20_000;
+      const budgetTimer = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("bootstrap budget exceeded")), BOOTSTRAP_BUDGET_MS));
+      for (let attempt = 1; attempt <= 1; attempt++) {
+        try {
+          await Promise.race([
+            (async () => {
+              await ensureSheet("users", USERS_HEADERS);
+              await ensureSheet("archive", ARCHIVE_HEADERS);
+              await ensureAdmin();
+            })(),
+            budgetTimer,
+          ]);
+          bootstrapState = { done: true, ready: true, lastTry: Date.now() };
+          sheetsReady = true;
+          break;
+        } catch (e) {
+          bootstrapState = { done: true, ready: false, lastTry: Date.now() };
+          sheetsReady = false;
+          console.warn(`Sheets bootstrap unavailable (attempt ${attempt}/2):`, (e as Error).message);
+          if (attempt === 1 && isTransientNetError(e)) {
+            await new Promise((r) => setTimeout(r, 800));
+            continue;
+          }
+          break;
+        }
       }
     }
 
