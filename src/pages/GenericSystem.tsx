@@ -206,7 +206,9 @@ export function buildConfigFromDef(
     college: ((session?.user as any)?.college || '').trim(),
   };
   let teacherFilter: ((r: Record<string, string>) => boolean) | null = null;
-  if (def.require_teacher_auth) {
+  // 🛡️ المدير يرى كل السجلات دون شروط مطابقة الهوية.
+  const isAdmin = (session?.user?.role as string) === 'admin';
+  if (def.require_teacher_auth && !isAdmin) {
     try {
       const keyOf = (letter?: string) => {
         const i = letter ? colLetterToIndex(letter) : -1;
