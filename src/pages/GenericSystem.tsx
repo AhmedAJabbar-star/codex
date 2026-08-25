@@ -222,6 +222,8 @@ export function buildConfigFromDef(
         prefixLen: Number(def.teacher_match_prefix_len) || 15,
         threshold: Number(def.teacher_match_threshold) || 85,
         minTokens: Number(def.teacher_match_min_tokens) || 2,
+        requireAdjacent: def.teacher_match_adjacent !== false,
+
 
       };
       // Extra columns that may contain the identity inside a longer text (e.g. «النصوص»).
