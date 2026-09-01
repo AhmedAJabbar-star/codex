@@ -23,6 +23,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 import { useBranding } from '@/lib/useBranding';
+import { amountToIraqiDinarWords, formatAmountDigits } from '@/lib/arabicNumberWords';
+
 
 
 interface Props {
@@ -427,13 +429,19 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   /** 📊 ذيل المجاميع — يُحسب مرة واحدة ويُستخدم في العرض وفي التقرير الرسمي/الطباعة. */
   const aggTotals = useMemo<Record<string, string>>(() => {
     const out: Record<string, string> = {};
+    const isMoney = (text: string) => /أجر|اجور|أجور|اجر|مبلغ|دينار|راتب|مستحق|كلفة|تكلفة|سعر|مالي/.test(text || '');
     (system.aggregations || []).forEach((agg) => {
       const h = agg.header;
       const vals = filteredRows.map((r) => (r[h] || '').trim()).filter(Boolean);
       const nums = vals.map((v) => parseFloat(v.replace(/[^\d.\-]/g, ''))).filter((n) => !isNaN(n));
       let res = '—';
+      let sumValue: number | null = null;
       switch (agg.op) {
-        case 'sum': res = nums.reduce((a, b) => a + b, 0).toLocaleString('ar'); break;
+        case 'sum': {
+          sumValue = nums.reduce((a, b) => a + b, 0);
+          res = formatAmountDigits(sumValue);
+          break;
+        }
         case 'avg': res = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '0'; break;
         case 'count': res = String(vals.length); break;
         case 'countUnique': res = String(new Set(vals).size); break;
@@ -441,10 +449,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         case 'max': res = nums.length ? String(Math.max(...nums)) : '—'; break;
       }
       const opLabel = { sum: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
-      out[h] = `${agg.label || opLabel}: ${res}`;
+      const money = sumValue !== null && isMoney(`${h} ${agg.label || ''}`);
+      out[h] = money
+        ? `${agg.label || opLabel}: ${res} دينار عراقي\n${amountToIraqiDinarWords(sumValue as number)}`
+        : `${agg.label || opLabel}: ${res}`;
     });
     return out;
   }, [system.aggregations, filteredRows]);
+
 
   const activeFilterInfo = useMemo(() => system.filters
     .filter(f => f.control !== 'time' && f.control !== 'timeSelect')
@@ -1811,7 +1823,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   <tfoot>
                     <tr style={{ background: '#f1f5f9', fontWeight: 900 }}>
                       {system.headers.map((h) => (
-                        <td key={h} style={aggTotals[h] ? { color: '#0f172a', borderTop: '2px solid #94a3b8' } : undefined}>
+                        <td key={h} style={aggTotals[h] ? { color: '#0f172a', borderTop: '2px solid #94a3b8', whiteSpace: 'pre-line', direction: 'rtl', textAlign: 'center', lineHeight: 1.6 } : undefined}>
                           {aggTotals[h] || ''}
                         </td>
                       ))}

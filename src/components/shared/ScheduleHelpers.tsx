@@ -321,7 +321,7 @@ table.data .notes-col{min-width:38mm;white-space:pre-wrap;text-align:right}
 table.data tr.even{background:#f4f8fd;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 table.data tr.odd{background:#fff}
 table.data > tbody.totals-body{display:table-row-group}
-table.data > tbody.totals-body > tr > td{background:#e2e8f0;font-weight:900;border-top:2px solid #0f4c81;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+table.data > tbody.totals-body > tr > td{background:#e2e8f0;font-weight:900;border-top:2px solid #0f4c81;-webkit-print-color-adjust:exact;print-color-adjust:exact;white-space:pre-line;direction:rtl;line-height:1.7}
 /* No :hover rule on data rows — it forces a full repaint pass on very large tables. */
 
 /* ===== BUILD PROGRESS OVERLAY (large reports) ===== */
