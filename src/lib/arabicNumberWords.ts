@@ -42,7 +42,10 @@ function scaleWord(group: number, scaleIndex: number): string {
   if (!one) return '';
   if (group === 1) return one;
   if (group === 2) return two;
-  if (group >= 3 && group <= 10) return few;
+  // التمييز يتبع آخر خانتين: 3-10 جمع، 11-99 مفرد منصوب، والمضاعفات (100، 200...) مفرد مجرور.
+  const rem = group % 100;
+  if (rem === 0) return one;
+  if (rem >= 3 && rem <= 10) return few;
   return many;
 }
 
