@@ -23,6 +23,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 import { useBranding } from '@/lib/useBranding';
+import { amountToIraqiDinarWords, formatAmountDigits } from '@/lib/arabicNumberWords';
+
 
 
 interface Props {
@@ -1821,7 +1823,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   <tfoot>
                     <tr style={{ background: '#f1f5f9', fontWeight: 900 }}>
                       {system.headers.map((h) => (
-                        <td key={h} style={aggTotals[h] ? { color: '#0f172a', borderTop: '2px solid #94a3b8' } : undefined}>
+                        <td key={h} style={aggTotals[h] ? { color: '#0f172a', borderTop: '2px solid #94a3b8', whiteSpace: 'pre-line', direction: 'rtl', textAlign: 'center', lineHeight: 1.6 } : undefined}>
                           {aggTotals[h] || ''}
                         </td>
                       ))}
