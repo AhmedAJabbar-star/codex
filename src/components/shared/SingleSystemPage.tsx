@@ -76,6 +76,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   // البحث المؤجَّل: يبقي الكتابة سلسة مهما كثرت السجلات
   const deferredSearch = useDeferredValue(crudSearch);
   const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
+  /** 📄 صفحة النموذج الحالية عند تقسيم حقول الإدخال إلى صفحات (التالي/السابق). */
+  const [formPage, setFormPage] = useState(0);
   const crudEditingRef = useRef(crudEditing);
   crudEditingRef.current = crudEditing;
   const [crudBusy, setCrudBusy] = useState(false);
