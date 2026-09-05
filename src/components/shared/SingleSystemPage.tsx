@@ -1362,7 +1362,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               >{btnLabel('import', '📤 استيراد من Excel')}</button>
             )}
             {(crudCtx || system.globalSearch) && (
-              <div className="relative" style={{ flex: '1 1 220px', minWidth: 220 }}>
+              <div className="relative flex items-center gap-1.5" style={{ flex: '1 1 280px', minWidth: 280 }}>
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
                 <input
                   className="w-full pr-9 pl-3 py-2 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-slate-400 bg-white"
@@ -1371,6 +1371,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   onChange={(e) => setCrudSearch(e.target.value)}
                   style={{ minHeight: 42 }}
                 />
+                <select
+                  className="rounded-lg border-2 border-slate-200 text-xs font-bold bg-white focus:outline-none focus:border-slate-400"
+                  style={{ minHeight: 42, padding: '0 6px' }}
+                  value={searchMode}
+                  onChange={(e) => setSearchMode(e.target.value as 'phrase' | 'all' | 'any')}
+                  title="طريقة مطابقة البحث العام"
+                >
+                  <option value="phrase">نص مطابق</option>
+                  <option value="all">الكلمات كافة</option>
+                  <option value="any">إحدى الكلمات</option>
+                </select>
               </div>
             )}
             <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
