@@ -24,6 +24,7 @@ import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 import { useBranding } from '@/lib/useBranding';
 import { amountToIraqiDinarWords, formatAmountDigits } from '@/lib/arabicNumberWords';
+import { normalizeArabic } from '@/lib/arabicMatch';
 
 
 
@@ -68,6 +69,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
   // Inline CRUD state (used only when system.crudContext is set)
   const [crudSearch, setCrudSearch] = useState('');
+  /** 🔎 وضع البحث العام: نص مطابق / الكلمات كافة (بأي تسلسل) / إحدى الكلمات. */
+  const [searchMode, setSearchMode] = useState<'phrase' | 'all' | 'any'>('phrase');
   const [colSearch, setColSearch] = useState<Record<string, string>>({});
 
   // البحث المؤجَّل: يبقي الكتابة سلسة مهما كثرت السجلات
@@ -275,9 +278,23 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     // Global / Inline-CRUD search (applies to all visible headers).
     const q = deferredSearch.trim().toLowerCase();
     if (q && (system.crudContext || system.globalSearch)) {
-      result = result.filter((r) =>
-        system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
-      );
+      if (searchMode === 'phrase') {
+        // نص مطابق: العبارة كما كُتبت داخل أي عمود.
+        result = result.filter((r) =>
+          system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
+        );
+      } else {
+        // الكلمات كافة / إحدى الكلمات — مع تطبيع عربي (تجاهل الهمزات والتشكيل والمسافات الزائدة).
+        const words = normalizeArabic(q, false).split(/\s+/).filter(Boolean);
+        if (words.length > 0) {
+          result = result.filter((r) => {
+            const hay = system.headers.map((h) => normalizeArabic(r[h] || '', false)).join(' ');
+            return searchMode === 'all'
+              ? words.every((w) => hay.includes(w))
+              : words.some((w) => hay.includes(w));
+          });
+        }
+      }
     }
 
     // 🔎 بحث لكل عمود على حدة (مربعات فوق كل عمود)
@@ -290,7 +307,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
     return result;
 
-  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, deferredSearch, colSearch]);
+  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, deferredSearch, searchMode, colSearch]);
 
   // ===== عرض تدريجي (Windowing): لا نرسم آلاف الصفوف دفعة واحدة =====
   const PAGE_CHUNK = 150;
