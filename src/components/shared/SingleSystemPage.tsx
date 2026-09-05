@@ -687,6 +687,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   /** الأعمدة التي يملؤها النظام تلقائياً (تتبّع) — تُخفى من نموذج الإدخال. */
   const auditLetters = crudCtx?.auditLetters || [];
+  /** 📄 تقسيم نموذج الإدخال إلى صفحات — الحقول القابلة للعرض بعد استبعاد أعمدة التتبّع. */
+  const formPageSize = Math.max(0, Number((crudCtx?.def as any)?.form_page_size || 0) || 0);
+  const formColsAll = (crudCtx?.cols || []).filter((c) => !auditLetters.includes(c.letter));
+  const formPageCount = formPageSize > 0 ? Math.max(1, Math.ceil(formColsAll.length / formPageSize)) : 1;
+  const curFormPage = Math.min(formPage, formPageCount - 1);
+  const formCols = formPageSize > 0
+    ? formColsAll.slice(curFormPage * formPageSize, (curFormPage + 1) * formPageSize)
+    : formColsAll;
   /** سعة الخيارات: عدد مرات استخدام كل خيار في الورقة كاملة. */
   const optionCounts = crudCtx?.optionCounts || {};
   const optionLimits = (crudCtx?.def as any)?.option_limits || {};
