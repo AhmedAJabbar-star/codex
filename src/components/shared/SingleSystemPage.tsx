@@ -446,7 +446,6 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   /** 📊 ذيل المجاميع — يُحسب مرة واحدة ويُستخدم في العرض وفي التقرير الرسمي/الطباعة. */
   const aggTotals = useMemo<Record<string, string>>(() => {
     const out: Record<string, string> = {};
-    const isMoney = (text: string) => /أجر|اجور|أجور|اجر|مبلغ|دينار|راتب|مستحق|كلفة|تكلفة|سعر|مالي/.test(text || '');
     (system.aggregations || []).forEach((agg) => {
       const h = agg.header;
       const vals = filteredRows.map((r) => (r[h] || '').trim()).filter(Boolean);
@@ -454,7 +453,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       let res = '—';
       let sumValue: number | null = null;
       switch (agg.op) {
-        case 'sum': {
+        case 'sum':
+        case 'sumWords': {
           sumValue = nums.reduce((a, b) => a + b, 0);
           res = formatAmountDigits(sumValue);
           break;
@@ -465,10 +465,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         case 'min': res = nums.length ? String(Math.min(...nums)) : '—'; break;
         case 'max': res = nums.length ? String(Math.max(...nums)) : '—'; break;
       }
-      const opLabel = { sum: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
-      const money = sumValue !== null && isMoney(`${h} ${agg.label || ''}`);
-      out[h] = money
-        ? `${agg.label || opLabel}: ${res} دينار عراقي\n${amountToIraqiDinarWords(sumValue as number)}`
+      const opLabel = { sum: 'Σ', sumWords: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
+      // «المجموع» = رقماً فقط — «المجموع رقماً وكتابة» = الرقم + التفقيط العربي بالدينار العراقي.
+      out[h] = (agg.op === 'sumWords' && sumValue !== null)
+        ? `${agg.label || opLabel}: ${res} دينار عراقي\n${amountToIraqiDinarWords(sumValue)}`
         : `${agg.label || opLabel}: ${res}`;
     });
     return out;
