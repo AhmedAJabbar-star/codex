@@ -52,7 +52,7 @@ export interface SystemConfig {
   /** When set, each row picks up its background color from this row-key. */
   rowColorKey?: string;
   /** Column aggregations rendered as a footer under the table (computed on visible rows). */
-  aggregations?: { header: string; op: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'countUnique'; label?: string }[];
+  aggregations?: { header: string; op: 'sum' | 'sumWords' | 'avg' | 'count' | 'min' | 'max' | 'countUnique'; label?: string }[];
   /** Show a global search box above the table (searches across every visible column). */
   globalSearch?: boolean;
   /** Per-system control of the print/export toolbar buttons (show / label / color). */
