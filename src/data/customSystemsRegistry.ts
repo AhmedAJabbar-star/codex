@@ -180,6 +180,10 @@ export interface CustomSystemDef {
   column_select_source?: Record<string, 'manual' | 'column' | 'sheet'>;
   /** When true, the select also accepts values not in the list (renders as combobox/datalist). */
   column_select_allow_custom?: Record<string, boolean>;
+  /** ☑️ عند true تُعرض خيارات القائمة كمربعات اختيار متعددة، وتُحفظ القيم مفصولة بـ «، ». */
+  column_multi?: Record<string, boolean>;
+  /** 📄 عدد حقول نموذج الإدخال في كل صفحة (0 أو فارغ = كل الحقول في صفحة واحدة). */
+  form_page_size?: number;
   /** Per-column link button label (Excel letter -> button text). When set, cells with a URL
    *  in this column render as a clickable button («افتح الملف» / «Open» ...) opening the URL
    *  in a new tab instead of showing the raw URL. */
@@ -414,7 +418,7 @@ export interface RowRule {
 /** Aggregation column configuration. */
 export interface AggregationCfg {
   column: string; // Excel letter
-  op: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'countUnique';
+  op: 'sum' | 'sumWords' | 'avg' | 'count' | 'min' | 'max' | 'countUnique';
   label?: string;
 }
 
@@ -479,6 +483,8 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   column_options: {},
   column_select_source: {},
   column_select_allow_custom: {},
+  column_multi: {},
+  form_page_size: 0,
   column_link_labels: {},
   ocr_enabled: false,
   ocr_prompt: '',
@@ -604,6 +610,8 @@ export interface CrudColMeta {
   type: 'text' | 'number' | 'date' | 'datetime' | 'select' | 'readonly' | 'file';
   options: string[];
   allowCustom: boolean;
+  /** ☑️ السماح باختيار أكثر من خيار (تُحفظ مفصولة بـ «، »). */
+  multi?: boolean;
   source: 'manual' | 'column' | 'sheet';
   /** ⏱️ يُملأ تلقائياً بوقت وتاريخ الإدخال (غير قابل للتعديل). */
   autoNow?: boolean;

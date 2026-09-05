@@ -452,6 +452,7 @@ export function buildConfigFromDef(
           type,
           options,
           allowCustom: !!allowMap[letter],
+          multi: !!(def.column_multi || {})[letter],
           source,
           driveFolder,
           autoNow,

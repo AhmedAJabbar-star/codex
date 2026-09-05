@@ -87,6 +87,8 @@ const HEADERS = [
   "ui_prefs_json",
   // v25 additions (position scoping, role-based card visibility, dynamic condition groups):
   "teacher_position_column", "allowed_roles_json", "condition_groups_json", "groups_join",
+  // v26 additions (multi-select dropdown columns, paged input form):
+  "column_multi_json", "form_page_size",
 
 ];
 
@@ -327,6 +329,8 @@ function rowToSystem(r: Record<string, string>) {
     column_options: parseJson(r.column_options_json || "{}", {}),
     column_select_source: parseJson(r.column_select_source_json || "{}", {}),
     column_select_allow_custom: parseJson(r.column_select_allow_custom_json || "{}", {}),
+    column_multi: parseJson(r.column_multi_json || "{}", {}),
+    form_page_size: Math.max(0, parseInt(clean(r.form_page_size) || "0", 10) || 0),
     column_auto_now: parseJson(r.column_auto_now_json || "{}", {}),
     column_select_sheet: parseJson(r.column_select_sheet_json || "{}", {}),
     column_select_parent: parseJson(r.column_select_parent_json || "{}", {}),
@@ -434,6 +438,8 @@ async function systemToRow(s: any): Promise<string[]> {
     column_options_json: JSON.stringify(s.column_options || {}),
     column_select_source_json: JSON.stringify(s.column_select_source || {}),
     column_select_allow_custom_json: JSON.stringify(s.column_select_allow_custom || {}),
+    column_multi_json: JSON.stringify(s.column_multi || {}),
+    form_page_size: String(Math.max(0, Number(s.form_page_size || 0) || 0)),
     column_auto_now_json: JSON.stringify(s.column_auto_now || {}),
     column_select_sheet_json: JSON.stringify(s.column_select_sheet || {}),
     column_select_parent_json: JSON.stringify(s.column_select_parent || {}),

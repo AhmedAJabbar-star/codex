@@ -24,6 +24,7 @@ import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 import { useBranding } from '@/lib/useBranding';
 import { amountToIraqiDinarWords, formatAmountDigits } from '@/lib/arabicNumberWords';
+import { normalizeArabic } from '@/lib/arabicMatch';
 
 
 
@@ -68,11 +69,15 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [bookingForm, setBookingForm] = useState({ room: '', day: '', date: '', fromTime: '', toTime: '', note: '' });
   // Inline CRUD state (used only when system.crudContext is set)
   const [crudSearch, setCrudSearch] = useState('');
+  /** 🔎 وضع البحث العام: نص مطابق / الكلمات كافة (بأي تسلسل) / إحدى الكلمات. */
+  const [searchMode, setSearchMode] = useState<'phrase' | 'all' | 'any'>('phrase');
   const [colSearch, setColSearch] = useState<Record<string, string>>({});
 
   // البحث المؤجَّل: يبقي الكتابة سلسة مهما كثرت السجلات
   const deferredSearch = useDeferredValue(crudSearch);
   const [crudEditing, setCrudEditing] = useState<null | { mode: 'add' | 'edit'; values: Record<string, string>; snapshot?: Record<string, string> }>(null);
+  /** 📄 صفحة النموذج الحالية عند تقسيم حقول الإدخال إلى صفحات (التالي/السابق). */
+  const [formPage, setFormPage] = useState(0);
   const crudEditingRef = useRef(crudEditing);
   crudEditingRef.current = crudEditing;
   const [crudBusy, setCrudBusy] = useState(false);
@@ -275,9 +280,23 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     // Global / Inline-CRUD search (applies to all visible headers).
     const q = deferredSearch.trim().toLowerCase();
     if (q && (system.crudContext || system.globalSearch)) {
-      result = result.filter((r) =>
-        system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
-      );
+      if (searchMode === 'phrase') {
+        // نص مطابق: العبارة كما كُتبت داخل أي عمود.
+        result = result.filter((r) =>
+          system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
+        );
+      } else {
+        // الكلمات كافة / إحدى الكلمات — مع تطبيع عربي (تجاهل الهمزات والتشكيل والمسافات الزائدة).
+        const words = normalizeArabic(q, false).split(/\s+/).filter(Boolean);
+        if (words.length > 0) {
+          result = result.filter((r) => {
+            const hay = system.headers.map((h) => normalizeArabic(r[h] || '', false)).join(' ');
+            return searchMode === 'all'
+              ? words.every((w) => hay.includes(w))
+              : words.some((w) => hay.includes(w));
+          });
+        }
+      }
     }
 
     // 🔎 بحث لكل عمود على حدة (مربعات فوق كل عمود)
@@ -290,7 +309,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
     return result;
 
-  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, deferredSearch, colSearch]);
+  }, [system, filters, statFilter, activeSystem, activeQuickFilters, missingRequiredFilters, deferredSearch, searchMode, colSearch]);
 
   // ===== عرض تدريجي (Windowing): لا نرسم آلاف الصفوف دفعة واحدة =====
   const PAGE_CHUNK = 150;
@@ -429,7 +448,6 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   /** 📊 ذيل المجاميع — يُحسب مرة واحدة ويُستخدم في العرض وفي التقرير الرسمي/الطباعة. */
   const aggTotals = useMemo<Record<string, string>>(() => {
     const out: Record<string, string> = {};
-    const isMoney = (text: string) => /أجر|اجور|أجور|اجر|مبلغ|دينار|راتب|مستحق|كلفة|تكلفة|سعر|مالي/.test(text || '');
     (system.aggregations || []).forEach((agg) => {
       const h = agg.header;
       const vals = filteredRows.map((r) => (r[h] || '').trim()).filter(Boolean);
@@ -437,7 +455,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       let res = '—';
       let sumValue: number | null = null;
       switch (agg.op) {
-        case 'sum': {
+        case 'sum':
+        case 'sumWords': {
           sumValue = nums.reduce((a, b) => a + b, 0);
           res = formatAmountDigits(sumValue);
           break;
@@ -448,10 +467,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         case 'min': res = nums.length ? String(Math.min(...nums)) : '—'; break;
         case 'max': res = nums.length ? String(Math.max(...nums)) : '—'; break;
       }
-      const opLabel = { sum: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
-      const money = sumValue !== null && isMoney(`${h} ${agg.label || ''}`);
-      out[h] = money
-        ? `${agg.label || opLabel}: ${res} دينار عراقي\n${amountToIraqiDinarWords(sumValue as number)}`
+      const opLabel = { sum: 'Σ', sumWords: 'Σ', avg: 'x̄', count: '#', countUnique: '#∪', min: '↓', max: '↑' }[agg.op];
+      // «المجموع» = رقماً فقط — «المجموع رقماً وكتابة» = الرقم + التفقيط العربي بالدينار العراقي.
+      out[h] = (agg.op === 'sumWords' && sumValue !== null)
+        ? `${agg.label || opLabel}: ${res} دينار عراقي\n${amountToIraqiDinarWords(sumValue)}`
         : `${agg.label || opLabel}: ${res}`;
     });
     return out;
@@ -668,6 +687,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   /** الأعمدة التي يملؤها النظام تلقائياً (تتبّع) — تُخفى من نموذج الإدخال. */
   const auditLetters = crudCtx?.auditLetters || [];
+  /** 📄 تقسيم نموذج الإدخال إلى صفحات — الحقول القابلة للعرض بعد استبعاد أعمدة التتبّع. */
+  const formPageSize = Math.max(0, Number((crudCtx?.def as any)?.form_page_size || 0) || 0);
+  const formColsAll = (crudCtx?.cols || []).filter((c) => !auditLetters.includes(c.letter));
+  const formPageCount = formPageSize > 0 ? Math.max(1, Math.ceil(formColsAll.length / formPageSize)) : 1;
+  const curFormPage = Math.min(formPage, formPageCount - 1);
+  const formCols = formPageSize > 0
+    ? formColsAll.slice(curFormPage * formPageSize, (curFormPage + 1) * formPageSize)
+    : formColsAll;
   /** سعة الخيارات: عدد مرات استخدام كل خيار في الورقة كاملة. */
   const optionCounts = crudCtx?.optionCounts || {};
   const optionLimits = (crudCtx?.def as any)?.option_limits || {};
@@ -715,10 +742,12 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       const key = (L || '').toUpperCase();
       if (Object.prototype.hasOwnProperty.call(init, key)) init[key] = String(v ?? '');
     });
+    setFormPage(0);
     setCrudEditing({ mode: 'add', values: init });
   }, [crudCtx, singleEnabled]);
 
   const crudOpenEdit = useCallback((snapshot: Record<string, string>) => {
+    setFormPage(0);
     setCrudEditing({ mode: 'edit', values: { ...snapshot }, snapshot });
   }, []);
 
@@ -994,7 +1023,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   }, [crudCtx, auditLetters]);
 
   // مسح منتقي وضع الاستخراج عند إغلاق نموذج الإضافة/التعديل
-  useEffect(() => { if (!crudEditing) setOcrPick(null); }, [crudEditing]);
+  useEffect(() => { if (!crudEditing) { setOcrPick(null); setFormPage(0); } }, [crudEditing]);
 
 
 
@@ -1345,7 +1374,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               >{btnLabel('import', '📤 استيراد من Excel')}</button>
             )}
             {(crudCtx || system.globalSearch) && (
-              <div className="relative" style={{ flex: '1 1 220px', minWidth: 220 }}>
+              <div className="relative flex items-center gap-1.5" style={{ flex: '1 1 280px', minWidth: 280 }}>
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
                 <input
                   className="w-full pr-9 pl-3 py-2 rounded-lg border-2 border-slate-200 text-sm focus:outline-none focus:border-slate-400 bg-white"
@@ -1354,6 +1383,17 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                   onChange={(e) => setCrudSearch(e.target.value)}
                   style={{ minHeight: 42 }}
                 />
+                <select
+                  className="rounded-lg border-2 border-slate-200 text-xs font-bold bg-white focus:outline-none focus:border-slate-400"
+                  style={{ minHeight: 42, padding: '0 6px' }}
+                  value={searchMode}
+                  onChange={(e) => setSearchMode(e.target.value as 'phrase' | 'all' | 'any')}
+                  title="طريقة مطابقة البحث العام"
+                >
+                  <option value="phrase">نص مطابق</option>
+                  <option value="all">الكلمات كافة</option>
+                  <option value="any">إحدى الكلمات</option>
+                </select>
               </div>
             )}
             <button className="schedule-btn" onClick={clearFilters}>🔄 مسح التصفية</button>
@@ -1414,7 +1454,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               </header>
               <div className="p-4 bg-slate-50/50">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {crudCtx.cols.filter((c) => !auditLetters.includes(c.letter)).map((c) => {
+                  {formCols.map((c) => {
                     const v = crudEditing.values[c.letter] || '';
                     /** عند تغيير قيمة عمود «أب» نُفرّغ القوائم التابعة له تلقائياً. */
                     const set = (val: string) => {
@@ -1463,7 +1503,32 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           )}
                         </label>
                         {c.type === 'select' ? (
-                          c.allowCustom ? (
+                          c.multi ? (
+                            /* ☑️ اختيارات متعددة: مربعات اختيار، تُحفظ القيم مفصولة بـ «، » */
+                            <div className="rounded-lg border-2 border-slate-200 bg-white p-2 space-y-1 max-h-44 overflow-y-auto">
+                              {renderOptions.length === 0 && <p className="text-[11px] text-slate-400 text-center py-1">لا توجد خيارات متاحة</p>}
+                              {renderOptions.map(({ o, left }) => {
+                                const selected = v.split(/[،,]/).map((x) => x.trim()).filter(Boolean);
+                                const checked = selected.includes(o);
+                                const full = left === 0 && !checked;
+                                return (
+                                  <label key={o} className={`flex items-center gap-2 text-xs font-bold rounded px-2 py-1.5 ${full ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      disabled={full}
+                                      onChange={(e) => {
+                                        const next = e.target.checked ? [...selected, o] : selected.filter((x) => x !== o);
+                                        set(next.join('، '));
+                                      }}
+                                    />
+                                    <span>{o}</span>
+                                    {left !== null && <span className="mr-auto text-[10px] text-slate-400 font-normal">{left === 0 ? 'مكتمل' : `متبقٍ ${left}`}</span>}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          ) : c.allowCustom ? (
                             <>
                               <input list={dlId} className={base} value={v} onChange={(e) => set(e.target.value)} placeholder="اختر أو اكتب..." />
                               <datalist id={dlId}>{renderOptions.map(({ o }) => <option key={o} value={o} />)}</datalist>
@@ -1614,13 +1679,24 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     </div>
                   </div>
                 )}
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-slate-500">🔐 يتطلب الحفظ كلمة مرور المدير</span>
-                  <div className="flex gap-2">
+                <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-[11px] text-slate-500">
+                    🔐 يتطلب الحفظ كلمة مرور المدير
+                    {formPageCount > 1 && <span className="mr-2 font-black text-slate-600">📄 صفحة {curFormPage + 1} من {formPageCount}</span>}
+                  </span>
+                  <div className="flex gap-2 flex-wrap">
                     <button className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm font-bold hover:bg-slate-50" onClick={() => setCrudEditing(null)} disabled={crudBusy || ocrBusy}>إلغاء</button>
-                    <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm disabled:opacity-50" style={{ background: '#0891b2' }} onClick={crudSubmit} disabled={crudBusy || ocrBusy}>
-                      {ocrBusy ? '⏳ انتظر اكتمال استخراج النص...' : crudBusy ? '⏳ جاري الحفظ...' : '💾 حفظ'}
-                    </button>
+                    {formPageCount > 1 && curFormPage > 0 && (
+                      <button className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm font-bold hover:bg-slate-50" onClick={() => setFormPage(curFormPage - 1)} disabled={crudBusy || ocrBusy}>→ السابق</button>
+                    )}
+                    {formPageCount > 1 && curFormPage < formPageCount - 1 && (
+                      <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm" style={{ background: '#334155' }} onClick={() => setFormPage(curFormPage + 1)} disabled={crudBusy || ocrBusy}>التالي ←</button>
+                    )}
+                    {(formPageCount === 1 || curFormPage === formPageCount - 1) && (
+                      <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm disabled:opacity-50" style={{ background: '#0891b2' }} onClick={crudSubmit} disabled={crudBusy || ocrBusy}>
+                        {ocrBusy ? '⏳ انتظر اكتمال استخراج النص...' : crudBusy ? '⏳ جاري الحفظ...' : '💾 حفظ'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
