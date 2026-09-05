@@ -742,10 +742,12 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       const key = (L || '').toUpperCase();
       if (Object.prototype.hasOwnProperty.call(init, key)) init[key] = String(v ?? '');
     });
+    setFormPage(0);
     setCrudEditing({ mode: 'add', values: init });
   }, [crudCtx, singleEnabled]);
 
   const crudOpenEdit = useCallback((snapshot: Record<string, string>) => {
+    setFormPage(0);
     setCrudEditing({ mode: 'edit', values: { ...snapshot }, snapshot });
   }, []);
 
@@ -1021,7 +1023,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   }, [crudCtx, auditLetters]);
 
   // مسح منتقي وضع الاستخراج عند إغلاق نموذج الإضافة/التعديل
-  useEffect(() => { if (!crudEditing) setOcrPick(null); }, [crudEditing]);
+  useEffect(() => { if (!crudEditing) { setOcrPick(null); setFormPage(0); } }, [crudEditing]);
 
 
 
