@@ -1338,6 +1338,19 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       <PermToggle k="delete" label="حذف"        icon="🗑️" />
                     </div>
 
+                    {/* 📄 تقسيم نموذج الإدخال إلى صفحات (التالي/السابق) */}
+                    {anyOn && (
+                      <div className="rounded-xl border-2 border-slate-200 bg-white p-3 flex items-center gap-3 flex-wrap">
+                        <strong className="text-sm">📄 تقسيم نموذج الإدخال إلى صفحات</strong>
+                        <input
+                          type="number" min={0} className="schedule-select text-xs text-center" style={{ width: 90 }}
+                          value={(s as any).form_page_size || 0}
+                          onChange={(e) => patch({ form_page_size: Math.max(0, parseInt(e.target.value || '0', 10) || 0) } as any)}
+                        />
+                        <span className="text-[11px] text-slate-500">حقل في كل صفحة — 0 = كل الحقول في صفحة واحدة. عند التقسيم يظهر زر «التالي/السابق» ويُحفظ السجل كاملاً في نفس ورقة Google Sheets.</span>
+                      </div>
+                    )}
+
                     {/* 📤 Bulk import from Excel/CSV */}
                     {cur.add && (
                       <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50/50 p-3 space-y-2">
@@ -1514,11 +1527,16 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                           onChange={() => patch({ column_select_source: { ...(s.column_select_source || {}), [L]: 'sheet' } })} />
                                         من ورقة Google Sheets أخرى
                                       </label>
-                                      <label className="flex items-center gap-1.5 cursor-pointer mr-auto bg-amber-50 px-2 py-1 rounded border border-amber-200">
-                                        <input type="checkbox" checked={allowCustom}
-                                          onChange={(e) => patch({ column_select_allow_custom: { ...(s.column_select_allow_custom || {}), [L]: e.target.checked } })} />
-                                        السماح بإدخال قيمة جديدة غير موجودة
-                                      </label>
+                                       <label className="flex items-center gap-1.5 cursor-pointer mr-auto bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                         <input type="checkbox" checked={allowCustom}
+                                           onChange={(e) => patch({ column_select_allow_custom: { ...(s.column_select_allow_custom || {}), [L]: e.target.checked } })} />
+                                         السماح بإدخال قيمة جديدة غير موجودة
+                                       </label>
+                                       <label className="flex items-center gap-1.5 cursor-pointer bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
+                                         <input type="checkbox" checked={!!((s as any).column_multi || {})[L]}
+                                           onChange={(e) => patch({ column_multi: { ...((s as any).column_multi || {}), [L]: e.target.checked } } as any)} />
+                                         ☑️ السماح باختيارات متعددة
+                                       </label>
                                     </div>
                                     {src === 'manual' && (
                                       <input className="schedule-select w-full text-xs" value={opts}
@@ -2283,8 +2301,9 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                     <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded-lg border">
                       <input className="schedule-select col-span-2 text-center font-mono" value={a.column} onChange={(e) => updAgg(i, { column: e.target.value.toUpperCase() })} placeholder="عمود" />
                       <select className="schedule-select col-span-3" value={a.op} onChange={(e) => updAgg(i, { op: e.target.value })}>
-                        <option value="sum">Σ المجموع</option>
-                        <option value="avg">x̄ المتوسط</option>
+                         <option value="sum">Σ المجموع (رقماً فقط)</option>
+                         <option value="sumWords">Σ المجموع رقماً وكتابة (تفقيط بالدينار)</option>
+                         <option value="avg">x̄ المتوسط</option>
                         <option value="count"># عدد القيم</option>
                         <option value="countUnique">#∪ عدد القيم الفريدة</option>
                         <option value="min">↓ الأصغر</option>
