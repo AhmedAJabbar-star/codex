@@ -1454,7 +1454,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
               </header>
               <div className="p-4 bg-slate-50/50">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {crudCtx.cols.filter((c) => !auditLetters.includes(c.letter)).map((c) => {
+                  {formCols.map((c) => {
                     const v = crudEditing.values[c.letter] || '';
                     /** عند تغيير قيمة عمود «أب» نُفرّغ القوائم التابعة له تلقائياً. */
                     const set = (val: string) => {
@@ -1503,7 +1503,32 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                           )}
                         </label>
                         {c.type === 'select' ? (
-                          c.allowCustom ? (
+                          c.multi ? (
+                            /* ☑️ اختيارات متعددة: مربعات اختيار، تُحفظ القيم مفصولة بـ «، » */
+                            <div className="rounded-lg border-2 border-slate-200 bg-white p-2 space-y-1 max-h-44 overflow-y-auto">
+                              {renderOptions.length === 0 && <p className="text-[11px] text-slate-400 text-center py-1">لا توجد خيارات متاحة</p>}
+                              {renderOptions.map(({ o, left }) => {
+                                const selected = v.split(/[،,]/).map((x) => x.trim()).filter(Boolean);
+                                const checked = selected.includes(o);
+                                const full = left === 0 && !checked;
+                                return (
+                                  <label key={o} className={`flex items-center gap-2 text-xs font-bold rounded px-2 py-1.5 ${full ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      disabled={full}
+                                      onChange={(e) => {
+                                        const next = e.target.checked ? [...selected, o] : selected.filter((x) => x !== o);
+                                        set(next.join('، '));
+                                      }}
+                                    />
+                                    <span>{o}</span>
+                                    {left !== null && <span className="mr-auto text-[10px] text-slate-400 font-normal">{left === 0 ? 'مكتمل' : `متبقٍ ${left}`}</span>}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          ) : c.allowCustom ? (
                             <>
                               <input list={dlId} className={base} value={v} onChange={(e) => set(e.target.value)} placeholder="اختر أو اكتب..." />
                               <datalist id={dlId}>{renderOptions.map(({ o }) => <option key={o} value={o} />)}</datalist>
