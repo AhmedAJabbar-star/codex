@@ -1679,13 +1679,24 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     </div>
                   </div>
                 )}
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-slate-500">🔐 يتطلب الحفظ كلمة مرور المدير</span>
-                  <div className="flex gap-2">
+                <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-[11px] text-slate-500">
+                    🔐 يتطلب الحفظ كلمة مرور المدير
+                    {formPageCount > 1 && <span className="mr-2 font-black text-slate-600">📄 صفحة {curFormPage + 1} من {formPageCount}</span>}
+                  </span>
+                  <div className="flex gap-2 flex-wrap">
                     <button className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm font-bold hover:bg-slate-50" onClick={() => setCrudEditing(null)} disabled={crudBusy || ocrBusy}>إلغاء</button>
-                    <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm disabled:opacity-50" style={{ background: '#0891b2' }} onClick={crudSubmit} disabled={crudBusy || ocrBusy}>
-                      {ocrBusy ? '⏳ انتظر اكتمال استخراج النص...' : crudBusy ? '⏳ جاري الحفظ...' : '💾 حفظ'}
-                    </button>
+                    {formPageCount > 1 && curFormPage > 0 && (
+                      <button className="px-4 py-2 rounded-lg border-2 border-slate-200 text-sm font-bold hover:bg-slate-50" onClick={() => setFormPage(curFormPage - 1)} disabled={crudBusy || ocrBusy}>→ السابق</button>
+                    )}
+                    {formPageCount > 1 && curFormPage < formPageCount - 1 && (
+                      <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm" style={{ background: '#334155' }} onClick={() => setFormPage(curFormPage + 1)} disabled={crudBusy || ocrBusy}>التالي ←</button>
+                    )}
+                    {(formPageCount === 1 || curFormPage === formPageCount - 1) && (
+                      <button className="px-5 py-2 rounded-lg text-sm font-black text-white shadow-sm disabled:opacity-50" style={{ background: '#0891b2' }} onClick={crudSubmit} disabled={crudBusy || ocrBusy}>
+                        {ocrBusy ? '⏳ انتظر اكتمال استخراج النص...' : crudBusy ? '⏳ جاري الحفظ...' : '💾 حفظ'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
