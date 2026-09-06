@@ -218,6 +218,7 @@ async function ensureSheet() {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
     });
+    cachedColOrder = [...HEADERS];
     return;
   }
   // Read the ENTIRE header row (1:1) — earlier versions appended missing headers on
@@ -229,6 +230,7 @@ async function ensureSheet() {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
     });
+    cachedColOrder = [...HEADERS];
     return;
   }
   // Extend header row if new columns are missing (preserve order of existing ones).
@@ -238,8 +240,14 @@ async function ensureSheet() {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [newRow] }),
     });
+    // Keep the in-memory column order in sync, otherwise a warm instance keeps
+    // writing with the old header and silently drops the new fields.
+    cachedColOrder = newRow;
+  } else {
+    cachedColOrder = currentRow;
   }
 }
+
 
 async function rangeForRow(rowIdx0: number) {
   const order = await getColOrder();
