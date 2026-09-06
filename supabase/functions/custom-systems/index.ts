@@ -218,6 +218,7 @@ async function ensureSheet() {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
     });
+    cachedColOrder = [...HEADERS];
     return;
   }
   // Read the ENTIRE header row (1:1) — earlier versions appended missing headers on
@@ -229,6 +230,7 @@ async function ensureSheet() {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [HEADERS] }),
     });
+    cachedColOrder = [...HEADERS];
     return;
   }
   // Extend header row if new columns are missing (preserve order of existing ones).
@@ -238,8 +240,14 @@ async function ensureSheet() {
     await gapi(`/values/${encodeURIComponent(SHEET_TITLE)}!A1?valueInputOption=RAW`, {
       method: "PUT", body: JSON.stringify({ values: [newRow] }),
     });
+    // Keep the in-memory column order in sync, otherwise a warm instance keeps
+    // writing with the old header and silently drops the new fields.
+    cachedColOrder = newRow;
+  } else {
+    cachedColOrder = currentRow;
   }
 }
+
 
 async function rangeForRow(rowIdx0: number) {
   const order = await getColOrder();
@@ -594,6 +602,9 @@ Deno.serve(async (req) => {
       if (sys.id && !(originalId && rawId === originalId)) {
         sys.id = String(sys.id).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
       }
+      // Make sure the registry header carries every current field before writing,
+      // otherwise newly added settings are silently dropped on save.
+      await ensureSheet();
       const all = await readAll(false);
       if (!sys.id) sys.id = slugify(sys.title);
       // Rename: locate row by originalId when it changed.

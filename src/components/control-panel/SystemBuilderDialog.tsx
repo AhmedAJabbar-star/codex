@@ -1535,7 +1535,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                        <label className="flex items-center gap-1.5 cursor-pointer bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
                                          <input type="checkbox" checked={!!((s as any).column_multi || {})[L]}
                                            onChange={(e) => patch({ column_multi: { ...((s as any).column_multi || {}), [L]: e.target.checked } } as any)} />
-                                         ☑️ السماح باختيارات متعددة
+                                         السماح باختيارات متعددة
                                        </label>
                                     </div>
                                     {src === 'manual' && (
