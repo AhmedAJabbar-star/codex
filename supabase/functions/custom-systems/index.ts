@@ -602,6 +602,9 @@ Deno.serve(async (req) => {
       if (sys.id && !(originalId && rawId === originalId)) {
         sys.id = String(sys.id).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
       }
+      // Make sure the registry header carries every current field before writing,
+      // otherwise newly added settings are silently dropped on save.
+      await ensureSheet();
       const all = await readAll(false);
       if (!sys.id) sys.id = slugify(sys.title);
       // Rename: locate row by originalId when it changed.
