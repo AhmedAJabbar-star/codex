@@ -1523,8 +1523,45 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                             <span className="text-[10px] text-amber-600 font-normal"> — اختر عمود «{c.parentLetter}» أولاً</span>
                           )}
                         </label>
-                        {c.type === 'select' ? (
-                          c.multi ? (
+                        {c.type === 'checkbox' && renderOptions.length === 0 ? (
+                          /* ☑️ مربع اختيار مفرد (نعم / لا) عندما لا تُعرَّف خيارات */
+                          <label className="flex items-center gap-2 text-xs font-bold bg-white border-2 border-slate-200 rounded-lg px-3 py-2.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4"
+                              checked={['نعم', 'true', '1', 'صح'].includes(v.trim().toLowerCase())}
+                              onChange={(e) => set(e.target.checked ? 'نعم' : 'لا')}
+                            />
+                            <span>{v.trim() && ['نعم', 'true', '1', 'صح'].includes(v.trim().toLowerCase()) ? 'نعم' : 'لا'}</span>
+                          </label>
+                        ) : c.type === 'radio' ? (
+                          /* 🔘 صندوق خيارات — اختيار واحد فقط */
+                          <div className="rounded-lg border-2 border-slate-200 bg-white p-2 space-y-1 max-h-44 overflow-y-auto">
+                            {renderOptions.length === 0 && <p className="text-[11px] text-slate-400 text-center py-1">لا توجد خيارات متاحة</p>}
+                            {renderOptions.map(({ o, left }) => {
+                              const checked = v.trim() === o;
+                              const full = left === 0 && !checked;
+                              return (
+                                <label key={o} className={`flex items-center gap-2 text-xs font-bold rounded px-2 py-1.5 ${full ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
+                                  <input
+                                    type="radio"
+                                    name={`radio-${crudCtx.def.id}-${c.letter}`}
+                                    checked={checked}
+                                    disabled={full}
+                                    onChange={() => set(o)}
+                                  />
+                                  <span>{o}</span>
+                                  {left !== null && <span className="mr-auto text-[10px] text-slate-400 font-normal">{left === 0 ? 'مكتمل' : `متبقٍ ${left}`}</span>}
+                                </label>
+                              );
+                            })}
+                            {v.trim() !== '' && (
+                              <button type="button" className="text-[10px] font-bold text-slate-500 underline px-2" onClick={() => set('')}>مسح الاختيار</button>
+                            )}
+                          </div>
+                        ) : c.type === 'select' || c.type === 'checkbox' ? (
+                          (c.multi || c.type === 'checkbox') ? (
+
                             /* ☑️ اختيارات متعددة: مربعات اختيار، تُحفظ القيم مفصولة بـ «، » */
                             <div className="rounded-lg border-2 border-slate-200 bg-white p-2 space-y-1 max-h-44 overflow-y-auto">
                               {renderOptions.length === 0 && <p className="text-[11px] text-slate-400 text-center py-1">لا توجد خيارات متاحة</p>}
