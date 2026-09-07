@@ -687,14 +687,35 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   /** الأعمدة التي يملؤها النظام تلقائياً (تتبّع) — تُخفى من نموذج الإدخال. */
   const auditLetters = crudCtx?.auditLetters || [];
-  /** 📄 تقسيم نموذج الإدخال إلى صفحات — الحقول القابلة للعرض بعد استبعاد أعمدة التتبّع. */
+  /** 👁️ إظهار/إخفاء الحقل استناداً إلى إجابة حقل آخر (شرط العرض المُعرَّف في المنشئ). */
+  const isColVisible = useCallback((c: any, values: Record<string, string>) => {
+    const cond = c?.visibleWhen;
+    if (!cond || !cond.field || !cond.op) return true;
+    const raw = String(values?.[cond.field] ?? '').trim();
+    const cmp = String(cond.value ?? '').trim();
+    const norm = (x: string) => x.replace(/\s+/g, ' ').trim().toLowerCase();
+    const parts = raw.split(/[،,]/).map((x) => norm(x)).filter(Boolean);
+    switch (cond.op) {
+      case 'filled': return raw !== '';
+      case 'empty': return raw === '';
+      case 'eq': return parts.includes(norm(cmp)) || norm(raw) === norm(cmp);
+      case 'ne': return !(parts.includes(norm(cmp)) || norm(raw) === norm(cmp));
+      case 'contains': return norm(raw).includes(norm(cmp));
+      case 'in': return cmp.split(/[،,]/).map(norm).filter(Boolean).some((o) => parts.includes(o) || norm(raw) === o);
+      default: return true;
+    }
+  }, []);
+  /** 📄 تقسيم نموذج الإدخال إلى صفحات — الحقول القابلة للعرض بعد استبعاد أعمدة التتبّع والحقول المخفية شرطياً. */
   const formPageSize = Math.max(0, Number((crudCtx?.def as any)?.form_page_size || 0) || 0);
-  const formColsAll = (crudCtx?.cols || []).filter((c) => !auditLetters.includes(c.letter));
+  const formColsAll = (crudCtx?.cols || [])
+    .filter((c) => !auditLetters.includes(c.letter))
+    .filter((c) => isColVisible(c, crudEditing?.values || {}));
   const formPageCount = formPageSize > 0 ? Math.max(1, Math.ceil(formColsAll.length / formPageSize)) : 1;
   const curFormPage = Math.min(formPage, formPageCount - 1);
   const formCols = formPageSize > 0
     ? formColsAll.slice(curFormPage * formPageSize, (curFormPage + 1) * formPageSize)
     : formColsAll;
+
   /** سعة الخيارات: عدد مرات استخدام كل خيار في الورقة كاملة. */
   const optionCounts = crudCtx?.optionCounts || {};
   const optionLimits = (crudCtx?.def as any)?.option_limits || {};
@@ -1502,8 +1523,45 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                             <span className="text-[10px] text-amber-600 font-normal"> — اختر عمود «{c.parentLetter}» أولاً</span>
                           )}
                         </label>
-                        {c.type === 'select' ? (
-                          c.multi ? (
+                        {c.type === 'checkbox' && renderOptions.length === 0 ? (
+                          /* ☑️ مربع اختيار مفرد (نعم / لا) عندما لا تُعرَّف خيارات */
+                          <label className="flex items-center gap-2 text-xs font-bold bg-white border-2 border-slate-200 rounded-lg px-3 py-2.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4"
+                              checked={['نعم', 'true', '1', 'صح'].includes(v.trim().toLowerCase())}
+                              onChange={(e) => set(e.target.checked ? 'نعم' : 'لا')}
+                            />
+                            <span>{v.trim() && ['نعم', 'true', '1', 'صح'].includes(v.trim().toLowerCase()) ? 'نعم' : 'لا'}</span>
+                          </label>
+                        ) : c.type === 'radio' ? (
+                          /* 🔘 صندوق خيارات — اختيار واحد فقط */
+                          <div className="rounded-lg border-2 border-slate-200 bg-white p-2 space-y-1 max-h-44 overflow-y-auto">
+                            {renderOptions.length === 0 && <p className="text-[11px] text-slate-400 text-center py-1">لا توجد خيارات متاحة</p>}
+                            {renderOptions.map(({ o, left }) => {
+                              const checked = v.trim() === o;
+                              const full = left === 0 && !checked;
+                              return (
+                                <label key={o} className={`flex items-center gap-2 text-xs font-bold rounded px-2 py-1.5 ${full ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50'}`}>
+                                  <input
+                                    type="radio"
+                                    name={`radio-${crudCtx.def.id}-${c.letter}`}
+                                    checked={checked}
+                                    disabled={full}
+                                    onChange={() => set(o)}
+                                  />
+                                  <span>{o}</span>
+                                  {left !== null && <span className="mr-auto text-[10px] text-slate-400 font-normal">{left === 0 ? 'مكتمل' : `متبقٍ ${left}`}</span>}
+                                </label>
+                              );
+                            })}
+                            {v.trim() !== '' && (
+                              <button type="button" className="text-[10px] font-bold text-slate-500 underline px-2" onClick={() => set('')}>مسح الاختيار</button>
+                            )}
+                          </div>
+                        ) : c.type === 'select' || c.type === 'checkbox' ? (
+                          (c.multi || c.type === 'checkbox') ? (
+
                             /* ☑️ اختيارات متعددة: مربعات اختيار، تُحفظ القيم مفصولة بـ «، » */
                             <div className="rounded-lg border-2 border-slate-200 bg-white p-2 space-y-1 max-h-44 overflow-y-auto">
                               {renderOptions.length === 0 && <p className="text-[11px] text-slate-400 text-center py-1">لا توجد خيارات متاحة</p>}
@@ -1577,9 +1635,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                               onChange={async (e) => {
                                 const files = Array.from(e.target.files || []);
                                 if (files.length === 0) return;
-                                const over = files.find(f => f.size > 25 * 1024 * 1024);
+                                const over = files.find(f => f.size > 500 * 1024 * 1024);
                                 if (over) {
-                                  toast.error(`الملف "${over.name}" يتجاوز 25 ميغابايت`);
+                                  toast.error(`الملف "${over.name}" يتجاوز 500 ميغابايت`);
                                   e.target.value = '';
                                   return;
                                 }
@@ -1628,7 +1686,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                               }}
                             />
                             <p className="text-[10px] text-slate-500">
-                              يمكنك رفع عدة ملفات دفعة واحدة (25MB لكل ملف). تُخزَّن الروابط في الخلية مفصولة بـ " | ".
+                              يمكنك رفع عدة ملفات دفعة واحدة (حتى 500MB لكل ملف). تُخزَّن الروابط في الخلية مفصولة بـ " | ".
                             </p>
                             {ocrStatus && <p className="text-xs font-black text-cyan-700" role="status">⏳ {ocrStatus}</p>}
                           </div>
