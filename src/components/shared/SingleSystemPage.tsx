@@ -687,14 +687,35 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
   /** الأعمدة التي يملؤها النظام تلقائياً (تتبّع) — تُخفى من نموذج الإدخال. */
   const auditLetters = crudCtx?.auditLetters || [];
-  /** 📄 تقسيم نموذج الإدخال إلى صفحات — الحقول القابلة للعرض بعد استبعاد أعمدة التتبّع. */
+  /** 👁️ إظهار/إخفاء الحقل استناداً إلى إجابة حقل آخر (شرط العرض المُعرَّف في المنشئ). */
+  const isColVisible = useCallback((c: any, values: Record<string, string>) => {
+    const cond = c?.visibleWhen;
+    if (!cond || !cond.field || !cond.op) return true;
+    const raw = String(values?.[cond.field] ?? '').trim();
+    const cmp = String(cond.value ?? '').trim();
+    const norm = (x: string) => x.replace(/\s+/g, ' ').trim().toLowerCase();
+    const parts = raw.split(/[،,]/).map((x) => norm(x)).filter(Boolean);
+    switch (cond.op) {
+      case 'filled': return raw !== '';
+      case 'empty': return raw === '';
+      case 'eq': return parts.includes(norm(cmp)) || norm(raw) === norm(cmp);
+      case 'ne': return !(parts.includes(norm(cmp)) || norm(raw) === norm(cmp));
+      case 'contains': return norm(raw).includes(norm(cmp));
+      case 'in': return cmp.split(/[،,]/).map(norm).filter(Boolean).some((o) => parts.includes(o) || norm(raw) === o);
+      default: return true;
+    }
+  }, []);
+  /** 📄 تقسيم نموذج الإدخال إلى صفحات — الحقول القابلة للعرض بعد استبعاد أعمدة التتبّع والحقول المخفية شرطياً. */
   const formPageSize = Math.max(0, Number((crudCtx?.def as any)?.form_page_size || 0) || 0);
-  const formColsAll = (crudCtx?.cols || []).filter((c) => !auditLetters.includes(c.letter));
+  const formColsAll = (crudCtx?.cols || [])
+    .filter((c) => !auditLetters.includes(c.letter))
+    .filter((c) => isColVisible(c, crudEditing?.values || {}));
   const formPageCount = formPageSize > 0 ? Math.max(1, Math.ceil(formColsAll.length / formPageSize)) : 1;
   const curFormPage = Math.min(formPage, formPageCount - 1);
   const formCols = formPageSize > 0
     ? formColsAll.slice(curFormPage * formPageSize, (curFormPage + 1) * formPageSize)
     : formColsAll;
+
   /** سعة الخيارات: عدد مرات استخدام كل خيار في الورقة كاملة. */
   const optionCounts = crudCtx?.optionCounts || {};
   const optionLimits = (crudCtx?.def as any)?.option_limits || {};
