@@ -393,7 +393,8 @@ export function buildConfigFromDef(
         const parentLetter = (parentCfg?.parent || '').toUpperCase() || undefined;
         let options: string[] = [];
         let optionMap: Record<string, string[]> | undefined;
-        if (type === 'select') {
+        const isOptionType = type === 'select' || type === 'radio' || type === 'checkbox';
+        if (isOptionType) {
           /** الجدول الذي تُقرأ منه الخيارات: ورقة خارجية أو ورقة النظام نفسها. */
           const extSheet = source === 'sheet' ? optionSheets?.[letter] : undefined;
           const srcSheet = extSheet || sheet;
@@ -453,6 +454,7 @@ export function buildConfigFromDef(
           options,
           allowCustom: !!allowMap[letter],
           multi: !!(def.column_multi || {})[letter],
+          visibleWhen: (def.column_visible_when || {})[letter],
           source,
           driveFolder,
           autoNow,
