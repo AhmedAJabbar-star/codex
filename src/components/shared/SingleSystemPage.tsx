@@ -1598,9 +1598,9 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                               onChange={async (e) => {
                                 const files = Array.from(e.target.files || []);
                                 if (files.length === 0) return;
-                                const over = files.find(f => f.size > 25 * 1024 * 1024);
+                                const over = files.find(f => f.size > 500 * 1024 * 1024);
                                 if (over) {
-                                  toast.error(`الملف "${over.name}" يتجاوز 25 ميغابايت`);
+                                  toast.error(`الملف "${over.name}" يتجاوز 500 ميغابايت`);
                                   e.target.value = '';
                                   return;
                                 }
@@ -1649,7 +1649,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                               }}
                             />
                             <p className="text-[10px] text-slate-500">
-                              يمكنك رفع عدة ملفات دفعة واحدة (25MB لكل ملف). تُخزَّن الروابط في الخلية مفصولة بـ " | ".
+                              يمكنك رفع عدة ملفات دفعة واحدة (حتى 500MB لكل ملف). تُخزَّن الروابط في الخلية مفصولة بـ " | ".
                             </p>
                             {ocrStatus && <p className="text-xs font-black text-cyan-700" role="status">⏳ {ocrStatus}</p>}
                           </div>
