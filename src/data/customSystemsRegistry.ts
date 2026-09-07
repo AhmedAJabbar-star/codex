@@ -163,7 +163,9 @@ export interface CustomSystemDef {
   /** Fine-grained CRUD permissions (preferred over crud_enabled). */
   crud_permissions?: CrudPermissions;
   /** Per-column input type for the CRUD form. Key = Excel letter, value = type. */
-  column_types?: Record<string, 'text' | 'number' | 'date' | 'datetime' | 'select' | 'readonly' | 'file'>;
+  column_types?: Record<string, 'text' | 'number' | 'date' | 'datetime' | 'select' | 'radio' | 'checkbox' | 'readonly' | 'file'>;
+  /** 👁️ شرط إظهار الحقل استناداً إلى إجابة حقل آخر (حرف العمود ← الشرط). */
+  column_visible_when?: Record<string, { field?: string; op?: 'eq' | 'ne' | 'contains' | 'in' | 'filled' | 'empty'; value?: string }>;
   /** ⏱️ أعمدة تُملأ تلقائياً بوقت وتاريخ لحظة الإدخال (2:20:20 ص 2021/08/24) وتكون غير قابلة للتعديل. */
   column_auto_now?: Record<string, boolean>;
   /** 📄 مصدر خيارات القائمة من ورقة Google Sheets أخرى (حرف العمود ← إعداد الورقة). */
@@ -484,6 +486,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   column_select_source: {},
   column_select_allow_custom: {},
   column_multi: {},
+  column_visible_when: {},
   form_page_size: 0,
   column_link_labels: {},
   ocr_enabled: false,
@@ -607,7 +610,9 @@ export async function deleteCustomSystem(id: string, password: string): Promise<
 export interface CrudColMeta {
   letter: string;
   header: string;
-  type: 'text' | 'number' | 'date' | 'datetime' | 'select' | 'readonly' | 'file';
+  type: 'text' | 'number' | 'date' | 'datetime' | 'select' | 'radio' | 'checkbox' | 'readonly' | 'file';
+  /** 👁️ شرط إظهار الحقل في النموذج استناداً إلى قيمة حقل آخر. */
+  visibleWhen?: { field?: string; op?: 'eq' | 'ne' | 'contains' | 'in' | 'filled' | 'empty'; value?: string };
   options: string[];
   allowCustom: boolean;
   /** ☑️ السماح باختيار أكثر من خيار (تُحفظ مفصولة بـ «، »). */
