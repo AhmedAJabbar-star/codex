@@ -1473,6 +1473,8 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                     <option value="date">📅 تاريخ</option>
                                     <option value="datetime">⏱️ وقت وتاريخ تلقائي</option>
                                     <option value="select">📋 قائمة منسدلة</option>
+                                    <option value="radio">🔘 صندوق خيارات (اختيار واحد)</option>
+                                    <option value="checkbox">☑️ مربعات اختيار</option>
                                     <option value="file">📎 ملف (رفع إلى Google Drive)</option>
                                     <option value="readonly">🔒 قراءة فقط</option>
                                   </select>
@@ -1509,7 +1511,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                     </p>
                                   </div>
                                 )}
-                                {ct === 'select' && (
+                                {(ct === 'select' || ct === 'radio' || ct === 'checkbox') && (
                                   <div className="space-y-2 pt-1 border-t border-dashed">
                                     <div className="flex flex-wrap gap-3 text-[11px] font-bold">
                                       <label className="flex items-center gap-1.5 cursor-pointer">
@@ -1589,6 +1591,45 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                     )}
                                   </div>
                                 )}
+                                {(() => {
+                                  const vw = ((s as any).column_visible_when || {})[L] || {};
+                                  const setVw = (patchObj: any) => patch({
+                                    column_visible_when: {
+                                      ...((s as any).column_visible_when || {}),
+                                      [L]: { ...vw, ...patchObj },
+                                    },
+                                  } as any);
+                                  return (
+                                    <div className="pt-1 border-t border-dashed space-y-1.5">
+                                      <p className="text-[11px] font-black text-slate-700">👁️ إظهار هذا الحقل بشرط (اختياري)</p>
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
+                                        <select className="schedule-select text-xs" value={vw.field || ''}
+                                          onChange={(e) => setVw({ field: e.target.value })}>
+                                          <option value="">— يظهر دائماً —</option>
+                                          {colLetters.filter((x) => x !== L).map((x) => (
+                                            <option key={x} value={x}>عمود {x} — {labels[x] || ''}</option>
+                                          ))}
+                                        </select>
+                                        <select className="schedule-select text-xs" value={vw.op || 'eq'} disabled={!vw.field}
+                                          onChange={(e) => setVw({ op: e.target.value })}>
+                                          <option value="eq">يساوي</option>
+                                          <option value="ne">لا يساوي</option>
+                                          <option value="contains">يحتوي على</option>
+                                          <option value="in">أحد القيم (مفصولة بفاصلة)</option>
+                                          <option value="filled">غير فارغ</option>
+                                          <option value="empty">فارغ</option>
+                                        </select>
+                                        <input className="schedule-select text-xs" value={vw.value || ''}
+                                          disabled={!vw.field || vw.op === 'filled' || vw.op === 'empty'}
+                                          onChange={(e) => setVw({ value: e.target.value })}
+                                          placeholder="القيمة — مثال: نعم" />
+                                      </div>
+                                      <p className="text-[10px] text-slate-500">
+                                        عند تحقق الشرط فقط يظهر هذا الحقل في نافذة الإضافة/التعديل، وإلا يبقى مخفياً.
+                                      </p>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             );
                           })}
