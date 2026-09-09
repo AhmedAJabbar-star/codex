@@ -99,6 +99,24 @@ export function buildConfigFromDef(
     linkColumns[displayHeaders[visibleIdx]] = lbl;
   });
 
+  // 👁️ أعمدة يُخفى محتواها في الجدول ويُعرض بزر «عرض» داخل نافذة منبثقة.
+  const popupByLetter = def.column_popup || {};
+  const popupColumns: string[] = [];
+  colIdxs.forEach((i) => {
+    const letter = colIndexToLetter(i);
+    if (!(popupByLetter[letter] || popupByLetter[letter.toLowerCase()])) return;
+    const real = sheet.headers[i];
+    if (!real) return;
+    const vIdx = sourceHeaders.indexOf(real);
+    if (vIdx >= 0) popupColumns.push(displayHeaders[vIdx]);
+  });
+
+  // 🔍 أعمدة الورقة غير المستدعاة — تُقرأ للبحث فقط ولا تظهر في الجدول.
+  const searchOnlyIdxs: number[] = def.search_all_columns
+    ? sheet.headers.map((_, i) => i).filter((i) => !projIdxs.includes(i) && !!sheet.headers[i])
+    : [];
+  const searchHeaders: string[] = searchOnlyIdxs.map((i) => `__search_${colIndexToLetter(i)}`);
+
   const derivedNames = (def.derived_columns || []).map((d) => d.name);
   const computedNames = (def.computed_columns || []).map((c) => c?.name).filter(Boolean) as string[];
   const groupAggNames = ((def.group_stage?.aggs) || []).map((a) => a.name).filter(Boolean);
