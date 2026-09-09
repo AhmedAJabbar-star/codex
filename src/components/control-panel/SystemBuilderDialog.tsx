@@ -2962,6 +2962,12 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                           onChange={(e) => updCC(i, { filterable: e.target.checked })} />
                         <span>🔎 إتاحة فلتر لهذا العمود أعلى الجدول (ويُشمل تلقائياً في البحث العام وبحث الأعمدة)</span>
                       </label>
+                      <label className="flex items-center gap-2 text-[11px] font-bold cursor-pointer bg-sky-50 border border-sky-200 rounded px-2 py-1">
+                        <input type="checkbox" disabled={!cc.name}
+                          checked={!!((s as any).column_popup || {})[cc.name]}
+                          onChange={(e) => patch({ column_popup: { ...((s as any).column_popup || {}), [cc.name]: e.target.checked } } as any)} />
+                        <span>👁️ إخفاء المحتوى في الجدول وعرضه بزر «عرض» في نافذة منبثقة (يبقى قابلاً للبحث)</span>
+                      </label>
                       <div className="flex flex-wrap gap-2 items-center">
                         {cc.type === 'duration' && (
                           <FreeTextInput className="schedule-select flex-1 font-mono text-center" dir="ltr"
