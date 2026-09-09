@@ -2281,6 +2281,16 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       </span>
                     </span>
                   </label>
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer mt-2 pt-2 border-t">
+                    <input type="checkbox" checked={!!(s as any).search_all_columns}
+                      onChange={(e) => patch({ search_all_columns: e.target.checked } as any)} />
+                    <span>
+                      🗂️ البحث في كل أعمدة ورقة العمل (حتى غير المستدعاة)
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        عند التفعيل يشمل البحث بيانات الأعمدة غير الموجودة ضمن نطاق الأعمدة، دون إظهارها في الجدول.
+                      </span>
+                    </span>
+                  </label>
                 </div>
 
                 {/* Row highlighting */}
