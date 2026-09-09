@@ -284,10 +284,16 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     if (q && (system.crudContext || system.globalSearch)) {
       // البحث يشمل الأعمدة الظاهرة + الأعمدة المخصصة للبحث فقط (غير المستدعاة).
       const searchKeys = [...system.headers, ...(system.searchHeaders || [])];
+      // 📅 إن كان نص البحث تاريخاً، نطابقه بأي ترتيب أو فاصل.
+      const isDateQuery = !!extractDateParts(q);
       if (searchMode === 'phrase') {
         // نص مطابق: العبارة كما كُتبت داخل أي عمود (مع توحيد الأرقام العربية/اللاتينية).
         result = result.filter((r) =>
-          searchKeys.some((h) => normalizeSearchText(r[h] || '').includes(q))
+          searchKeys.some((h) => {
+            const cell = r[h] || '';
+            if (normalizeSearchText(cell).includes(q)) return true;
+            return isDateQuery && dateAwareMatch(cell, q);
+          })
         );
       } else {
         // الكلمات كافة / إحدى الكلمات — مع تطبيع عربي (تجاهل الهمزات والتشكيل والمسافات الزائدة).
@@ -295,9 +301,11 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         if (words.length > 0) {
           result = result.filter((r) => {
             const hay = searchKeys.map((h) => normalizeArabic(r[h] || '', false)).join(' ');
-            return searchMode === 'all'
+            const ok = searchMode === 'all'
               ? words.every((w) => hay.includes(w))
               : words.some((w) => hay.includes(w));
+            if (ok) return true;
+            return isDateQuery && searchKeys.some((h) => dateAwareMatch(r[h] || '', q));
           });
         }
       }
@@ -307,7 +315,10 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const colEntries = Object.entries(colSearch).filter(([, v]) => (v || '').trim() !== '');
     if (colEntries.length > 0) {
       result = result.filter((r) =>
-        colEntries.every(([h, v]) => normalizeSearchText(r[h] || '').includes(normalizeSearchText(v)))
+        colEntries.every(([h, v]) =>
+          normalizeSearchText(r[h] || '').includes(normalizeSearchText(v)) ||
+          dateAwareMatch(r[h] || '', v)
+        )
       );
     }
 
