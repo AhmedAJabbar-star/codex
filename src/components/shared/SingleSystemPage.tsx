@@ -1915,6 +1915,20 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                               </td>
                             );
                           }
+                          if (system.popupColumns?.includes(h)) {
+                            return (
+                              <td key={h} className={tdClass} style={{ whiteSpace: 'nowrap' }}>
+                                {val ? (
+                                  <button
+                                    type="button"
+                                    className="schedule-btn schedule-btn-primary"
+                                    style={{ minHeight: 26, padding: '3px 12px', fontSize: 11 }}
+                                    onClick={() => setCellPopup({ title: h, text: val })}
+                                  >👁️ عرض</button>
+                                ) : '—'}
+                              </td>
+                            );
+                          }
                           return <td key={h} className={tdClass}>{val}</td>;
                         })}
                         {activeSystem === 'emptyRooms' && (() => {
