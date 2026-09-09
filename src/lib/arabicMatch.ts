@@ -232,3 +232,57 @@ export function arabicMatch(cell: string, needle: string, opts: ArabicMatchOptio
       return !!c && c === n;
   }
 }
+
+/* ============================================================
+ * 📅 مطابقة التواريخ بأي ترتيب (يوم/شهر/سنة)
+ * تعالج: الأرقام العربية، الفواصل المختلفة (/ - . مسافة)،
+ * والأصفار البادئة، وترتيب الأجزاء.
+ * ============================================================ */
+
+/** يوحّد فواصل التواريخ بين الأرقام إلى «/» ويحوّل الأرقام إلى لاتينية. */
+export function normalizeDateSeparators(input: string): string {
+  return toLatinDigits(String(input ?? ''))
+    .replace(/[\u200f\u200e\u061c]/g, '')
+    .replace(/(\d)\s*[\/\-\.\\|،,]\s*(\d)/g, '$1/$2')
+    .replace(/(\d)\s+(\d)/g, '$1/$2');
+}
+
+/** يستخرج أجزاء التاريخ (3 أعداد) من نص البحث، أو null إن لم يكن تاريخاً. */
+export function extractDateParts(query: string): string[] | null {
+  const parts = toLatinDigits(String(query ?? ''))
+    .split(/[^0-9]+/)
+    .filter(Boolean);
+  if (parts.length !== 3) return null;
+  if (!parts.every((p) => p.length >= 1 && p.length <= 4)) return null;
+  return parts;
+}
+
+/** يولّد كل صيغ التاريخ الممكنة (كل الترتيبات × مع/بدون صفر بادئ). */
+export function dateVariants(parts: string[]): string[] {
+  const perms: string[][] = [];
+  const permute = (arr: string[], cur: string[] = []) => {
+    if (!arr.length) { perms.push(cur); return; }
+    arr.forEach((v, i) => permute([...arr.slice(0, i), ...arr.slice(i + 1)], [...cur, v]));
+  };
+  permute(parts);
+  const forms = new Set<string>();
+  for (const p of perms) {
+    const plain = p.map((x) => String(Number(x)));
+    const padded = p.map((x) => (x.length === 4 ? x : String(Number(x)).padStart(2, '0')));
+    forms.add(plain.join('/'));
+    forms.add(padded.join('/'));
+  }
+  return [...forms];
+}
+
+/**
+ * يطابق تاريخاً مكتوباً بأي ترتيب أو فاصل داخل نص الخلية.
+ * مثال: البحث عن «26 12 2024» يطابق «٢٠٢٤/١٢/٢٦».
+ */
+export function dateAwareMatch(cell: string, query: string): boolean {
+  const parts = extractDateParts(query);
+  if (!parts) return false;
+  const hay = normalizeDateSeparators(cell);
+  if (!hay) return false;
+  return dateVariants(parts).some((v) => hay.includes(v));
+}
