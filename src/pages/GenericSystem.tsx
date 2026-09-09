@@ -377,6 +377,11 @@ export function buildConfigFromDef(
         snap[letter] = (hk ? r[hk] : '') || '';
       });
       out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
+      // قيم الأعمدة غير المستدعاة — للبحث فقط.
+      searchOnlyIdxs.forEach((i, k) => {
+        const hk = sheet.headers[i];
+        out[searchHeaders[k]] = (hk ? row[hk] : '') || '';
+      });
       // Row-highlighting rules: first matching wins.
       const rr = def.row_rules || [];
       for (const rule of rr) {
@@ -600,6 +605,8 @@ export function buildConfigFromDef(
     rowColorKey: hasRowColors ? ROW_COLOR_KEY : undefined,
     aggregations: aggregations.length > 0 ? aggregations : undefined,
     globalSearch: !!def.global_search,
+    popupColumns: popupColumns.length > 0 ? popupColumns : undefined,
+    searchHeaders: searchHeaders.length > 0 ? searchHeaders : undefined,
     toolbarButtons: (def.toolbar_buttons && Object.keys(def.toolbar_buttons).length > 0) ? def.toolbar_buttons : undefined,
     joinedReports: (def.joined_reports || []).map((j) => ({ id: j.id, title: j.title })),
 
