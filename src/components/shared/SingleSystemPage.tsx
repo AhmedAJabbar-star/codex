@@ -2065,6 +2065,41 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
         </div>
       )}
 
+      {cellPopup && (
+        <div
+          dir="rtl"
+          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 print:hidden"
+          onClick={() => setCellPopup(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b bg-slate-50">
+              <strong className="text-slate-800 text-sm">{cellPopup.title}</strong>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="schedule-btn"
+                  style={{ minHeight: 28, padding: '4px 12px', fontSize: 12 }}
+                  onClick={() => { navigator.clipboard?.writeText(cellPopup.text); }}
+                >📋 نسخ</button>
+                <button
+                  type="button"
+                  className="schedule-btn"
+                  style={{ minHeight: 28, padding: '4px 12px', fontSize: 12 }}
+                  onClick={() => setCellPopup(null)}
+                >إغلاق ✖</button>
+              </div>
+            </div>
+            <div
+              className="p-4 overflow-auto text-sm leading-8 text-slate-800"
+              style={{ whiteSpace: 'pre-wrap', direction: 'rtl', textAlign: 'right' }}
+            >{cellPopup.text}</div>
+          </div>
+        </div>
+      )}
+
       {previewUrl && (
         <div
           className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 print:hidden"
