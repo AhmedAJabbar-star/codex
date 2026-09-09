@@ -91,6 +91,8 @@ const HEADERS = [
   "column_multi_json", "form_page_size",
   // v27 additions (radio/checkbox inputs + conditional field visibility):
   "column_visible_when_json",
+  // v28 additions (popup cell viewer + search across non-imported sheet columns):
+  "column_popup_json", "search_all_columns",
 
 ];
 
@@ -341,6 +343,8 @@ function rowToSystem(r: Record<string, string>) {
     column_select_allow_custom: parseJson(r.column_select_allow_custom_json || "{}", {}),
     column_multi: parseJson(r.column_multi_json || "{}", {}),
     column_visible_when: parseJson(r.column_visible_when_json || "{}", {}),
+    column_popup: parseJson(r.column_popup_json || "{}", {}),
+    search_all_columns: String(r.search_all_columns || "").toLowerCase() === "true",
     form_page_size: Math.max(0, parseInt(clean(r.form_page_size) || "0", 10) || 0),
     column_auto_now: parseJson(r.column_auto_now_json || "{}", {}),
     column_select_sheet: parseJson(r.column_select_sheet_json || "{}", {}),
@@ -451,6 +455,8 @@ async function systemToRow(s: any): Promise<string[]> {
     column_select_allow_custom_json: JSON.stringify(s.column_select_allow_custom || {}),
     column_multi_json: JSON.stringify(s.column_multi || {}),
     column_visible_when_json: JSON.stringify(s.column_visible_when || {}),
+    column_popup_json: JSON.stringify(s.column_popup || {}),
+    search_all_columns: String(!!s.search_all_columns),
     form_page_size: String(Math.max(0, Number(s.form_page_size || 0) || 0)),
     column_auto_now_json: JSON.stringify(s.column_auto_now || {}),
     column_select_sheet_json: JSON.stringify(s.column_select_sheet || {}),
