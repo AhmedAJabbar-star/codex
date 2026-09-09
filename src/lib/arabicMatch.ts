@@ -8,9 +8,32 @@
 
 export type ArabicMatchMode = 'exact' | 'contains' | 'prefix' | 'similarity' | 'tokens';
 
+/**
+ * يحوّل الأرقام العربية/الهندية والفارسية إلى أرقام لاتينية،
+ * ويوحّد الفاصلة العشرية والألفية والفواصل العربية في التواريخ.
+ * مثال: «٢٠٢٤/١٢/٢٦» → «2024/12/26»
+ */
+export function toLatinDigits(input: string): string {
+  return String(input ?? '')
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/\u066B/g, '.')   // الفاصلة العشرية العربية
+    .replace(/\u066C/g, '')    // فاصلة الآلاف العربية
+    .replace(/\u060C/g, ',');  // الفاصلة العربية
+}
+
+/** تطبيع نص البحث: أرقام لاتينية + حروف صغيرة + مسافات موحّدة. */
+export function normalizeSearchText(input: string): string {
+  return toLatinDigits(input)
+    .replace(/[\u200f\u200e\u061c]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 /** يزيل الفوارق الشكلية المعروفة في العربية ويهمل المسافات (اختياري). */
 export function normalizeArabic(input: string, ignoreSpaces = true): string {
-  let s = String(input ?? '').trim();
+  let s = toLatinDigits(String(input ?? '')).trim();
   s = s.replace(/[\u064B-\u065F\u0670\u0640]/g, ''); // تشكيل + تطويل
   s = s
     .replace(/[أإآٱ]/g, 'ا')
@@ -26,6 +49,7 @@ export function normalizeArabic(input: string, ignoreSpaces = true): string {
   s = ignoreSpaces ? s.replace(/\s+/g, '') : s.replace(/\s+/g, ' ').trim();
   return s.toLowerCase();
 }
+
 
 /** أول N حرفاً بعد التطبيع (مكافئ لدالة LEFT في المعادلة). */
 export function normalizedPrefix(input: string, len = 15, ignoreSpaces = true): string {

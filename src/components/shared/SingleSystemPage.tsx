@@ -24,7 +24,7 @@ import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 import { useBranding } from '@/lib/useBranding';
 import { amountToIraqiDinarWords, formatAmountDigits } from '@/lib/arabicNumberWords';
-import { normalizeArabic } from '@/lib/arabicMatch';
+import { normalizeArabic, normalizeSearchText } from '@/lib/arabicMatch';
 
 
 
@@ -280,14 +280,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     }
 
     // Global / Inline-CRUD search (applies to all visible headers).
-    const q = deferredSearch.trim().toLowerCase();
+    const q = normalizeSearchText(deferredSearch);
     if (q && (system.crudContext || system.globalSearch)) {
       // البحث يشمل الأعمدة الظاهرة + الأعمدة المخصصة للبحث فقط (غير المستدعاة).
       const searchKeys = [...system.headers, ...(system.searchHeaders || [])];
       if (searchMode === 'phrase') {
-        // نص مطابق: العبارة كما كُتبت داخل أي عمود.
+        // نص مطابق: العبارة كما كُتبت داخل أي عمود (مع توحيد الأرقام العربية/اللاتينية).
         result = result.filter((r) =>
-          searchKeys.some((h) => (r[h] || '').toLowerCase().includes(q))
+          searchKeys.some((h) => normalizeSearchText(r[h] || '').includes(q))
         );
       } else {
         // الكلمات كافة / إحدى الكلمات — مع تطبيع عربي (تجاهل الهمزات والتشكيل والمسافات الزائدة).
@@ -307,7 +307,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     const colEntries = Object.entries(colSearch).filter(([, v]) => (v || '').trim() !== '');
     if (colEntries.length > 0) {
       result = result.filter((r) =>
-        colEntries.every(([h, v]) => (r[h] || '').toLowerCase().includes(v.trim().toLowerCase()))
+        colEntries.every(([h, v]) => normalizeSearchText(r[h] || '').includes(normalizeSearchText(v)))
       );
     }
 
