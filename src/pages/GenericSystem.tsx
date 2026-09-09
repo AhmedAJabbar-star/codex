@@ -127,6 +127,11 @@ export function buildConfigFromDef(
     ...(flagColName ? [flagColName] : []),
   ]));
 
+  // 👁️ الأعمدة المحسوبة/المشتقة يمكن أيضاً إخفاء محتواها خلف زر «عرض» (تُخزَّن باسم العمود لا بحرفه).
+  [...derivedNames, ...computedNames, ...groupAggNames].forEach((n) => {
+    if (n && popupByLetter[n] && !popupColumns.includes(n)) popupColumns.push(n);
+  });
+
   // Build filters: prefer filters_config when provided; fall back to filter_columns
   const builtFilters: SystemConfig['filters'] = [];
   type RuleFilter = {
