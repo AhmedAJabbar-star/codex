@@ -1479,6 +1479,20 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                     <option value="readonly">🔒 قراءة فقط</option>
                                   </select>
                                 </div>
+                                <label className="flex items-start gap-2 pt-1 border-t border-dashed text-[11px] font-bold cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    className="mt-0.5"
+                                    checked={!!((s as any).column_popup || {})[L]}
+                                    onChange={(e) => patch({ column_popup: { ...((s as any).column_popup || {}), [L]: e.target.checked } } as any)}
+                                  />
+                                  <span>
+                                    👁️ إخفاء المحتوى في الجدول وعرضه بزر «عرض» في نافذة منبثقة
+                                    <span className="block text-[10px] text-slate-500 font-normal">
+                                      مناسب للأعمدة الطويلة أو المدمجة — يبقى البحث في محتواها فعّالاً.
+                                    </span>
+                                  </span>
+                                </label>
                                 {(ct === 'text' || ct === 'date' || ct === 'datetime' || ct === 'readonly') && (
                                   <label className="flex items-start gap-2 pt-1 border-t border-dashed text-[11px] font-bold cursor-pointer">
                                     <input
