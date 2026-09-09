@@ -87,6 +87,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [ocrPick, setOcrPick] = useState<{ files: File[]; letter: string } | null>(null);
   const ocrFileRef = useRef<HTMLInputElement | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  /** 👁️ محتوى خلية طويلة معروض في نافذة منبثقة. */
+  const [cellPopup, setCellPopup] = useState<{ title: string; text: string } | null>(null);
   const qc = useQueryClient();
 
   /** ⏱️ صيغة الوقت والتاريخ التلقائية: 2:20:20 ص 2021/08/24 */
@@ -280,17 +282,19 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     // Global / Inline-CRUD search (applies to all visible headers).
     const q = deferredSearch.trim().toLowerCase();
     if (q && (system.crudContext || system.globalSearch)) {
+      // البحث يشمل الأعمدة الظاهرة + الأعمدة المخصصة للبحث فقط (غير المستدعاة).
+      const searchKeys = [...system.headers, ...(system.searchHeaders || [])];
       if (searchMode === 'phrase') {
         // نص مطابق: العبارة كما كُتبت داخل أي عمود.
         result = result.filter((r) =>
-          system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
+          searchKeys.some((h) => (r[h] || '').toLowerCase().includes(q))
         );
       } else {
         // الكلمات كافة / إحدى الكلمات — مع تطبيع عربي (تجاهل الهمزات والتشكيل والمسافات الزائدة).
         const words = normalizeArabic(q, false).split(/\s+/).filter(Boolean);
         if (words.length > 0) {
           result = result.filter((r) => {
-            const hay = system.headers.map((h) => normalizeArabic(r[h] || '', false)).join(' ');
+            const hay = searchKeys.map((h) => normalizeArabic(r[h] || '', false)).join(' ');
             return searchMode === 'all'
               ? words.every((w) => hay.includes(w))
               : words.some((w) => hay.includes(w));
