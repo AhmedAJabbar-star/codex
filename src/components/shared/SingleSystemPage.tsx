@@ -24,7 +24,7 @@ import { exportOfficialPdfToPc } from '@/lib/directPdfExport';
 import { uiConfirm, uiPrompt } from '@/lib/ui-dialog';
 import { useBranding } from '@/lib/useBranding';
 import { amountToIraqiDinarWords, formatAmountDigits } from '@/lib/arabicNumberWords';
-import { normalizeArabic } from '@/lib/arabicMatch';
+import { normalizeArabic, normalizeSearchText } from '@/lib/arabicMatch';
 
 
 
