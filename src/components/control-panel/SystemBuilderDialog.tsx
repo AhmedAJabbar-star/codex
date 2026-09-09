@@ -1479,6 +1479,20 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                                     <option value="readonly">🔒 قراءة فقط</option>
                                   </select>
                                 </div>
+                                <label className="flex items-start gap-2 pt-1 border-t border-dashed text-[11px] font-bold cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    className="mt-0.5"
+                                    checked={!!((s as any).column_popup || {})[L]}
+                                    onChange={(e) => patch({ column_popup: { ...((s as any).column_popup || {}), [L]: e.target.checked } } as any)}
+                                  />
+                                  <span>
+                                    👁️ إخفاء المحتوى في الجدول وعرضه بزر «عرض» في نافذة منبثقة
+                                    <span className="block text-[10px] text-slate-500 font-normal">
+                                      مناسب للأعمدة الطويلة أو المدمجة — يبقى البحث في محتواها فعّالاً.
+                                    </span>
+                                  </span>
+                                </label>
                                 {(ct === 'text' || ct === 'date' || ct === 'datetime' || ct === 'readonly') && (
                                   <label className="flex items-start gap-2 pt-1 border-t border-dashed text-[11px] font-bold cursor-pointer">
                                     <input
@@ -2278,6 +2292,16 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                       🔍 تفعيل شريط البحث العام فوق الجدول
                       <span className="block text-[11px] font-normal text-slate-600 mt-1">
                         عند التفعيل يظهر مربع بحث يفلتر السجلات عبر جميع الأعمدة الظاهرة بشكل فوري.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm font-bold cursor-pointer mt-2 pt-2 border-t">
+                    <input type="checkbox" checked={!!(s as any).search_all_columns}
+                      onChange={(e) => patch({ search_all_columns: e.target.checked } as any)} />
+                    <span>
+                      🗂️ البحث في كل أعمدة ورقة العمل (حتى غير المستدعاة)
+                      <span className="block text-[11px] font-normal text-slate-600 mt-1">
+                        عند التفعيل يشمل البحث بيانات الأعمدة غير الموجودة ضمن نطاق الأعمدة، دون إظهارها في الجدول.
                       </span>
                     </span>
                   </label>

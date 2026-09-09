@@ -186,6 +186,10 @@ export interface CustomSystemDef {
   column_multi?: Record<string, boolean>;
   /** 📄 عدد حقول نموذج الإدخال في كل صفحة (0 أو فارغ = كل الحقول في صفحة واحدة). */
   form_page_size?: number;
+  /** 👁️ إخفاء محتوى العمود داخل الجدول وعرضه بزر «عرض» في نافذة منبثقة (البحث يبقى فعّالاً). */
+  column_popup?: Record<string, boolean>;
+  /** 🔍 تفعيل البحث في كل أعمدة ورقة العمل حتى غير المستدعاة ضمن نطاق الأعمدة. */
+  search_all_columns?: boolean;
   /** Per-column link button label (Excel letter -> button text). When set, cells with a URL
    *  in this column render as a clickable button («افتح الملف» / «Open» ...) opening the URL
    *  in a new tab instead of showing the raw URL. */
@@ -488,6 +492,8 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   column_multi: {},
   column_visible_when: {},
   form_page_size: 0,
+  column_popup: {},
+  search_all_columns: false,
   column_link_labels: {},
   ocr_enabled: false,
   ocr_prompt: '',

@@ -87,6 +87,8 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
   const [ocrPick, setOcrPick] = useState<{ files: File[]; letter: string } | null>(null);
   const ocrFileRef = useRef<HTMLInputElement | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  /** 👁️ محتوى خلية طويلة معروض في نافذة منبثقة. */
+  const [cellPopup, setCellPopup] = useState<{ title: string; text: string } | null>(null);
   const qc = useQueryClient();
 
   /** ⏱️ صيغة الوقت والتاريخ التلقائية: 2:20:20 ص 2021/08/24 */
@@ -280,17 +282,19 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     // Global / Inline-CRUD search (applies to all visible headers).
     const q = deferredSearch.trim().toLowerCase();
     if (q && (system.crudContext || system.globalSearch)) {
+      // البحث يشمل الأعمدة الظاهرة + الأعمدة المخصصة للبحث فقط (غير المستدعاة).
+      const searchKeys = [...system.headers, ...(system.searchHeaders || [])];
       if (searchMode === 'phrase') {
         // نص مطابق: العبارة كما كُتبت داخل أي عمود.
         result = result.filter((r) =>
-          system.headers.some((h) => (r[h] || '').toLowerCase().includes(q))
+          searchKeys.some((h) => (r[h] || '').toLowerCase().includes(q))
         );
       } else {
         // الكلمات كافة / إحدى الكلمات — مع تطبيع عربي (تجاهل الهمزات والتشكيل والمسافات الزائدة).
         const words = normalizeArabic(q, false).split(/\s+/).filter(Boolean);
         if (words.length > 0) {
           result = result.filter((r) => {
-            const hay = system.headers.map((h) => normalizeArabic(r[h] || '', false)).join(' ');
+            const hay = searchKeys.map((h) => normalizeArabic(r[h] || '', false)).join(' ');
             return searchMode === 'all'
               ? words.every((w) => hay.includes(w))
               : words.some((w) => hay.includes(w));
@@ -1911,6 +1915,20 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                               </td>
                             );
                           }
+                          if (system.popupColumns?.includes(h)) {
+                            return (
+                              <td key={h} className={tdClass} style={{ whiteSpace: 'nowrap' }}>
+                                {val ? (
+                                  <button
+                                    type="button"
+                                    className="schedule-btn schedule-btn-primary"
+                                    style={{ minHeight: 26, padding: '3px 12px', fontSize: 11 }}
+                                    onClick={() => setCellPopup({ title: h, text: val })}
+                                  >👁️ عرض</button>
+                                ) : '—'}
+                              </td>
+                            );
+                          }
                           return <td key={h} className={tdClass}>{val}</td>;
                         })}
                         {activeSystem === 'emptyRooms' && (() => {
@@ -2043,6 +2061,41 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 <button className="schedule-btn flex-1" onClick={() => setShowBookingDialog(false)}>إلغاء</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {cellPopup && (
+        <div
+          dir="rtl"
+          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 print:hidden"
+          onClick={() => setCellPopup(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b bg-slate-50">
+              <strong className="text-slate-800 text-sm">{cellPopup.title}</strong>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="schedule-btn"
+                  style={{ minHeight: 28, padding: '4px 12px', fontSize: 12 }}
+                  onClick={() => { navigator.clipboard?.writeText(cellPopup.text); }}
+                >📋 نسخ</button>
+                <button
+                  type="button"
+                  className="schedule-btn"
+                  style={{ minHeight: 28, padding: '4px 12px', fontSize: 12 }}
+                  onClick={() => setCellPopup(null)}
+                >إغلاق ✖</button>
+              </div>
+            </div>
+            <div
+              className="p-4 overflow-auto text-sm leading-8 text-slate-800"
+              style={{ whiteSpace: 'pre-wrap', direction: 'rtl', textAlign: 'right' }}
+            >{cellPopup.text}</div>
           </div>
         </div>
       )}

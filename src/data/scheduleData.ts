@@ -55,6 +55,10 @@ export interface SystemConfig {
   aggregations?: { header: string; op: 'sum' | 'sumWords' | 'avg' | 'count' | 'min' | 'max' | 'countUnique'; label?: string }[];
   /** Show a global search box above the table (searches across every visible column). */
   globalSearch?: boolean;
+  /** Display headers whose long content is hidden behind a «عرض» button (popup viewer). */
+  popupColumns?: string[];
+  /** Extra row keys included in the global search only (never rendered in the table). */
+  searchHeaders?: string[];
   /** Per-system control of the print/export toolbar buttons (show / label / color). */
   toolbarButtons?: Partial<Record<import('./customSystemsRegistry').ToolbarButtonKey, import('./customSystemsRegistry').ToolbarButtonCfg>>;
   /** Joined reports available for this system (merged tables built from two systems). */
