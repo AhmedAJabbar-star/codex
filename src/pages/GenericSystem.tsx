@@ -7,7 +7,7 @@ import TeacherSessionBar from '@/components/shared/TeacherSessionBar';
 import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
 import { fetchSheetByGid, type SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
-import { getSession } from '@/lib/teacherAuth';
+import { getSession, splitPositions } from '@/lib/teacherAuth';
 import { arabicMatch } from '@/lib/arabicMatch';
 
 import { getBranding } from '@/lib/systemAccess';
@@ -304,10 +304,18 @@ export function buildConfigFromDef(
         teacherFilter = (r) => (logicAll ? active.every((f) => f(r)) : active.some((f) => f(r)));
       }
       // 💼 نطاق المنصب: يُضاف (OR) لنطاق الهوية الحالي — فقط حين يملك المستخدم منصباً ودوره ليس «مستخدم».
+      // يدعم أكثر من منصب للمستخدم الواحد: يظهر الصف إذا طابق أي منصب من مناصبه.
       const roleStr = ((session?.user?.role as string) || 'user');
       const posKey = keyOf(def.teacher_position_column);
-      if (identity.position && roleStr !== 'user' && (posKey || extraKeys.length > 0)) {
-        const posMatch = (r: Record<string, string>) => hitAny(r, posKey, identity.position);
+      const positions = splitPositions(identity.position);
+      // وضع مطابقة المنصب: الافتراضي «يحتوي» — يكفي وجود المنصب ضمن نص الخلية.
+      const posOpts = { ...matchOpts, mode: (def.teacher_position_match === 'exact' ? 'exact' : 'contains') as any };
+      if (positions.length > 0 && roleStr !== 'user' && (posKey || extraKeys.length > 0)) {
+        const posHit = (r: Record<string, string>, needle: string) => {
+          if (posKey && arabicMatch(r[posKey] || '', needle, posOpts)) return true;
+          return extraKeys.some((k) => arabicMatch(r[k] || '', needle, { ...posOpts, mode: 'contains' as any }));
+        };
+        const posMatch = (r: Record<string, string>) => positions.some((p) => posHit(r, p));
         const baseFilter = teacherFilter;
         teacherFilter = baseFilter ? (r) => baseFilter(r) || posMatch(r) : posMatch;
       }
