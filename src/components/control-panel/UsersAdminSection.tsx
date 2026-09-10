@@ -248,31 +248,67 @@ const UsersTab = ({ users, isLoading, search, setSearch, onChanged, onOpenPerms,
   );
 };
 
-/* ---------- Position cell (inline edit) ---------- */
+/* ---------- Position cell (multi-position inline edit) ---------- */
 const PositionCell = ({ user, onChanged }: { user: AdminUser; onChanged: () => void }) => {
-  const [val, setVal] = useState((user as any).position || '');
+  const stored = String((user as any).position || '');
+  const [list, setList] = useState<string[]>(() => splitPositions(stored));
+  const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
-  const dirty = val.trim() !== String((user as any).position || '').trim();
-  const save = async () => {
-    if (!dirty || busy) return;
+  const locked = busy || user.full_name === 'aa';
+
+  const persist = async (next: string[]) => {
     setBusy(true);
-    try { await adminUpdateUser(user.id, { position: val.trim() }); toast.success('تم حفظ المنصب'); onChanged(); }
-    catch (e) { toast.error((e as Error).message); setVal((user as any).position || ''); }
-    finally { setBusy(false); }
+    try {
+      await adminUpdateUser(user.id, { position: joinPositions(next) });
+      setList(next);
+      toast.success('تم حفظ المناصب');
+      onChanged();
+    } catch (e) {
+      toast.error((e as Error).message);
+      setList(splitPositions(String((user as any).position || '')));
+    } finally { setBusy(false); }
   };
+
+  const add = () => {
+    const parts = splitPositions(draft);
+    if (parts.length === 0) return;
+    const next = [...list];
+    parts.forEach((p) => { if (!next.some((x) => x === p)) next.push(p); });
+    setDraft('');
+    if (next.length !== list.length) void persist(next);
+  };
+
+  const remove = (p: string) => { void persist(list.filter((x) => x !== p)); };
+
   return (
-    <div className="flex items-center gap-1">
-      <input
-        className="schedule-select text-xs"
-        style={{ minHeight: 28, padding: '2px 6px', minWidth: 110 }}
-        placeholder="مثال: رئيس قسم"
-        value={val}
-        disabled={busy || user.full_name === 'aa'}
-        onChange={(e) => setVal(e.target.value)}
-        onBlur={save}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void save(); } }}
-      />
-      {dirty && !busy && <button type="button" onClick={() => void save()} className="schedule-btn text-xs" style={{ minHeight: 26, padding: '0 8px' }} title="حفظ المنصب">💾</button>}
+    <div className="flex flex-col gap-1" style={{ minWidth: 160 }}>
+      {list.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {list.map((p) => (
+            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-bold bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5">
+              {p}
+              {!locked && (
+                <button type="button" title="حذف المنصب" onClick={() => remove(p)} className="text-red-600 font-black">×</button>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-1">
+        <input
+          className="schedule-select text-xs"
+          style={{ minHeight: 28, padding: '2px 6px', minWidth: 110 }}
+          placeholder="أضف منصباً ثم Enter"
+          value={draft}
+          disabled={locked}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={add}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+        />
+        {draft.trim() && !locked && (
+          <button type="button" onClick={add} className="schedule-btn text-xs" style={{ minHeight: 26, padding: '0 8px' }} title="إضافة منصب">➕</button>
+        )}
+      </div>
     </div>
   );
 };
