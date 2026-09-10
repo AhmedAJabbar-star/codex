@@ -27,7 +27,14 @@ export interface ConditionGroup {
 
 /** سياق التقييم الديناميكي: بيانات المستخدم الحالي (لحقول {user.*}). */
 export interface CondCtx {
-  user?: { name?: string; department?: string; college?: string; position?: string } | null;
+  user?: {
+    name?: string;
+    department?: string;
+    college?: string;
+    position?: string;
+    /** كل مناصب المستخدم — يُقيَّم الشرط لكل منصب ويُقبل الصف إذا طابق أحدها. */
+    positions?: string[];
+  } | null;
 }
 
 /**

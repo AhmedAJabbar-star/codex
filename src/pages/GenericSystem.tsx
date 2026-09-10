@@ -249,6 +249,7 @@ export function buildConfigFromDef(
           department: identity.department,
           college: identity.college,
           position: identity.position,
+          positions: splitPositions(identity.position),
         }
       : null,
   };
