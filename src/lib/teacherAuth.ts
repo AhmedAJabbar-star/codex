@@ -20,6 +20,22 @@ export interface TeacherUser {
   permissions?: UserPermissions | null;
 }
 
+/**
+ * يفكّك حقل المنصب إلى قائمة مناصب.
+ * يدعم أكثر من منصب للمستخدم الواحد مفصولة بـ ، , ؛ ; | / أو أسطر جديدة.
+ */
+export function splitPositions(position?: string | null): string[] {
+  return String(position || '')
+    .split(/[\n\r،,؛;|]+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+/** يدمج قائمة المناصب في نص واحد للتخزين. */
+export function joinPositions(list: string[]): string {
+  return list.map((p) => p.trim()).filter(Boolean).join('، ');
+}
+
 export interface AdminUser extends TeacherUser {
   is_manual: boolean;
   created_at: string;
