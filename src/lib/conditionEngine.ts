@@ -27,7 +27,14 @@ export interface ConditionGroup {
 
 /** سياق التقييم الديناميكي: بيانات المستخدم الحالي (لحقول {user.*}). */
 export interface CondCtx {
-  user?: { name?: string; department?: string; college?: string; position?: string } | null;
+  user?: {
+    name?: string;
+    department?: string;
+    college?: string;
+    position?: string;
+    /** كل مناصب المستخدم — يُقيَّم الشرط لكل منصب ويُقبل الصف إذا طابق أحدها. */
+    positions?: string[];
+  } | null;
 }
 
 /**
@@ -322,6 +329,18 @@ export function evaluateCondition(
   headers: string[],
   ctx?: CondCtx,
 ): boolean {
+  // 💼 دعم أكثر من منصب للمستخدم: يُقيَّم الشرط مرة لكل منصب ويُقبل إذا طابق أحدها.
+  const positions = ctx?.user?.positions || [];
+  if (positions.length > 1) {
+    const usesPosition = /\{user\.position\}/i.test(
+      String(cond.value ?? '') + JSON.stringify(cond.values || []),
+    );
+    if (usesPosition) {
+      return positions.some((p) =>
+        evaluateCondition(cond, row, headers, { ...ctx, user: { ...ctx?.user, position: p, positions: [] } }),
+      );
+    }
+  }
   const raw = getCellByLetter(row, headers, cond.column);
   const t = raw.trim();
   const tokens = splitCellTokens(raw);

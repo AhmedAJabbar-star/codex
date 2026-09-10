@@ -1255,6 +1255,7 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                         يظهر السجل للمستخدم إذا كانت قيمة هذا العمود <b>تطابق «المنصب»</b> المسجَّل بجانب اسمه في
                         تبويب «المستخدمون والصلاحيات». يُطبَّق فقط على المستخدمين الذين <b>لهم منصب ودورهم ليس «مستخدم»</b>
                         (محرّر/مُطّلع/مدير). من ليس له منصب لا تُطبَّق عليه هذه الفلترة.
+                        إذا كان للمستخدم <b>أكثر من منصب</b> (مفصولة بفاصلة) تظهر له سجلات كل مناصبه.
                       </p>
                       <div>
                         <label className="block text-xs font-black mb-1">عمود المنصب في هذا النظام (حرف Excel)</label>
@@ -1264,6 +1265,17 @@ const SystemBuilderDialog = ({ initial, onClose, onSaved }: Props) => {
                           onChange={(e) => patch({ teacher_position_column: e.target.value.toUpperCase() })}
                           placeholder="مثال: N — اتركه فارغاً لإيقاف فلترة المنصب"
                         />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black mb-1">طريقة مطابقة المنصب</label>
+                        <select
+                          className="schedule-select w-full"
+                          value={s.teacher_position_match || 'contains'}
+                          onChange={(e) => patch({ teacher_position_match: e.target.value as 'exact' | 'contains' })}
+                        >
+                          <option value="contains">يكفي وجود المنصب ضمن نص الخلية (موصى به)</option>
+                          <option value="exact">تطابق تام لنص الخلية</option>
+                        </select>
                       </div>
                     </div>
                   </div>
