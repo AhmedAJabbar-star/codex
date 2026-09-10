@@ -201,8 +201,11 @@ export function buildConfigFromDef(
   });
 
   // 🔎 فلاتر جاهزة للأعمدة المحسوبة/المدمجة المُعلَّمة بـ filterable.
+  //    يُستثنى منها الأعمدة التي يُخفى محتواها خلف زر «عرض» (popup)، لأن قيمتها نصٌّ طويل
+  //    فريد لكل سجل — لا معنى لقائمة منسدلة بها، والبحث الشامل وبحث العمود يكفيان.
   (def.computed_columns || []).forEach((cc: any) => {
     if (!cc?.name || !cc.filterable) return;
+    if (popupColumns.includes(String(cc.name))) return;
     builtFilters.push({ label: String(cc.name), key: String(cc.name), control: 'combo' as any } as any);
   });
 
