@@ -255,6 +255,8 @@ export interface CustomSystemDef {
   teacher_extra_match_columns?: string;
   /** 💼 عمود المنصب: يُبحث فيه عن منصب المستخدم (من صفحة المستخدمون) — يُطبَّق فقط عندما لا يكون دوره «مستخدم». يُضاف لنطاق الاسم. */
   teacher_position_column?: string;
+  /** 💼 وضع مطابقة المنصب: 'contains' = يكفي وجود المنصب ضمن نص الخلية (الافتراضي)، 'exact' = تطابق تام. */
+  teacher_position_match?: 'exact' | 'contains';
   /** 🎭 الأدوار المسموح لها برؤية بطاقة هذا النظام في الصفحة الرئيسية. فارغة/غير محددة = الكل. المدير يرى الكل دائماً. */
   allowed_roles?: ('admin' | 'editor' | 'viewer' | 'user')[];
 
@@ -525,6 +527,7 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
   teacher_match_threshold: 85,
   teacher_extra_match_columns: '',
   teacher_position_column: '',
+  teacher_position_match: 'contains',
   allowed_roles: [],
   condition_groups: [],
   groups_join: 'AND',

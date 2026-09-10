@@ -93,6 +93,8 @@ const HEADERS = [
   "column_visible_when_json",
   // v28 additions (popup cell viewer + search across non-imported sheet columns):
   "column_popup_json", "search_all_columns",
+  // v29 additions (position match mode):
+  "teacher_position_match",
 
 ];
 
@@ -386,6 +388,7 @@ function rowToSystem(r: Record<string, string>) {
     teacher_match_adjacent: String(r.teacher_match_adjacent || "true").toLowerCase() !== "false",
     teacher_extra_match_columns: clean(r.teacher_extra_match_columns).toUpperCase(),
     teacher_position_column: clean(r.teacher_position_column).toUpperCase(),
+    teacher_position_match: clean(r.teacher_position_match) === "exact" ? "exact" : "contains",
     allowed_roles: parseJson(r.allowed_roles_json || "[]", []),
     condition_groups: parseJson(r.condition_groups_json || "[]", []),
     groups_join: clean(r.groups_join).toUpperCase() === "OR" ? "OR" : "AND",
@@ -498,6 +501,7 @@ async function systemToRow(s: any): Promise<string[]> {
     teacher_match_adjacent: String(s.teacher_match_adjacent === false ? "false" : "true"),
     teacher_extra_match_columns: String(s.teacher_extra_match_columns || "").toUpperCase(),
     teacher_position_column: String(s.teacher_position_column || "").toUpperCase(),
+    teacher_position_match: String(s.teacher_position_match || "contains") === "exact" ? "exact" : "contains",
     allowed_roles_json: JSON.stringify(s.allowed_roles || []),
     condition_groups_json: JSON.stringify(s.condition_groups || []),
     groups_join: String(s.groups_join || "AND").toUpperCase() === "OR" ? "OR" : "AND",
