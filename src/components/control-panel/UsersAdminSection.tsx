@@ -8,6 +8,7 @@ import {
   adminSetRole, adminSetPermissions, adminUpdateUser,
   setConnectionConfig, getConnectionConfig,
   login, getSession, setSession,
+  splitPositions, joinPositions,
   type AdminUser, type ArchiveEntry,
 } from '@/lib/teacherAuth';
 import { ROLE_LABELS, type AppRole, type UserPermissions } from '@/lib/permissions';
