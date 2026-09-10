@@ -412,7 +412,7 @@ const AddUserTab = ({ onAdded }: { onAdded: () => void }) => {
       <input className="schedule-select" placeholder="الاسم الكامل *" value={u.full_name} onChange={(e) => setU({ ...u, full_name: e.target.value })} />
       <input className="schedule-select" placeholder="القسم" value={u.department} onChange={(e) => setU({ ...u, department: e.target.value })} />
       <input className="schedule-select" placeholder="الكلية" value={u.college} onChange={(e) => setU({ ...u, college: e.target.value })} />
-      <input className="schedule-select" placeholder="💼 المنصب (مثال: رئيس قسم) — يُستخدم في فلترة الأنظمة حسب المنصب" value={u.position} onChange={(e) => setU({ ...u, position: e.target.value })} />
+      <input className="schedule-select" placeholder="💼 المناصب — يمكن إدخال أكثر من منصب مفصولة بفاصلة (مثال: رئيس قسم، مقرر)" value={u.position} onChange={(e) => setU({ ...u, position: e.target.value })} />
       <select className="schedule-select" value={u.role} onChange={(e) => setU({ ...u, role: e.target.value as AppRole })}>
         <option value="user">{ROLE_LABELS.user}</option>
         <option value="viewer">{ROLE_LABELS.viewer}</option>
