@@ -8,6 +8,7 @@ import {
   type SystemAccessRule, type SystemGroup, type Branding,
 } from '@/lib/systemAccess';
 
+import { getSystemSource, sourceUrl } from '@/lib/systemDataSources';
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog';
 import UsersAdminSection from '@/components/control-panel/UsersAdminSection';
