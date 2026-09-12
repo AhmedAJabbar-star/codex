@@ -554,6 +554,24 @@ export const EMPTY_SYSTEM: CustomSystemDef = {
 
 
 
+const SYSTEMS_CACHE_KEY = 'custom-systems-cache-v1';
+
+/** 📦 قائمة الأنظمة المخزَّنة محلياً — تُعرض فوراً عند فتح الرابط ثم تُحدَّث في الخلفية. */
+export function readCachedSystems(): CustomSystemDef[] | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const raw = window.localStorage.getItem(SYSTEMS_CACHE_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.systems) && parsed.systems.length > 0 ? parsed.systems : undefined;
+  } catch { return undefined; }
+}
+
+function writeCachedSystems(systems: CustomSystemDef[]) {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(SYSTEMS_CACHE_KEY, JSON.stringify({ at: Date.now(), systems })); } catch { /* تجاهل */ }
+}
+
 export async function listCustomSystems(): Promise<CustomSystemDef[]> {
   const forceUntil = typeof window !== 'undefined'
     ? Number(window.sessionStorage.getItem('custom-systems-force-refresh-until') || 0)
@@ -564,7 +582,9 @@ export async function listCustomSystems(): Promise<CustomSystemDef[]> {
   });
   if (error) throw new Error(error.message || 'فشل تحميل الأنظمة المخصّصة');
   if ((data as any)?.error) throw new Error((data as any).error);
-  return ((data as any)?.systems || []) as CustomSystemDef[];
+  const systems = ((data as any)?.systems || []) as CustomSystemDef[];
+  if (systems.length > 0) writeCachedSystems(systems);
+  return systems;
 }
 
 /**
