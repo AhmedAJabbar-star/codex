@@ -163,6 +163,20 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return system.requiredFilters.filter((key) => !filters[key]);
   }, [system, filters]);
 
+  /** ⚡ فهرس بحث مُخزَّن لكل سطر (يُحسب مرة واحدة لكل سطر بدل كل ضغطة مفتاح). */
+  const searchIndexCache = useMemo(
+    () => new WeakMap<object, { plain: string; arabic: string }>(),
+    [system],
+  );
+  const getSearchIndex = useCallback((row: Record<string, string>, keys: string[]) => {
+    const hit = searchIndexCache.get(row);
+    if (hit) return hit;
+    const joined = keys.map((h) => row[h] || '').join('\n');
+    const entry = { plain: normalizeSearchText(joined), arabic: normalizeArabic(joined, false) };
+    searchIndexCache.set(row, entry);
+    return entry;
+  }, [searchIndexCache]);
+
   const filteredRows = useMemo(() => {
     // Block any data rendering until every required filter has a value
     if (missingRequiredFilters.length > 0) return [] as typeof system.rows;
