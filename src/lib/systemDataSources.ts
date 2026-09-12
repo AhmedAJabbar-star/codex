@@ -41,9 +41,9 @@ export const SYSTEM_SOURCES: Record<string, SystemSource> = {
   unassignedSupervisors: { gid: '1081297434', sheet: 'CheckAllHr' },
 };
 
-/** رابط ورقة البيانات (صيغة CSV المنشورة) لمعرّف ورقة معيّن. */
+/** رابط ورقة البيانات الأصلية في Google Sheets (يفتح الورقة مباشرة). */
 export function sourceUrl(gid: string): string {
-  return `${PUB_BASE}?gid=${gid}&single=true&output=csv`;
+  return `https://docs.google.com/spreadsheets/d/${SOURCE_SPREADSHEET_ID}/edit#gid=${gid}`;
 }
 
 export function getSystemSource(systemId: string): SystemSource | undefined {
