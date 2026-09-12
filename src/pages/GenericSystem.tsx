@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import TeacherSessionBar from '@/components/shared/TeacherSessionBar';
-import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
+import { listCustomSystems, readCachedSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
 import { fetchSheetByGid, type SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession, splitPositions } from '@/lib/teacherAuth';
