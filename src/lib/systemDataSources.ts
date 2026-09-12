@@ -3,8 +3,8 @@
  * يُستخدم في لوحة التحكم لعرض رابط ورقة البيانات لكل نظام.
  */
 
-const PUB_BASE =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vS3U9uiqk1zc5lk0Gae_FKYIb_wg1OAV1JoBx868uSTw4TwHdiH9Fc_XxQlsYy4pmIApYZqVKWDmDOC/pub';
+/** معرّف ملف Google Sheets الأصلي (نفس الملف المستخدم في كل الأنظمة). */
+export const SOURCE_SPREADSHEET_ID = '1vAuWBa1ERY0EYL2T-MMTO7MYM0yP7dGJP64dBCRMSzQ';
 
 export interface SystemSource {
   /** معرّف ورقة العمل داخل الملف */
