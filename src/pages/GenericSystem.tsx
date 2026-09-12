@@ -353,6 +353,13 @@ export function buildConfigFromDef(
     });
   }
 
+  // ⚡ لقطة الصف الخام تُبنى فقط عند تفعيل الإضافة/التعديل/الحذف — توفيراً لآلاف عمليات JSON.stringify.
+  const needsSnapshot = isCrudActive(def) && (() => {
+    try {
+      const p = getEffectivePerms(def, user as any);
+      return !!(p.view && (p.edit || p.delete || p.add));
+    } catch { return true; }
+  })();
   const rows: Record<string, string>[] = [];
   workingRows.forEach((r) => {
     const expanded = applyDerivedColumns(def.derived_columns || [], r, sheet.headers);
@@ -387,13 +394,15 @@ export function buildConfigFromDef(
         out[`__qf_${idx}`] = ok ? '1' : '';
       });
       // Raw-sheet snapshot for CRUD (كل الأعمدة المقروءة: معروضة أو للإدخال فقط).
-      const snap: Record<string, string> = {};
-      projIdxs.forEach((i) => {
-        const letter = colIndexToLetter(i);
-        const hk = sheet.headers[i];
-        snap[letter] = (hk ? r[hk] : '') || '';
-      });
-      out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
+      if (needsSnapshot) {
+        const snap: Record<string, string> = {};
+        projIdxs.forEach((i) => {
+          const letter = colIndexToLetter(i);
+          const hk = sheet.headers[i];
+          snap[letter] = (hk ? r[hk] : '') || '';
+        });
+        out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
+      }
       // قيم الأعمدة غير المستدعاة — للبحث فقط.
       searchOnlyIdxs.forEach((i, k) => {
         const hk = sheet.headers[i];
