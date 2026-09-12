@@ -127,8 +127,10 @@ function isFormulaError(value: string): boolean {
   return /^#(N\/A|VALUE!|REF!|DIV\/0!|ERROR!|NAME\?|NUM!|NULL!)/.test(t);
 }
 
-function isBadSheet(rows: ScheduleRow[], minRows = 2): boolean {
-  if (rows.length < minRows) return true;
+function isBadSheet(rows: ScheduleRow[], _minRows = 2): boolean {
+  // الورقة الفارغة أو القليلة الصفوف حالة مشروعة (حذف البيانات عمداً)،
+  // لذلك لا نرفضها ولا نعود إلى النسخة المخزّنة القديمة.
+  if (rows.length === 0) return false;
   const inspected = rows.slice(0, Math.min(rows.length, 5));
   return inspected.some((row) => Object.values(row).some(isFormulaError));
 }
