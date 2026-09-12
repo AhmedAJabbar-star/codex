@@ -163,6 +163,20 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     return system.requiredFilters.filter((key) => !filters[key]);
   }, [system, filters]);
 
+  /** ⚡ فهرس بحث مُخزَّن لكل سطر (يُحسب مرة واحدة لكل سطر بدل كل ضغطة مفتاح). */
+  const searchIndexCache = useMemo(
+    () => new WeakMap<object, { plain: string; arabic: string }>(),
+    [system],
+  );
+  const getSearchIndex = useCallback((row: Record<string, string>, keys: string[]) => {
+    const hit = searchIndexCache.get(row);
+    if (hit) return hit;
+    const joined = keys.map((h) => row[h] || '').join('\n');
+    const entry = { plain: normalizeSearchText(joined), arabic: normalizeArabic(joined, false) };
+    searchIndexCache.set(row, entry);
+    return entry;
+  }, [searchIndexCache]);
+
   const filteredRows = useMemo(() => {
     // Block any data rendering until every required filter has a value
     if (missingRequiredFilters.length > 0) return [] as typeof system.rows;
@@ -288,19 +302,16 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
       const isDateQuery = !!extractDateParts(q);
       if (searchMode === 'phrase') {
         // نص مطابق: العبارة كما كُتبت داخل أي عمود (مع توحيد الأرقام العربية/اللاتينية).
-        result = result.filter((r) =>
-          searchKeys.some((h) => {
-            const cell = r[h] || '';
-            if (normalizeSearchText(cell).includes(q)) return true;
-            return isDateQuery && dateAwareMatch(cell, q);
-          })
-        );
+        result = result.filter((r) => {
+          if (getSearchIndex(r, searchKeys).plain.includes(q)) return true;
+          return isDateQuery && searchKeys.some((h) => dateAwareMatch(r[h] || '', q));
+        });
       } else {
         // الكلمات كافة / إحدى الكلمات — مع تطبيع عربي (تجاهل الهمزات والتشكيل والمسافات الزائدة).
         const words = normalizeArabic(q, false).split(/\s+/).filter(Boolean);
         if (words.length > 0) {
           result = result.filter((r) => {
-            const hay = searchKeys.map((h) => normalizeArabic(r[h] || '', false)).join(' ');
+            const hay = getSearchIndex(r, searchKeys).arabic;
             const ok = searchMode === 'all'
               ? words.every((w) => hay.includes(w))
               : words.some((w) => hay.includes(w));
@@ -312,12 +323,14 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
     }
 
     // 🔎 بحث لكل عمود على حدة (مربعات فوق كل عمود)
-    const colEntries = Object.entries(colSearch).filter(([, v]) => (v || '').trim() !== '');
+    const colEntries = Object.entries(colSearch)
+      .filter(([, v]) => (v || '').trim() !== '')
+      .map(([h, v]) => ({ h, norm: normalizeSearchText(v), raw: v, date: !!extractDateParts(normalizeSearchText(v)) }));
     if (colEntries.length > 0) {
       result = result.filter((r) =>
-        colEntries.every(([h, v]) =>
-          normalizeSearchText(r[h] || '').includes(normalizeSearchText(v)) ||
-          dateAwareMatch(r[h] || '', v)
+        colEntries.every(({ h, norm, raw, date }) =>
+          normalizeSearchText(r[h] || '').includes(norm) ||
+          (date && dateAwareMatch(r[h] || '', raw))
         )
       );
     }

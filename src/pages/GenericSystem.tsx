@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import SupervisionBasePage from '@/components/shared/SupervisionBasePage';
 import { LiveLoadingShell } from '@/components/shared/LiveLoadingShell';
 import TeacherSessionBar from '@/components/shared/TeacherSessionBar';
-import { listCustomSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
+import { listCustomSystems, readCachedSystems, isCrudActive, type CustomSystemDef, type CrudColMeta, type CrudContext } from '@/data/customSystemsRegistry';
 import { fetchSheetByGid, type SheetFetchResult } from '@/data/supervisionData';
 import type { SystemConfig, QuickFilterDef } from '@/data/scheduleData';
 import { getSession, splitPositions } from '@/lib/teacherAuth';
@@ -353,6 +353,13 @@ export function buildConfigFromDef(
     });
   }
 
+  // ⚡ لقطة الصف الخام تُبنى فقط عند تفعيل الإضافة/التعديل/الحذف — توفيراً لآلاف عمليات JSON.stringify.
+  const needsSnapshot = isCrudActive(def) && (() => {
+    try {
+      const p = getEffectivePerms(def, user as any);
+      return !!(p.view && (p.edit || p.delete || p.add));
+    } catch { return true; }
+  })();
   const rows: Record<string, string>[] = [];
   workingRows.forEach((r) => {
     const expanded = applyDerivedColumns(def.derived_columns || [], r, sheet.headers);
@@ -387,13 +394,15 @@ export function buildConfigFromDef(
         out[`__qf_${idx}`] = ok ? '1' : '';
       });
       // Raw-sheet snapshot for CRUD (كل الأعمدة المقروءة: معروضة أو للإدخال فقط).
-      const snap: Record<string, string> = {};
-      projIdxs.forEach((i) => {
-        const letter = colIndexToLetter(i);
-        const hk = sheet.headers[i];
-        snap[letter] = (hk ? r[hk] : '') || '';
-      });
-      out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
+      if (needsSnapshot) {
+        const snap: Record<string, string> = {};
+        projIdxs.forEach((i) => {
+          const letter = colIndexToLetter(i);
+          const hk = sheet.headers[i];
+          snap[letter] = (hk ? r[hk] : '') || '';
+        });
+        out[CRUD_SNAPSHOT_KEY] = JSON.stringify(snap);
+      }
       // قيم الأعمدة غير المستدعاة — للبحث فقط.
       searchOnlyIdxs.forEach((i, k) => {
         const hk = sheet.headers[i];
@@ -637,14 +646,19 @@ const GenericSystem = () => {
   const { data: systems, isLoading: loadingSystems } = useQuery({
     queryKey: ['custom-systems-list'],
     queryFn: () => listCustomSystems(),
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    // ⚡ نعرض القائمة المخزَّنة محلياً فوراً ثم نحدّثها في الخلفية.
+    initialData: readCachedSystems,
+    staleTime: 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   const def = useMemo(() => (systems || []).find((s) => s.id === id), [systems, id]);
 
-  const session = getSession();
+  // 🔒 الجلسة تُقرأ مرة واحدة — قراءتها في كل رسم كانت تُعيد بناء آلاف الصفوف مع كل ضغطة مفتاح.
+  const session = useMemo(() => getSession(), []);
+  const sessionUser = session?.user;
+
 
   /* 📄 مصادر خيارات القوائم من أوراق Google Sheets أخرى (تُحمَّل مرة واحدة وتُخزَّن). */
   const optionSheetCfgs = useMemo(() => {
@@ -669,8 +683,8 @@ const GenericSystem = () => {
   });
 
   const build = useCallback(
-    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, session?.user as any, systems || [], optionSheets),
-    [def, session?.user, systems, optionSheets],
+    (sheet: SheetFetchResult) => buildConfigFromDef(def!, sheet, sessionUser as any, systems || [], optionSheets),
+    [def, sessionUser, systems, optionSheets],
   );
 
   // Apply per-system UI theme override on mount; restore global theme on unmount / def change.
