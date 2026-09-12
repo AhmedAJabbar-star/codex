@@ -646,14 +646,19 @@ const GenericSystem = () => {
   const { data: systems, isLoading: loadingSystems } = useQuery({
     queryKey: ['custom-systems-list'],
     queryFn: () => listCustomSystems(),
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    // ⚡ نعرض القائمة المخزَّنة محلياً فوراً ثم نحدّثها في الخلفية.
+    initialData: readCachedSystems,
+    staleTime: 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   const def = useMemo(() => (systems || []).find((s) => s.id === id), [systems, id]);
 
-  const session = getSession();
+  // 🔒 الجلسة تُقرأ مرة واحدة — قراءتها في كل رسم كانت تُعيد بناء آلاف الصفوف مع كل ضغطة مفتاح.
+  const session = useMemo(() => getSession(), []);
+  const sessionUser = session?.user;
+
 
   /* 📄 مصادر خيارات القوائم من أوراق Google Sheets أخرى (تُحمَّل مرة واحدة وتُخزَّن). */
   const optionSheetCfgs = useMemo(() => {
