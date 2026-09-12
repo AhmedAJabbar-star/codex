@@ -8,6 +8,7 @@ import {
   type SystemAccessRule, type SystemGroup, type Branding,
 } from '@/lib/systemAccess';
 
+import { getSystemSource, sourceUrl } from '@/lib/systemDataSources';
 import { listCustomSystems, type CustomSystemDef } from '@/data/customSystemsRegistry';
 import SystemBuilderDialog from '@/components/control-panel/SystemBuilderDialog';
 import UsersAdminSection from '@/components/control-panel/UsersAdminSection';
@@ -509,6 +510,30 @@ const ControlPanel = () => {
                     <strong>{r.title || s.title}</strong>
                     <span className="text-xs text-[var(--schedule-muted)]">{s.path}</span>
                   </div>
+                  {(() => {
+                    const src = getSystemSource(s.id);
+                    if (!src) return (
+                      <div className="mt-2 text-[11px] text-[var(--schedule-muted)]">📄 لا يعتمد هذا النظام على ورقة بيانات مباشرة</div>
+                    );
+                    return (
+                      <div className="mt-2 text-[11px] flex flex-wrap items-center gap-2">
+                        <span className="font-bold">📄 مصدر البيانات:</span>
+                        <span>{src.sheet}</span>
+                        <a
+                          href={sourceUrl(src.gid)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[var(--schedule-accent-blue)] font-black underline"
+                        >فتح الورقة</a>
+                        <button
+                          type="button"
+                          className="px-2 py-0.5 rounded border hover:bg-slate-100"
+                          onClick={() => { void navigator.clipboard.writeText(sourceUrl(src.gid)); }}
+                        >نسخ الرابط</button>
+                        {src.note && <span className="text-[var(--schedule-muted)]">({src.note})</span>}
+                      </div>
+                    );
+                  })()}
                   <div className="mt-3 grid md:grid-cols-3 gap-3">
                     <label className="flex items-center gap-2 text-sm font-bold">
                       <input type="checkbox" checked={r.visible} onChange={(e) => update(s.id, { visible: e.target.checked })} /> إظهار النظام
