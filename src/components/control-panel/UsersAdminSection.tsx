@@ -72,16 +72,28 @@ const UsersAdminSection = () => {
 
 const AdminWorkspace = ({ onLogout }: { onLogout: () => void }) => {
   const qc = useQueryClient();
-  const { data: users = [], refetch: refetchUsers, isLoading } =
-    useQuery({ queryKey: ['admin-users'], queryFn: adminListUsers });
+  const { data: users = [], refetch: refetchUsers, isLoading, isError: usersError, error: usersErrObj } =
+    useQuery({ queryKey: ['admin-users'], queryFn: adminListUsers, retry: false });
   const { data: archive = [], refetch: refetchArchive } =
-    useQuery({ queryKey: ['admin-archive'], queryFn: adminArchive });
+    useQuery({ queryKey: ['admin-archive'], queryFn: adminArchive, retry: false });
   const { data: customSystems = [] } =
     useQuery({ queryKey: ['custom-systems-list'], queryFn: listCustomSystems, staleTime: 60_000 });
 
   const [tab, setTab] = useState<'users' | 'archive' | 'add' | 'connection' | 'roles'>('users');
   const [search, setSearch] = useState('');
   const [permTarget, setPermTarget] = useState<AdminUser | null>(null);
+
+  // انتهاء جلسة المدير يعيد شاشة الدخول بدل عرض قائمة فارغة بلا سبب.
+  const usersErrMsg = (usersErrObj as Error | null)?.message || '';
+  useEffect(() => {
+    if (!usersError) return;
+    if (/صلاحية المدير|الجلسة/.test(usersErrMsg)) {
+      toast.error('انتهت جلسة المدير — يرجى إعادة إدخال كلمة مرور المدير');
+      onLogout();
+    } else {
+      toast.error(usersErrMsg || 'تعذر جلب المستخدمين');
+    }
+  }, [usersError, usersErrMsg, onLogout]);
 
   const filtered = useMemo(() => {
     const q = search.trim();
@@ -93,6 +105,7 @@ const AdminWorkspace = ({ onLogout }: { onLogout: () => void }) => {
     refetchUsers(); refetchArchive();
     qc.invalidateQueries({ queryKey: ['teacher-users-list'] });
   };
+
 
   return (
     <div className="border-2 border-rose-300 rounded-xl p-4 bg-rose-50/30 mb-5">
