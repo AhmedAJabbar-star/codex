@@ -68,8 +68,21 @@ export interface SheetFetchResult {
 }
 
 export async function fetchSheetByGid(gid: string, externalUrl?: string): Promise<SheetFetchResult> {
-  const response = await fetch(buildCsvUrl(gid, externalUrl), { cache: 'no-store' });
+  let response: Response;
+  try {
+    response = await fetch(buildCsvUrl(gid, externalUrl), { cache: 'no-store' });
+  } catch {
+    // فشل الاتصال غالباً بسبب أن ملف Google Sheets غير مشارك للعموم (يتطلب تسجيل دخول).
+    throw new Error('تعذر الوصول إلى ملف Google Sheets. افتح الملف ← مشاركة ← «أي شخص لديه الرابط» بصلاحية مُشاهد، ثم أعد المحاولة.');
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('ملف Google Sheets غير متاح للعرض العام. افتح الملف ← مشاركة ← «أي شخص لديه الرابط» بصلاحية مُشاهد، ثم أعد المحاولة.');
+  }
+  if (response.status === 404 || response.status === 400) {
+    throw new Error('الورقة المصدر غير موجودة أو تم حذفها/تغيير معرّفها (GID). راجع رابط المصدر في إدارة الأنظمة.');
+  }
   if (!response.ok) throw new Error(`تعذر جلب بيانات Google Sheets (HTTP ${response.status})`);
+
   const text = (await response.text()).replace(/^\uFEFF/, '');
   const [headerRow = [], ...dataRows] = parseCsv(text);
   const headers = headerRow.map(compactHeader);
