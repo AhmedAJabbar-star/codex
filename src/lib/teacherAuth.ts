@@ -171,10 +171,22 @@ async function call<T = any>(action: string, payload: Record<string, any> = {}):
   return data as T;
 }
 
+// Google Sheets formula error values that must never appear in the names list.
+const SHEET_ERROR_RE = /^#(N\/A|VALUE|REF|NAME|DIV\/0|NULL|NUM|ERROR|GETTING_DATA)[!?]?$/i;
+
+export function isValidTeacherName(name: string): boolean {
+  const v = (name || '').trim();
+  if (!v) return false;
+  if (v.startsWith('#')) return false; // covers #N/A, #VALUE!, #REF! ... in any locale
+  if (SHEET_ERROR_RE.test(v)) return false;
+  if (/^[\d\s.,\-/]+$/.test(v)) return false; // pure numbers/dates are not names
+  return true;
+}
+
 export async function fetchTeacherList(): Promise<string[]> {
   try {
     const r = await call<{ users: string[] }>('list-users');
-    const users = (r.users || []).map((n) => n.trim()).filter(Boolean);
+    const users = (r.users || []).map((n) => n.trim()).filter(isValidTeacherName);
     if (users.length > 0) return users;
   } catch {
     // Fall through to CSV fallback.
@@ -185,7 +197,7 @@ export async function fetchTeacherList(): Promise<string[]> {
   const names = Array.from(new Set(
     rows
       .map((r) => (r['اسم التدريسي'] || '').toString().trim())
-      .filter(Boolean),
+      .filter(isValidTeacherName),
   ));
   if (names.length > 0) return names.sort((a, b) => a.localeCompare(b, 'ar'));
 
@@ -194,7 +206,7 @@ export async function fetchTeacherList(): Promise<string[]> {
   const bundledNames = Array.from(new Set(
     systemRows
       .map((r) => (r['اسم التدريسي'] || '').toString().trim())
-      .filter(Boolean),
+      .filter(isValidTeacherName),
   ));
   return bundledNames.sort((a, b) => a.localeCompare(b, 'ar'));
 }
