@@ -583,12 +583,20 @@ function publicUser(u: Record<string,string>) {
     permissions,
   };
 }
+// Spreadsheet formula errors (#N/A, #VALUE!, #REF! ...) must never be listed as teachers.
+function isValidTeacherName(name: string): boolean {
+  if (!name) return false;
+  if (name.startsWith("#")) return false;
+  if (/^[\d\s.,\-/]+$/.test(name)) return false;
+  return true;
+}
 function teacherNamesFromUsers(all: Record<string, string>[]) {
   const seen = new Set<string>();
   const names: string[] = [];
   for (const u of all) {
     const name = clean(u.full_name || "");
     if (!name || name === "aa" || seen.has(name)) continue;
+    if (!isValidTeacherName(name)) continue;
     seen.add(name);
     names.push(name);
   }
