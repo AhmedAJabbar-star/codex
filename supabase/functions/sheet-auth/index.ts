@@ -501,7 +501,7 @@ async function syncFromAssignments(performedBy: string): Promise<{added:number; 
   const map = new Map<string, { dept: string; college: string }>();
   for (const row of data) {
     const name = clean(row[nameIdx] || "");
-    if (!name) continue;
+    if (!name || !isValidTeacherName(name)) continue;
     if (!map.has(name)) {
       map.set(name, {
         dept: clean(row[deptIdx] || ""),
