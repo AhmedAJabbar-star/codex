@@ -197,7 +197,7 @@ export async function fetchTeacherList(): Promise<string[]> {
   const names = Array.from(new Set(
     rows
       .map((r) => (r['اسم التدريسي'] || '').toString().trim())
-      .filter(Boolean),
+      .filter(isValidTeacherName),
   ));
   if (names.length > 0) return names.sort((a, b) => a.localeCompare(b, 'ar'));
 
@@ -206,7 +206,7 @@ export async function fetchTeacherList(): Promise<string[]> {
   const bundledNames = Array.from(new Set(
     systemRows
       .map((r) => (r['اسم التدريسي'] || '').toString().trim())
-      .filter(Boolean),
+      .filter(isValidTeacherName),
   ));
   return bundledNames.sort((a, b) => a.localeCompare(b, 'ar'));
 }
