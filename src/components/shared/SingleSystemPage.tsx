@@ -295,7 +295,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
 
     // Global / Inline-CRUD search (applies to all visible headers).
     const q = normalizeSearchText(deferredSearch);
-    if (q && (system.crudContext || system.globalSearch)) {
+    if (q && (system.crudContext || system.globalSearch !== false)) {
       // البحث يشمل الأعمدة الظاهرة + الأعمدة المخصصة للبحث فقط (غير المستدعاة).
       const searchKeys = [...system.headers, ...(system.searchHeaders || [])];
       // 📅 إن كان نص البحث تاريخاً، نطابقه بأي ترتيب أو فاصل.
@@ -1422,7 +1422,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                 title="رفع ملف Excel/CSV وتعبئة السجلات دفعة واحدة"
               >{btnLabel('import', '📤 استيراد من Excel')}</button>
             )}
-            {(crudCtx || system.globalSearch) && (
+            {(crudCtx || system.globalSearch !== false) && (
               <div className="relative flex items-center gap-1.5" style={{ flex: '1 1 280px', minWidth: 280 }}>
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
                 <input
@@ -1854,7 +1854,7 @@ const SingleSystemPage = ({ systemIds, showBackButton = true, systemsOverride }:
                     {activeSystem === 'emptyRooms' && <th>ملاحظة الحجز</th>}
                     {showCrudActions && <th style={{ width: 100 }}>إجراءات</th>}
                   </tr>
-                  {(system.crudContext || system.globalSearch) && (
+                  {(system.crudContext || system.globalSearch !== false) && (
                     <tr className="schedule-colsearch-row">
                       {system.headers.map(h => (
                         <th key={`s-${h}`} style={{ padding: 4 }}>
