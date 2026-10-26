@@ -516,20 +516,38 @@ const ControlPanel = () => {
                       <div className="mt-2 text-[11px] text-[var(--schedule-muted)]">📄 لا يعتمد هذا النظام على ورقة بيانات مباشرة</div>
                     );
                     return (
-                      <div className="mt-2 text-[11px] flex flex-wrap items-center gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                         <span className="font-bold">📄 مصدر البيانات:</span>
-                        <span>{src.sheet}</span>
+                        <span
+                          className="px-2 py-0.5 rounded-md font-black text-[12px] bg-slate-100 border border-slate-200"
+                          style={{ direction: 'ltr' }}
+                          title="اسم ورقة العمل في Google Sheets"
+                        >{src.sheet}</span>
+                        <button
+                          type="button"
+                          className="px-2 py-0.5 rounded-md font-black text-white bg-slate-700 hover:bg-slate-800"
+                          style={{ direction: 'ltr' }}
+                          title="نسخ رقم معرّف الورقة (GID)"
+                          onClick={() => { void navigator.clipboard.writeText(src.gid); toast.info(`تم نسخ رقم GID: ${src.gid}`); }}
+                        >GID: {src.gid}</button>
+                        <button
+                          type="button"
+                          className="px-2 py-0.5 rounded-md font-black text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200"
+                          title="نسخ رقم GID فقط"
+                          onClick={() => { void navigator.clipboard.writeText(src.gid); toast.info('تم نسخ رقم GID'); }}
+                        >📋 نسخ GID</button>
+                        <button
+                          type="button"
+                          className="px-2 py-0.5 rounded-md font-black text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200"
+                          title="نسخ الرابط الكامل لفتح الورقة"
+                          onClick={() => { void navigator.clipboard.writeText(sourceUrl(src.gid)); toast.info('تم نسخ الرابط'); }}
+                        >🔗 نسخ الرابط</button>
                         <a
                           href={sourceUrl(src.gid)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[var(--schedule-accent-blue)] font-black underline"
-                        >فتح الورقة</a>
-                        <button
-                          type="button"
-                          className="px-2 py-0.5 rounded border hover:bg-slate-100"
-                          onClick={() => { void navigator.clipboard.writeText(sourceUrl(src.gid)); }}
-                        >نسخ الرابط</button>
+                          className="px-2 py-0.5 rounded-md font-black text-white bg-[var(--schedule-accent-blue)] hover:opacity-90"
+                        >↗ فتح الورقة</a>
                         {src.note && <span className="text-[var(--schedule-muted)]">({src.note})</span>}
                       </div>
                     );
